@@ -14,6 +14,17 @@ damit später auch Freund:innen ihr eigenes Regal führen können.
 | `data/raw/` | Rohdaten aus dem Sheet (Stand 13.10.2026), `data/import.sql` die fertige Einfüge-Datei. |
 | `docs/` | Anleitungen: Einrichtung von Supabase und Cloudflare, Datenmodell. |
 
+## Live
+
+- App: https://booktracker.pages.dev (baut automatisch bei jedem Push auf `main`)
+- Datenbank: Supabase-Projekt „booktracker“ (Frankfurt)
+
+## Seiten
+
+Start, Bibliothek (Karten oder Tabelle), Buchdetail, Buch eintragen (ISBN-Suche und Barcode-Scanner),
+SuB-Zufallspicker, Regal (gesamt mit Filtern, nach Jahren), Reihen, Autor:innen, Ziele und Challenges (Bingo),
+Wunschliste, Statistik, Einstellungen (Passwort, Export).
+
 ## Zwei Betriebsarten
 
 - **Demo-Modus** (ohne Konto): Ohne die beiden Werte in `app/.env` liest die App `app/public/demo/data.json`

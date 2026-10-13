@@ -18,7 +18,26 @@ Es wird nichts programmiert, alles sind Klicks und ein paar Kopiervorgänge.
    Beide in `app/.env` eintragen (Vorlage `app/.env.example`). Der `service_role`-Schlüssel bleibt geheim und
    kommt nirgends in die App.
 
-### Die 1.551 Bücher einspielen
+### Anmeldung ohne Mail-Limit
+
+Der eingebaute Mailversand von Supabase schickt nur 2 Mails pro Stunde. Deshalb meldet man sich in der App
+mit Passwort an. Ein Passwort lässt sich in der App unter **Einstellungen** setzen (wenn man angemeldet ist)
+oder einmalig im SQL-Editor:
+
+```sql
+update auth.users
+set encrypted_password = extensions.crypt('DEINPASSWORT', extensions.gen_salt('bf')),
+    email_confirmed_at = coalesce(email_confirmed_at, now())
+where email = 'deine@mail.de';
+```
+
+Für Freund:innen später: einen eigenen Mailversand (z. B. Resend, kostenlos) unter
+**Authentication → Emails → SMTP Settings** eintragen, dann fällt das Limit weg.
+
+### Die 1.551 Bücher einspielen (so wurde es gemacht)
+
+In der App unter **Einstellungen → Bücher aus dem Sheet übernehmen** auf **Jetzt übernehmen** klicken.
+Der Knopf erscheint nur im Konto, dem das Sheet gehört. Der Weg über `data/import.sql` bleibt als Ersatz:
 
 1. App einmal starten und mit der eigenen E-Mail anmelden. Dadurch entsteht das Konto.
 2. In Supabase unter **Authentication → Users** die eigene **User UID** kopieren (eine lange Kennung wie
