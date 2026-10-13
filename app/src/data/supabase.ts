@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { DataProvider } from "./provider";
+import type { DataProvider, ImportBundle, ImportSummary } from "./provider";
 import { slugify } from "./provider";
 import type { Book, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
@@ -27,6 +27,16 @@ export class SupabaseProvider implements DataProvider {
     if (error) throw error;
   }
 
+  async signInWithPassword(email: string, password: string) {
+    const { error } = await this.sb.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }
+
+  async setPassword(password: string) {
+    const { error } = await this.sb.auth.updateUser({ password });
+    if (error) throw error;
+  }
+
   async signInWithProvider(provider: "google" | "apple") {
     const { error } = await this.sb.auth.signInWithOAuth({
       provider,
@@ -50,6 +60,17 @@ export class SupabaseProvider implements DataProvider {
     return data.user.id;
   }
 
+  /** Holt Zeilen nach Kennung in kleinen Häppchen, damit die Anfrage-Adresse nicht zu lang wird. */
+  private async fetchIn(table: string, select: string, ids: string[]): Promise<any[]> {
+    const out: any[] = [];
+    for (let i = 0; i < ids.length; i += 120) {
+      const { data, error } = await this.sb.from(table).select(select).in("id", ids.slice(i, i + 120));
+      if (error) throw error;
+      out.push(...(data as any[]));
+    }
+    return out;
+  }
+
   async loadLibrary(): Promise<Library> {
     const uid = await this.uid();
     // Nur die Bücher laden, die die Person im Regal hat
@@ -61,32 +82,17 @@ export class SupabaseProvider implements DataProvider {
     ]);
     for (const r of [ub, rd, wl, gl]) if (r.error) throw r.error;
     const bookIds = (ub.data as UserBook[]).map((x) => x.book_id);
-    const books: Book[] = [];
-    // in Häppchen laden, damit die Anfrage nicht zu lang wird
-    for (let i = 0; i < bookIds.length; i += 300) {
-      const chunk = bookIds.slice(i, i + 300);
-      const { data, error } = await this.sb
-        .from("books")
-        .select("*, book_authors(author_id, position), adaptations(kind)")
-        .in("id", chunk);
-      if (error) throw error;
-      for (const b of data as any[]) {
-        books.push({
-          ...b,
-          author_ids: [...(b.book_authors ?? [])].sort((x, y) => x.position - y.position).map((x) => x.author_id),
-          adaptations: (b.adaptations ?? []).map((x: any) => x.kind),
-          book_authors: undefined
-        });
-      }
-    }
+    const rawBooks = await this.fetchIn("books", "*, book_authors(author_id, position), adaptations(kind)", bookIds);
+    const books: Book[] = rawBooks.map((b: any) => ({
+      ...b,
+      author_ids: [...(b.book_authors ?? [])].sort((x, y) => x.position - y.position).map((x) => x.author_id),
+      adaptations: (b.adaptations ?? []).map((x: any) => x.kind),
+      book_authors: undefined
+    }));
     const authorIds = [...new Set(books.flatMap((b) => b.author_ids ?? []))];
     const seriesIds = [...new Set(books.map((b) => b.series_id).filter(Boolean))] as string[];
-    const [au, se] = await Promise.all([
-      authorIds.length ? this.sb.from("authors").select("*").in("id", authorIds) : { data: [], error: null },
-      seriesIds.length ? this.sb.from("series").select("*").in("id", seriesIds) : { data: [], error: null }
-    ]);
-    if (au.error) throw au.error;
-    if (se.error) throw se.error;
+    const [authors, series] = await Promise.all([this.fetchIn("authors", "*", authorIds), this.fetchIn("series", "*", seriesIds)]);
+    const au = { data: authors }, se = { data: series };
     return {
       authors: au.data as any,
       series: se.data as any,
@@ -179,4 +185,66 @@ export class SupabaseProvider implements DataProvider {
     if (error) throw error;
     return data as Goal;
   }
+
+  /**
+   * Übernimmt die Daten aus dem Sheet (public/demo/data.json) in dieses Konto.
+   * Gemeinsame Buchdaten werden eingefügt, falls noch nicht vorhanden; persönliche Daten
+   * bekommen die Kennung der angemeldeten Person. Mehrfaches Ausführen legt nichts doppelt an.
+   */
+  async importLibrary(src: ImportBundle, onProgress?: (step: string, done: number, total: number) => void): Promise<ImportSummary> {
+    const uid = await this.uid();
+    const summary: ImportSummary = {};
+    const CHUNK = 400;
+    const run = async (label: string, table: string, rows: any[], opts: { onConflict?: string; ignore?: boolean } = {}) => {
+      let done = 0;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK);
+        const q = this.sb.from(table).upsert(chunk, { onConflict: opts.onConflict ?? "id", ignoreDuplicates: opts.ignore ?? true });
+        const { error } = await q;
+        if (error) throw new Error(`${label}: ${error.message}`);
+        done += chunk.length;
+        onProgress?.(label, done, rows.length);
+      }
+      summary[table] = rows.length;
+    };
+    const clean = (o: any, drop: string[]) => {
+      const out: any = {};
+      for (const [k, v] of Object.entries(o)) if (!drop.includes(k)) out[k] = v;
+      return out;
+    };
+    const mine = (o: any) => ({ ...o, user_id: uid });
+
+    await run("Autor:innen", "authors", (src.authors ?? []).map((a) => ({ ...clean(a, []), created_by: uid })));
+    await run("Reihen", "series", (src.series ?? []).map((s) => ({ ...clean(s, []), created_by: uid })));
+    const books = (src.books ?? []) as any[];
+    await run("Bücher", "books", books.map((b) => ({ ...clean(b, ["author_ids", "adaptations"]), created_by: uid })));
+    const ba: any[] = [];
+    for (const b of books) (b.author_ids ?? []).forEach((author_id: string, i: number) => ba.push({ book_id: b.id, author_id, position: i + 1 }));
+    await run("Autor:innen-Zuordnung", "book_authors", ba, { onConflict: "book_id,author_id" });
+    const ad: any[] = [];
+    for (const b of books) for (const kind of b.adaptations ?? []) ad.push({ id: uuid5(`${b.id}|${kind}`), book_id: b.id, kind });
+    await run("Adaptionen", "adaptations", ad);
+
+    // Persönliche Daten: die Kennungen aus der Datei bleiben, nur die Person wird ersetzt.
+    await run("Mein Regal", "user_books", (src.user_books ?? []).map(mine), { onConflict: "user_id,book_id" });
+    await run("Lesevorgänge", "readings", (src.readings ?? []).map(mine));
+    await run("Wunschliste", "wishlist_items", (src.wishlist_items ?? []).map(mine));
+    await run("Verkauf", "sales", (src.sales ?? []).map(mine));
+    await run("Challenges", "challenges", (src.challenges ?? []).map(mine));
+    await run("Challenge-Felder", "challenge_entries", src.challenge_entries ?? []);
+    await run("Tops", "favorites", (src.favorites ?? []).map(mine), { onConflict: "user_id,kind,rank" });
+    await run("Ziele", "goals", (src.goals ?? []).map(mine), { onConflict: "user_id,year" });
+    return summary;
+  }
+}
+
+/** Kleine, feste Kennung aus einem Text (für Zeilen ohne eigene ID). */
+function uuid5(text: string): string {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (let i = 0; i < text.length; i++) {
+    h1 = Math.imul(h1 ^ text.charCodeAt(i), 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ text.charCodeAt(i), 0x811c9dc5) >>> 0;
+  }
+  const hex = (h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0")).repeat(2);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }

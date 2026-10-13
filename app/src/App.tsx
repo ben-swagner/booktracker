@@ -66,7 +66,7 @@ export default function App() {
       </header>
       <main className="wrap">
         {data.mode === "demo" && (
-          <div className="banner">Demo-Modus: Die Daten stammen aus deinem Sheet, Änderungen bleiben nur in diesem Browser. Mit Supabase-Konto wird daraus die echte App.</div>
+          <div className="banner">Demo-Modus: Die Daten stammen aus deinem Sheet, Änderungen bleiben nur in diesem Browser. Die echte App mit Konto läuft unter booktracker.pages.dev.</div>
         )}
         <ErrorBoundary key={loc.pathname}>
         <Routes>

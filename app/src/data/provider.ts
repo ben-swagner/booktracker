@@ -1,5 +1,13 @@
 import type { Book, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
+export interface ImportBundle extends Partial<Library> {
+  sales?: any[];
+  favorites?: any[];
+  challenges?: any[];
+  challenge_entries?: any[];
+}
+export type ImportSummary = Record<string, number>;
+
 /**
  * Der Datenzugriff hat zwei Ausführungen:
  *  - Demo (ohne Supabase): liest public/demo/data.json, Änderungen bleiben im Browser.
@@ -10,6 +18,8 @@ export interface DataProvider {
   readonly mode: "demo" | "supabase";
   currentUser(): Promise<Profile | null>;
   signInWithEmail(email: string): Promise<void>;
+  signInWithPassword(email: string, password: string): Promise<void>;
+  setPassword(password: string): Promise<void>;
   signInWithProvider(provider: "google" | "apple"): Promise<void>;
   signOut(): Promise<void>;
   onAuthChange(cb: () => void): () => void;
@@ -24,6 +34,8 @@ export interface DataProvider {
   saveWishlistItem(w: Partial<WishlistItem> & { title: string }): Promise<WishlistItem>;
   deleteWishlistItem(id: string): Promise<void>;
   saveGoal(g: Goal): Promise<Goal>;
+  /** Übernimmt einen kompletten Datenbestand (z. B. aus dem Sheet) in das Konto der Person. */
+  importLibrary(src: ImportBundle, onProgress?: (step: string, done: number, total: number) => void): Promise<ImportSummary>;
 }
 
 export function newId(): string {

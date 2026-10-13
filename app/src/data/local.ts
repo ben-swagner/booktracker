@@ -1,4 +1,4 @@
-import type { DataProvider } from "./provider";
+import type { DataProvider, ImportBundle } from "./provider";
 import { newId, slugify } from "./provider";
 import type { Book, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
@@ -18,6 +18,8 @@ export class LocalProvider implements DataProvider {
     return DEMO_USER;
   }
   async signInWithEmail() {}
+  async signInWithPassword() {}
+  async setPassword() {}
   async signInWithProvider() {}
   async signOut() {}
   onAuthChange(cb: () => void) {
@@ -150,6 +152,17 @@ export class LocalProvider implements DataProvider {
     else lib.goals.push(g);
     this.persist();
     return g;
+  }
+
+  async importLibrary(src: ImportBundle) {
+    const lib = await this.loadLibrary();
+    for (const k of ["authors", "series", "books", "user_books", "readings", "wishlist_items", "goals"] as const) {
+      const incoming = (src[k] ?? []) as any[];
+      const have = new Set((lib[k] as any[]).map((x) => x.id ?? `${x.user_id}-${x.year}`));
+      for (const row of incoming) if (!have.has(row.id ?? `${row.user_id}-${row.year}`)) (lib[k] as any[]).push(row);
+    }
+    this.persist();
+    return { books: lib.books.length };
   }
 
   /** Demo-Daten zurücksetzen (Einstellungen) */

@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { data } from "../data";
+import { toast } from "../App";
 import { useEntries, useUser } from "../data/hooks";
 import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
@@ -15,6 +18,42 @@ function download(name: string, content: string, type: string) {
 export default function Einstellungen() {
   const { data: user } = useUser();
   const { entries, lib } = useEntries();
+  const qc = useQueryClient();
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [progress, setProgress] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function savePassword(ev: React.FormEvent) {
+    ev.preventDefault();
+    if (pw.length < 8) { toast("Das Passwort braucht mindestens 8 Zeichen."); return; }
+    if (pw !== pw2) { toast("Die beiden Passwörter sind nicht gleich."); return; }
+    try {
+      await data.setPassword(pw);
+      setPw(""); setPw2("");
+      toast("Passwort gespeichert. Damit kannst du dich ab jetzt überall anmelden.");
+    } catch (x: any) {
+      toast(x.message ?? "Das hat nicht geklappt.");
+    }
+  }
+
+  async function importSheet() {
+    if (!confirm("Alle Bücher, Wunschliste, Verkäufe und Tops aus dem Sheet (Stand 13.10.2026) in dein Konto übernehmen? Was schon da ist, bleibt unverändert.")) return;
+    setImporting(true);
+    setProgress("Lade die Daten…");
+    try {
+      const res = await fetch(import.meta.env.BASE_URL + "demo/data.json");
+      const bundle = await res.json();
+      const summary = await data.importLibrary(bundle, (step, done, total) => setProgress(`${step}: ${done} von ${total}`));
+      setProgress(`Fertig: ${summary.books ?? 0} Bücher, ${summary.user_books ?? 0} Regaleinträge, ${summary.readings ?? 0} Lesevorgänge, ${summary.wishlist_items ?? 0} Wünsche.`);
+      await qc.invalidateQueries({ queryKey: ["library"] });
+      toast("Import abgeschlossen.");
+    } catch (x: any) {
+      setProgress("Fehler: " + (x.message ?? String(x)));
+    } finally {
+      setImporting(false);
+    }
+  }
 
   function exportJson() {
     if (!lib) return;
@@ -42,6 +81,25 @@ export default function Einstellungen() {
         <p style={{ margin: 0 }}>Angemeldet als <strong>{user?.display_name}</strong>{data.mode === "demo" ? " (Demo, ohne Konto)" : ""}.</p>
         {data.mode === "supabase" && <div className="actions"><button className="btn" onClick={() => data.signOut()}>Abmelden</button></div>}
       </div>
+      {data.mode === "supabase" && (
+        <form className="panel section" onSubmit={savePassword}>
+          <h3>Passwort festlegen</h3>
+          <p className="muted" style={{ margin: 0 }}>Mit einem Passwort meldest du dich auf jedem Gerät ohne Mail-Link an. Mindestens 8 Zeichen.</p>
+          <div className="form-grid">
+            <div className="field"><label htmlFor="pw">Neues Passwort</label><input id="pw" className="input" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
+            <div className="field"><label htmlFor="pw2">Noch einmal</label><input id="pw2" className="input" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></div>
+          </div>
+          <div className="actions"><button className="btn primary" type="submit">Passwort speichern</button></div>
+        </form>
+      )}
+      {data.mode === "supabase" && (
+        <div className="panel section">
+          <h3>Bücher aus dem Sheet übernehmen</h3>
+          <p className="muted" style={{ margin: 0 }}>Holt alle 1.551 Bücher samt Wunschliste, Reihen, Rereads, Verkäufen und Tops aus dem Google Sheet (Stand 13.10.2026) in dein Konto. Dauert etwa eine Minute. Mehrfach ausführen ist ungefährlich, es wird nichts doppelt angelegt.</p>
+          {progress && <p className="mono" style={{ margin: 0 }}>{progress}</p>}
+          <div className="actions"><button className="btn primary" onClick={importSheet} disabled={importing}>{importing ? "Läuft…" : entries.length ? "Noch einmal abgleichen" : "Jetzt übernehmen"}</button></div>
+        </div>
+      )}
       <div className="panel section">
         <h3>Darstellung</h3>
         <div className="actions">
