@@ -7,6 +7,9 @@ import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
 
+// Der Sheet-Import gehört nur zum Konto, aus dem das Sheet stammt.
+const OWNER_ID = "12804274-56db-41a9-a074-6318d4a7f463";
+
 function download(name: string, content: string, type: string) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([content], { type }));
@@ -92,7 +95,7 @@ export default function Einstellungen() {
           <div className="actions"><button className="btn primary" type="submit">Passwort speichern</button></div>
         </form>
       )}
-      {data.mode === "supabase" && (
+      {data.mode === "supabase" && user?.id === OWNER_ID && (
         <div className="panel section">
           <h3>Bücher aus dem Sheet übernehmen</h3>
           <p className="muted" style={{ margin: 0 }}>Holt alle 1.551 Bücher samt Wunschliste, Reihen, Rereads, Verkäufen und Tops aus dem Google Sheet (Stand 13.10.2026) in dein Konto. Dauert etwa eine Minute. Mehrfach ausführen ist ungefährlich, es wird nichts doppelt angelegt.</p>
