@@ -1,0 +1,9 @@
+app/node_modules
+app/dist
+app/dist-artifact
+app/dev-dist
+app/.env
+app/.env.local
+data/raw/*_part*.json
+__pycache__
+.DS_Store
