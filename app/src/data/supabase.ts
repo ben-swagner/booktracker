@@ -199,7 +199,8 @@ export class SupabaseProvider implements DataProvider {
       let done = 0;
       for (let i = 0; i < rows.length; i += CHUNK) {
         const chunk = rows.slice(i, i + CHUNK);
-        const q = this.sb.from(table).upsert(chunk, { onConflict: opts.onConflict ?? "id", ignoreDuplicates: opts.ignore ?? true });
+        // defaultToNull: false = fehlende Felder bekommen den Standardwert der Tabelle (z. B. leere Liste) statt "nichts"
+        const q = this.sb.from(table).upsert(chunk, { onConflict: opts.onConflict ?? "id", ignoreDuplicates: opts.ignore ?? true, defaultToNull: false });
         const { error } = await q;
         if (error) throw new Error(`${label}: ${error.message}`);
         done += chunk.length;
