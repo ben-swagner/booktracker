@@ -25,22 +25,33 @@ export function olCoverUrl(isbn: string, size: "S" | "M" | "L" = "M") {
  */
 export function Cover({ title, author, url, isbn, bookId, large }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean }) {
   const c = coverColors(title);
-  const tryIsbn = !url && isbn && !noCover.has(isbn) ? isbn : null;
-  const [src, setSrc] = useState<string | null>(url ?? (tryIsbn ? olCoverUrl(tryIsbn, large ? "L" : "M") : null));
+  const olTry = !url && isbn && !noCover.has(isbn) ? isbn : null;
+  const [src, setSrc] = useState<string | null>(url ?? (olTry ? olCoverUrl(olTry, large ? "L" : "M") : null));
+  const [stage, setStage] = useState<"url" | "ol" | "google" | "none">(url ? "url" : olTry ? "ol" : "google");
+
   useEffect(() => {
-    setSrc(url ?? (tryIsbn ? olCoverUrl(tryIsbn, large ? "L" : "M") : null));
-  }, [url, tryIsbn, large]);
-  // Open Library hatte nichts: Google Books fragen, Treffer am Buch speichern
-  const fallback = () => {
-    if (!tryIsbn) { setSrc(null); return; }
-    rememberNoCover(tryIsbn);
-    setSrc(null);
-    googleCover(tryIsbn).then((g) => {
-      if (!g) return;
-      setSrc(g);
-      if (bookId) data.saveCover(bookId, g).catch(() => {});
+    setSrc(url ?? (olTry ? olCoverUrl(olTry, large ? "L" : "M") : null));
+    setStage(url ? "url" : olTry ? "ol" : "google");
+  }, [url, olTry, large]);
+
+  // Dritte Stufe: Google Books (läuft, sobald Open Library ausscheidet oder schon als leer bekannt ist)
+  useEffect(() => {
+    if (stage !== "google" || !isbn || url) return;
+    let alive = true;
+    googleCover(isbn).then((g) => {
+      if (!alive) return;
+      if (g) { setSrc(g); if (bookId) data.saveCover(bookId, g).catch(() => {}); }
+      else setStage("none");
     });
+    return () => { alive = false; };
+  }, [stage, isbn, url, bookId]);
+
+  const olFailed = () => {
+    if (olTry) rememberNoCover(olTry);
+    setSrc(null);
+    setStage("google");
   };
+
   return (
     <div className={"cover" + (large ? " lg" : "")} style={{ background: c.bg, color: c.fg }} aria-hidden="true">
       {src ? (
@@ -50,12 +61,12 @@ export function Cover({ title, author, url, isbn, bookId, large }: { title: stri
           loading="lazy"
           decoding="async"
           onLoad={(e) => {
-            // Open Library liefert bei fehlendem Bild ein 1x1-Pixel: das zählt nicht
             const img = e.currentTarget;
-            if (img.naturalWidth <= 1) { fallback(); return; }
-            if (!url && tryIsbn && bookId && img.src.includes("openlibrary")) data.saveCover(bookId, olCoverUrl(tryIsbn, "L")).catch(() => {});
+            // Open Library liefert bei fehlendem Bild ein 1x1-Pixel: das zählt nicht
+            if (img.naturalWidth <= 1) { if (stage === "ol") olFailed(); else setSrc(null); return; }
+            if (stage === "ol" && olTry && bookId) data.saveCover(bookId, olCoverUrl(olTry, "L")).catch(() => {});
           }}
-          onError={fallback}
+          onError={() => { if (stage === "ol") olFailed(); else setSrc(null); }}
         />
       ) : (
         <>
