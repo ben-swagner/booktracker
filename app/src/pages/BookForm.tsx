@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEntries, useSaveBook } from "../data/hooks";
 import type { Book, ReadingStatus, UserBook } from "../data/types";
 import { AUDIENCE, BURN, COMPANY, EXPECTATION, FORMATS, KINDS, MEDIA, PERIODS, STATUS, STATUS_ORDER, VERDICT } from "../lib/labels";
 import { lookupIsbn } from "../lib/isbn";
 import { toast } from "../App";
+// Der Scanner wird erst geladen, wenn er gebraucht wird (spart Ladezeit)
+const Scanner = lazy(() => import("../components/Scanner").then((m) => ({ default: m.Scanner })));
 
 type Form = {
   title: string; subtitle: string; original_title: string; authors: string; isbn13: string; blurb: string;
@@ -62,6 +64,7 @@ export default function BookForm() {
   const [f, setF] = useState<Form>(EMPTY);
   const [tab, setTab] = useState<"buch" | "ich" | "inhalt">("buch");
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const existing = id ? entries.find((x) => x.mine.id === id) : undefined;
 
   useEffect(() => {
@@ -106,6 +109,14 @@ export default function BookForm() {
     }
   }
 
+  // Nach dem Scannen: ISBN eintragen und sofort die Buchdaten holen
+  const onScanned = useCallback((isbn: string) => {
+    setScanning(false);
+    setF((cur) => ({ ...cur, isbn13: isbn }));
+    toast(`ISBN ${isbn} erkannt, hole Daten…`);
+    setTimeout(() => document.getElementById("btnIsbn")?.click(), 50);
+  }, []);
+
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
     if (!f.title.trim()) { toast("Ein Titel fehlt noch."); return; }
@@ -133,6 +144,7 @@ export default function BookForm() {
 
   return (
     <form onSubmit={submit} className="section">
+      {scanning && <Suspense fallback={<div className="scanner"><p className="scanner-status">Scanner wird geladen…</p></div>}><Scanner onResult={onScanned} onClose={() => setScanning(false)} /></Suspense>}
       <div className="mast">
         <h1>{existing ? "Buch bearbeiten" : "Neues Buch"}</h1>
         <div className="actions">
@@ -147,7 +159,11 @@ export default function BookForm() {
             <label htmlFor="isbn13">ISBN (zum automatischen Ausfüllen)</label>
             <div className="actions" style={{ flexWrap: "nowrap" }}>
               <input id="isbn13" className="input" value={f.isbn13} onChange={up("isbn13")} placeholder="978-3-…" inputMode="numeric" />
-              <button type="button" className="btn" onClick={fetchIsbn} disabled={busy || !f.isbn13}>{busy ? "Suche…" : "Daten holen"}</button>
+              <button type="button" className="btn" onClick={() => setScanning(true)} title="Mit der Kamera scannen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M11 8v8M15 8v8M18 8v8" /></svg>
+                Scannen
+              </button>
+              <button id="btnIsbn" type="button" className="btn" onClick={fetchIsbn} disabled={busy || !f.isbn13}>{busy ? "Suche…" : "Daten holen"}</button>
             </div>
           </div>
           <TextField k="title" label="Titel" span value={f.title} onChange={up("title")} />

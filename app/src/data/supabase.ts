@@ -60,6 +60,19 @@ export class SupabaseProvider implements DataProvider {
     return data.user.id;
   }
 
+  /** Holt alle eigenen Zeilen einer Tabelle, seitenweise (Supabase liefert höchstens 1000 pro Anfrage). */
+  private async fetchMine(table: string, uid: string, orderBy = "id"): Promise<any[]> {
+    const PAGE = 1000;
+    const out: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await this.sb.from(table).select("*").eq("user_id", uid).order(orderBy).range(from, from + PAGE - 1);
+      if (error) throw error;
+      out.push(...(data as any[]));
+      if ((data as any[]).length < PAGE) break;
+    }
+    return out;
+  }
+
   /** Holt Zeilen nach Kennung in kleinen Häppchen, damit die Anfrage-Adresse nicht zu lang wird. */
   private async fetchIn(table: string, select: string, ids: string[]): Promise<any[]> {
     const out: any[] = [];
@@ -74,13 +87,13 @@ export class SupabaseProvider implements DataProvider {
   async loadLibrary(): Promise<Library> {
     const uid = await this.uid();
     // Nur die Bücher laden, die die Person im Regal hat
-    const [ub, rd, wl, gl] = await Promise.all([
-      this.sb.from("user_books").select("*").eq("user_id", uid),
-      this.sb.from("readings").select("*").eq("user_id", uid),
-      this.sb.from("wishlist_items").select("*").eq("user_id", uid),
-      this.sb.from("goals").select("*").eq("user_id", uid)
+    const [ubRows, rdRows, wlRows, glRows] = await Promise.all([
+      this.fetchMine("user_books", uid),
+      this.fetchMine("readings", uid),
+      this.fetchMine("wishlist_items", uid),
+      this.fetchMine("goals", uid, "year")
     ]);
-    for (const r of [ub, rd, wl, gl]) if (r.error) throw r.error;
+    const ub = { data: ubRows }, rd = { data: rdRows }, wl = { data: wlRows }, gl = { data: glRows };
     const bookIds = (ub.data as UserBook[]).map((x) => x.book_id);
     const rawBooks = await this.fetchIn("books", "*, book_authors(author_id, position), adaptations(kind)", bookIds);
     const books: Book[] = rawBooks.map((b: any) => ({
