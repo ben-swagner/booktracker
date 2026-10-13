@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "./Link";
 import { data } from "../data";
-import { googleCover } from "../lib/covers";
+import { findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, coverColors, fmtDate } from "../lib/labels";
 
@@ -34,17 +34,17 @@ export function Cover({ title, author, url, isbn, bookId, large }: { title: stri
     setStage(url ? "url" : olTry ? "ol" : "google");
   }, [url, olTry, large]);
 
-  // Dritte Stufe: Google Books (läuft, sobald Open Library ausscheidet oder schon als leer bekannt ist)
+  // Weitere Stufen (Open-Library-Suche, Google Books), sobald das ISBN-Bild ausscheidet
   useEffect(() => {
-    if (stage !== "google" || !isbn || url) return;
+    if (stage !== "google" || url) return;
     let alive = true;
-    googleCover(isbn).then((g) => {
+    findCover({ isbn, title, author }).then((g) => {
       if (!alive) return;
       if (g) { setSrc(g); if (bookId) data.saveCover(bookId, g).catch(() => {}); }
       else setStage("none");
     });
     return () => { alive = false; };
-  }, [stage, isbn, url, bookId]);
+  }, [stage, isbn, url, bookId, title, author]);
 
   const olFailed = () => {
     if (olTry) rememberNoCover(olTry);
