@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "./Link";
 import { data } from "../data";
+import { googleCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, coverColors, fmtDate } from "../lib/labels";
 
@@ -29,6 +30,17 @@ export function Cover({ title, author, url, isbn, bookId, large }: { title: stri
   useEffect(() => {
     setSrc(url ?? (tryIsbn ? olCoverUrl(tryIsbn, large ? "L" : "M") : null));
   }, [url, tryIsbn, large]);
+  // Open Library hatte nichts: Google Books fragen, Treffer am Buch speichern
+  const fallback = () => {
+    if (!tryIsbn) { setSrc(null); return; }
+    rememberNoCover(tryIsbn);
+    setSrc(null);
+    googleCover(tryIsbn).then((g) => {
+      if (!g) return;
+      setSrc(g);
+      if (bookId) data.saveCover(bookId, g).catch(() => {});
+    });
+  };
   return (
     <div className={"cover" + (large ? " lg" : "")} style={{ background: c.bg, color: c.fg }} aria-hidden="true">
       {src ? (
@@ -40,10 +52,10 @@ export function Cover({ title, author, url, isbn, bookId, large }: { title: stri
           onLoad={(e) => {
             // Open Library liefert bei fehlendem Bild ein 1x1-Pixel: das zählt nicht
             const img = e.currentTarget;
-            if (img.naturalWidth <= 1) { if (tryIsbn) rememberNoCover(tryIsbn); setSrc(null); return; }
-            if (!url && tryIsbn && bookId) data.saveCover(bookId, olCoverUrl(tryIsbn, "L")).catch(() => {});
+            if (img.naturalWidth <= 1) { fallback(); return; }
+            if (!url && tryIsbn && bookId && img.src.includes("openlibrary")) data.saveCover(bookId, olCoverUrl(tryIsbn, "L")).catch(() => {});
           }}
-          onError={() => { if (tryIsbn) rememberNoCover(tryIsbn); setSrc(null); }}
+          onError={fallback}
         />
       ) : (
         <>
