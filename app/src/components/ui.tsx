@@ -1,13 +1,50 @@
+import { useEffect, useState } from "react";
 import { Link } from "./Link";
+import { data } from "../data";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, coverColors, fmtDate } from "../lib/labels";
 
-export function Cover({ title, author, url, large }: { title: string; author?: string; url?: string | null; large?: boolean }) {
+/** Merkt sich pro Sitzung, welche ISBNs bei Open Library kein Bild haben, damit nichts doppelt versucht wird. */
+const noCover = new Set<string>();
+try {
+  for (const k of JSON.parse(sessionStorage.getItem("bt-nocover") ?? "[]")) noCover.add(k);
+} catch { /* egal */ }
+function rememberNoCover(isbn: string) {
+  noCover.add(isbn);
+  try { sessionStorage.setItem("bt-nocover", JSON.stringify([...noCover].slice(-2000))); } catch { /* egal */ }
+}
+
+export function olCoverUrl(isbn: string, size: "S" | "M" | "L" = "M") {
+  return `https://covers.openlibrary.org/b/isbn/${isbn}-${size}.jpg?default=false`;
+}
+
+/**
+ * Buchcover: echtes Bild, wenn eine Adresse bekannt ist; sonst Versuch über die ISBN bei Open Library;
+ * sonst ein farbiger Stoffeinband mit Titel. Ein gefundenes Bild wird am Buch gespeichert.
+ */
+export function Cover({ title, author, url, isbn, bookId, large }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean }) {
   const c = coverColors(title);
+  const tryIsbn = !url && isbn && !noCover.has(isbn) ? isbn : null;
+  const [src, setSrc] = useState<string | null>(url ?? (tryIsbn ? olCoverUrl(tryIsbn, large ? "L" : "M") : null));
+  useEffect(() => {
+    setSrc(url ?? (tryIsbn ? olCoverUrl(tryIsbn, large ? "L" : "M") : null));
+  }, [url, tryIsbn, large]);
   return (
     <div className={"cover" + (large ? " lg" : "")} style={{ background: c.bg, color: c.fg }} aria-hidden="true">
-      {url ? (
-        <img src={url} alt="" loading="lazy" />
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onLoad={(e) => {
+            // Open Library liefert bei fehlendem Bild ein 1x1-Pixel: das zählt nicht
+            const img = e.currentTarget;
+            if (img.naturalWidth <= 1) { if (tryIsbn) rememberNoCover(tryIsbn); setSrc(null); return; }
+            if (!url && tryIsbn && bookId) data.saveCover(bookId, olCoverUrl(tryIsbn, "L")).catch(() => {});
+          }}
+          onError={() => { if (tryIsbn) rememberNoCover(tryIsbn); setSrc(null); }}
+        />
       ) : (
         <>
           <div className="cover-title">{title}</div>
@@ -54,7 +91,7 @@ export function BookCard({ e }: { e: Entry }) {
   const progress = m.status === "lese" && b.pages && m.current_page ? Math.min(100, Math.round((m.current_page / b.pages) * 100)) : null;
   return (
     <Link className="card" to={`/buch/${m.id}`}>
-      <Cover title={b.title} author={authorNames(e)} url={b.cover_url} />
+      <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} />
       <div className="card-body">
         <div className="card-top">
           <StatusPill status={m.status} />

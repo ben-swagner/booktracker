@@ -6,6 +6,9 @@ import type { ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, fmtDate, spiceLabel, today } from "../lib/labels";
 import { Cover, Stars, StatusPill, authorNames } from "../components/ui";
 import { toast } from "../App";
+import { lookupIsbn } from "../lib/isbn";
+import { data } from "../data";
+import { useQueryClient } from "@tanstack/react-query";
 
 function Chips({ items }: { items?: string[] }) {
   if (!items?.length) return null;
@@ -20,6 +23,7 @@ export default function BookDetail() {
   const saveReading = useSaveReading();
   const del = useDeleteUserBook();
   const [page, setPage] = useState<string>("");
+  const qc = useQueryClient();
 
   if (isLoading) return <p className="muted">Lade…</p>;
   const e = entries.find((x) => x.mine.id === id);
@@ -51,6 +55,19 @@ export default function BookDetail() {
     toast(`Seite ${n} gemerkt.`);
   }
 
+  async function findCover() {
+    if (!b.isbn13) { toast("Ohne ISBN kann ich kein Cover suchen. Trag sie unter Bearbeiten ein."); return; }
+    toast("Suche Cover…");
+    try {
+      const r = await lookupIsbn(b.isbn13);
+      if (r?.cover_url) {
+        await data.saveCover(b.id, r.cover_url);
+        await qc.invalidateQueries({ queryKey: ["library"] });
+        toast("Cover gefunden.");
+      } else toast("Leider kein Cover gefunden. Du kannst unter Bearbeiten einen Bild-Link eintragen.");
+    } catch { toast("Die Suche hat nicht geklappt."); }
+  }
+
   async function remove() {
     if (!confirm(`„${b.title}“ wirklich aus deinem Regal entfernen?`)) return;
     await del.mutateAsync(m.id);
@@ -67,7 +84,7 @@ export default function BookDetail() {
         <button className="btn ghost" onClick={() => nav(-1)}>← Zurück</button>
       </div>
       <div className="panel detail">
-        <Cover title={b.title} author={authorNames(e)} url={b.cover_url} large />
+        <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} large />
         <div className="section">
           <div className="card-top">
             <StatusPill status={m.status} />
@@ -83,6 +100,7 @@ export default function BookDetail() {
               <button key={s} className="btn small" onClick={() => setStatus(s)}>→ {STATUS[s]}</button>
             ))}
             <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}>Bearbeiten</Link>
+            {!b.cover_url && <button className="btn small ghost" onClick={findCover}>Cover suchen</button>}
           </div>
           {m.status === "lese" && (
             <div className="panel" style={{ background: "var(--lese-bg)", boxShadow: "none" }}>

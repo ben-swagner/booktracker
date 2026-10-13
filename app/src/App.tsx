@@ -11,14 +11,40 @@ import Wunschliste from "./pages/Wunschliste";
 import Statistik from "./pages/Statistik";
 import Einstellungen from "./pages/Einstellungen";
 import Login from "./pages/Login";
+import SuB from "./pages/SuB";
+import Regal from "./pages/Regal";
+import Reihen from "./pages/Reihen";
+import Autorinnen from "./pages/Autorinnen";
+import Ziele from "./pages/Ziele";
+import Mehr from "./pages/Mehr";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
+// Untere Leiste auf dem Handy (fünf Plätze), oben am Computer stehen alle Seiten
+const ICONS = {
+  home: "M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+  books: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4-1 1 16-4 1z",
+  shelf: "M3 20h18M4 20V9h4v11M10 20V5h4v15M16 20v-8h4v8",
+  dice: "M4 4h16v16H4zM8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01",
+  more: "M5 12h.01M12 12h.01M19 12h.01"
+};
+const TABS = [
+  { to: "/", label: "Start", icon: ICONS.home },
+  { to: "/bibliothek", label: "Bibliothek", icon: ICONS.books },
+  { to: "/regal", label: "Regal", icon: ICONS.shelf },
+  { to: "/sub", label: "SuB", icon: ICONS.dice },
+  { to: "/mehr", label: "Mehr", icon: ICONS.more }
+];
 const LINKS = [
-  { to: "/", label: "Start", icon: "M3 11 12 3l9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" },
-  { to: "/bibliothek", label: "Bibliothek", icon: "M4 4h4v16H4zM10 4h4v16h-4zM16 5l4-1 1 16-4 1z" },
-  { to: "/wunschliste", label: "Wunschliste", icon: "M12 21s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z" },
-  { to: "/statistik", label: "Statistik", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
-  { to: "/einstellungen", label: "Mehr", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3.9a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 2.5a7 7 0 0 0-1.7 1l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 1.7 1l.4 2.5h5l.4-2.5a7 7 0 0 0 1.7-1l2.3.9 2-3.4-2-1.5a7 7 0 0 0 .1-1z" }
+  { to: "/", label: "Start" },
+  { to: "/bibliothek", label: "Bibliothek" },
+  { to: "/regal", label: "Regal" },
+  { to: "/sub", label: "SuB" },
+  { to: "/reihen", label: "Reihen" },
+  { to: "/autorinnen", label: "Autor:innen" },
+  { to: "/ziele", label: "Ziele" },
+  { to: "/wunschliste", label: "Wunschliste" },
+  { to: "/statistik", label: "Statistik" },
+  { to: "/einstellungen", label: "Mehr" }
 ];
 
 function Icon({ d }: { d: string }) {
@@ -78,12 +104,19 @@ export default function App() {
           <Route path="/wunschliste" element={<Wunschliste />} />
           <Route path="/statistik" element={<Statistik />} />
           <Route path="/einstellungen" element={<Einstellungen />} />
+          <Route path="/sub" element={<SuB />} />
+          <Route path="/regal" element={<Regal />} />
+          <Route path="/reihen" element={<Reihen />} />
+          <Route path="/autorinnen" element={<Autorinnen />} />
+          <Route path="/autorinnen/:slug" element={<Autorinnen />} />
+          <Route path="/ziele" element={<Ziele />} />
+          <Route path="/mehr" element={<Mehr />} />
           <Route path="*" element={<Start />} />
         </Routes>
         </ErrorBoundary>
       </main>
       <nav className="tabbar">
-        {LINKS.map((l) => (
+        {TABS.map((l) => (
           <NavLink key={l.to} to={l.to} end={l.to === "/"}><Icon d={l.icon} />{l.label}</NavLink>
         ))}
       </nav>

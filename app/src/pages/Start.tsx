@@ -46,7 +46,7 @@ export default function Start() {
         </Link>
         <Link className="stat" to="/bibliothek?status=lese"><span className="stat-label">Lese ich</span><span className="stat-value">{reading.length}</span></Link>
         <Link className="stat" to="/bibliothek?status=gelesen"><span className="stat-label">Gelesen</span><span className="stat-value">{by("gelesen").length}</span></Link>
-        <Link className="stat" to="/bibliothek?status=tbr"><span className="stat-label">SuB</span><span className="stat-value">{by("tbr").length}</span></Link>
+        <Link className="stat" to="/sub"><span className="stat-label">SuB</span><span className="stat-value">{by("tbr").length}</span></Link>
         <Link className="stat" to="/bibliothek?status=ungelesen"><span className="stat-label">Ungelesen</span><span className="stat-value">{by("ungelesen").length}</span></Link>
       </div>
 

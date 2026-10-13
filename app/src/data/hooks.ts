@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { data } from "./index";
-import type { Book, Entry, Goal, Library, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Entry, Goal, Library, Reading, UserBook, WishlistItem } from "./types";
 
 export function useUser() {
   return useQuery({ queryKey: ["user"], queryFn: () => data.currentUser(), staleTime: Infinity });
@@ -92,4 +92,21 @@ export function useDeleteWishlistItem() {
 export function useSaveGoal() {
   const inv = useInvalidate();
   return useMutation({ mutationFn: (g: Goal) => data.saveGoal(g), onSuccess: inv });
+}
+
+export function useSaveChallenge() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (c: Partial<Challenge> & { name: string }) => data.saveChallenge(c), onSuccess: inv });
+}
+export function useDeleteChallenge() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (id: string) => data.deleteChallenge(id), onSuccess: inv });
+}
+export function useSaveChallengeEntry() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (e: Partial<ChallengeEntry> & { challenge_id: string }) => data.saveChallengeEntry(e), onSuccess: inv });
+}
+export function useDeleteChallengeEntry() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (id: string) => data.deleteChallengeEntry(id), onSuccess: inv });
 }

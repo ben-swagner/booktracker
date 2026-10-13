@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { DataProvider, ImportBundle, ImportSummary } from "./provider";
 import { slugify } from "./provider";
-import type { Book, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 /** Echte Datenbank mit Konten (Supabase). */
 export class SupabaseProvider implements DataProvider {
@@ -74,10 +74,10 @@ export class SupabaseProvider implements DataProvider {
   }
 
   /** Holt Zeilen nach Kennung in kleinen Häppchen, damit die Anfrage-Adresse nicht zu lang wird. */
-  private async fetchIn(table: string, select: string, ids: string[]): Promise<any[]> {
+  private async fetchIn(table: string, select: string, ids: string[], column = "id"): Promise<any[]> {
     const out: any[] = [];
     for (let i = 0; i < ids.length; i += 120) {
-      const { data, error } = await this.sb.from(table).select(select).in("id", ids.slice(i, i + 120));
+      const { data, error } = await this.sb.from(table).select(select).in(column, ids.slice(i, i + 120));
       if (error) throw error;
       out.push(...(data as any[]));
     }
@@ -87,12 +87,14 @@ export class SupabaseProvider implements DataProvider {
   async loadLibrary(): Promise<Library> {
     const uid = await this.uid();
     // Nur die Bücher laden, die die Person im Regal hat
-    const [ubRows, rdRows, wlRows, glRows] = await Promise.all([
+    const [ubRows, rdRows, wlRows, glRows, chRows] = await Promise.all([
       this.fetchMine("user_books", uid),
       this.fetchMine("readings", uid),
       this.fetchMine("wishlist_items", uid),
-      this.fetchMine("goals", uid, "year")
+      this.fetchMine("goals", uid, "year"),
+      this.fetchMine("challenges", uid)
     ]);
+    const ceRows = chRows.length ? await this.fetchIn("challenge_entries", "*", chRows.map((c: any) => c.id), "challenge_id") : [];
     const ub = { data: ubRows }, rd = { data: rdRows }, wl = { data: wlRows }, gl = { data: glRows };
     const bookIds = (ub.data as UserBook[]).map((x) => x.book_id);
     const rawBooks = await this.fetchIn("books", "*, book_authors(author_id, position), adaptations(kind)", bookIds);
@@ -113,7 +115,9 @@ export class SupabaseProvider implements DataProvider {
       user_books: ub.data as UserBook[],
       readings: rd.data as Reading[],
       wishlist_items: wl.data as WishlistItem[],
-      goals: gl.data as Goal[]
+      goals: gl.data as Goal[],
+      challenges: chRows as Challenge[],
+      challenge_entries: ceRows as ChallengeEntry[]
     };
   }
 
@@ -197,6 +201,29 @@ export class SupabaseProvider implements DataProvider {
     const { data, error } = await this.sb.from("goals").upsert({ ...g, user_id: uid }).select("*").single();
     if (error) throw error;
     return data as Goal;
+  }
+
+  async saveChallenge(c: Partial<Challenge> & { name: string }) {
+    const uid = await this.uid();
+    const { data, error } = await this.sb.from("challenges").upsert({ ...c, user_id: uid }).select("*").single();
+    if (error) throw error;
+    return data as Challenge;
+  }
+  async deleteChallenge(id: string) {
+    const { error } = await this.sb.from("challenges").delete().eq("id", id);
+    if (error) throw error;
+  }
+  async saveChallengeEntry(e: Partial<ChallengeEntry> & { challenge_id: string }) {
+    const { data, error } = await this.sb.from("challenge_entries").upsert(e).select("*").single();
+    if (error) throw error;
+    return data as ChallengeEntry;
+  }
+  async deleteChallengeEntry(id: string) {
+    const { error } = await this.sb.from("challenge_entries").delete().eq("id", id);
+    if (error) throw error;
+  }
+  async saveCover(bookId: string, url: string) {
+    await this.sb.from("books").update({ cover_url: url }).eq("id", bookId);
   }
 
   /**

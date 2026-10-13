@@ -1,6 +1,6 @@
 import type { DataProvider, ImportBundle } from "./provider";
 import { newId, slugify } from "./provider";
-import type { Book, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 const KEY = "booktracker-demo-v2";
 const DEMO_USER: Profile = { id: "demo", display_name: "Larissa" };
@@ -37,6 +37,8 @@ export class LocalProvider implements DataProvider {
       saved = null;
     }
     if (saved) {
+      saved.challenges ??= [];
+      saved.challenge_entries ??= [];
       this.lib = saved;
       return saved;
     }
@@ -49,7 +51,9 @@ export class LocalProvider implements DataProvider {
       user_books: d.user_books ?? [],
       readings: d.readings ?? [],
       wishlist_items: d.wishlist_items ?? [],
-      goals: d.goals ?? [{ user_id: "demo", year: new Date().getFullYear(), books_goal: 52 }]
+      goals: d.goals ?? [{ user_id: "demo", year: new Date().getFullYear(), books_goal: 52 }],
+      challenges: d.challenges ?? [],
+      challenge_entries: d.challenge_entries ?? []
     };
     return this.lib;
   }
@@ -154,9 +158,42 @@ export class LocalProvider implements DataProvider {
     return g;
   }
 
+  async saveChallenge(c: Partial<Challenge> & { name: string }) {
+    const lib = await this.loadLibrary();
+    const existing = c.id ? lib.challenges.find((x) => x.id === c.id) : undefined;
+    const merged: Challenge = { ...(existing ?? { id: newId(), user_id: "demo", kind: "liste" }), ...c } as Challenge;
+    if (existing) Object.assign(existing, merged); else lib.challenges.push(merged);
+    this.persist();
+    return merged;
+  }
+  async deleteChallenge(id: string) {
+    const lib = await this.loadLibrary();
+    lib.challenges = lib.challenges.filter((x) => x.id !== id);
+    lib.challenge_entries = lib.challenge_entries.filter((x) => x.challenge_id !== id);
+    this.persist();
+  }
+  async saveChallengeEntry(e: Partial<ChallengeEntry> & { challenge_id: string }) {
+    const lib = await this.loadLibrary();
+    const existing = e.id ? lib.challenge_entries.find((x) => x.id === e.id) : undefined;
+    const merged: ChallengeEntry = { ...(existing ?? { id: newId() }), ...e } as ChallengeEntry;
+    if (existing) Object.assign(existing, merged); else lib.challenge_entries.push(merged);
+    this.persist();
+    return merged;
+  }
+  async deleteChallengeEntry(id: string) {
+    const lib = await this.loadLibrary();
+    lib.challenge_entries = lib.challenge_entries.filter((x) => x.id !== id);
+    this.persist();
+  }
+  async saveCover(bookId: string, url: string) {
+    const lib = await this.loadLibrary();
+    const b = lib.books.find((x) => x.id === bookId);
+    if (b) { b.cover_url = url; this.persist(); }
+  }
+
   async importLibrary(src: ImportBundle) {
     const lib = await this.loadLibrary();
-    for (const k of ["authors", "series", "books", "user_books", "readings", "wishlist_items", "goals"] as const) {
+    for (const k of ["authors", "series", "books", "user_books", "readings", "wishlist_items", "goals", "challenges", "challenge_entries"] as const) {
       const incoming = (src[k] ?? []) as any[];
       const have = new Set((lib[k] as any[]).map((x) => x.id ?? `${x.user_id}-${x.year}`));
       for (const row of incoming) if (!have.has(row.id ?? `${row.user_id}-${row.year}`)) (lib[k] as any[]).push(row);

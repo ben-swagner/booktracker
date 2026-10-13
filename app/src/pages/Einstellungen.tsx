@@ -78,7 +78,7 @@ export default function Einstellungen() {
 
   return (
     <>
-      <div className="mast"><h1>Mehr</h1></div>
+      <div className="mast"><h1>Einstellungen</h1></div>
       <div className="panel section">
         <h3>Konto</h3>
         <p style={{ margin: 0 }}>Angemeldet als <strong>{user?.display_name}</strong>{data.mode === "demo" ? " (Demo, ohne Konto)" : ""}.</p>

@@ -10,6 +10,7 @@ export interface Author {
   id: string;
   name: string;
   slug: string;
+  sort_name?: string | null;
   country?: string | null;
   gender?: string | null;
   photo_url?: string | null;
@@ -145,6 +146,26 @@ export interface Profile {
   avatar_url?: string | null;
 }
 
+export interface Challenge {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string | null;
+  kind: "liste" | "bingo";
+  target?: number | null;
+  ends_on?: string | null;
+  created_at?: string;
+}
+
+export interface ChallengeEntry {
+  id: string;
+  challenge_id: string;
+  label?: string | null;
+  book_id?: string | null;
+  done?: boolean;
+  position?: number | null;
+}
+
 /** Alles, was die App für eine Person braucht, in einem Rutsch. */
 export interface Library {
   authors: Author[];
@@ -154,6 +175,8 @@ export interface Library {
   readings: Reading[];
   wishlist_items: WishlistItem[];
   goals: Goal[];
+  challenges: Challenge[];
+  challenge_entries: ChallengeEntry[];
 }
 
 /** Ein Buch zusammen mit allem, was dazugehört (für die Anzeige). */

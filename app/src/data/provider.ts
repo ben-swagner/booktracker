@@ -1,4 +1,4 @@
-import type { Book, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 export interface ImportBundle extends Partial<Library> {
   sales?: any[];
@@ -34,6 +34,12 @@ export interface DataProvider {
   saveWishlistItem(w: Partial<WishlistItem> & { title: string }): Promise<WishlistItem>;
   deleteWishlistItem(id: string): Promise<void>;
   saveGoal(g: Goal): Promise<Goal>;
+  saveChallenge(c: Partial<Challenge> & { name: string }): Promise<Challenge>;
+  deleteChallenge(id: string): Promise<void>;
+  saveChallengeEntry(e: Partial<ChallengeEntry> & { challenge_id: string }): Promise<ChallengeEntry>;
+  deleteChallengeEntry(id: string): Promise<void>;
+  /** Cover-Adresse an einem Buch merken (gemeinsame Buchdaten). */
+  saveCover(bookId: string, url: string): Promise<void>;
   /** Übernimmt einen kompletten Datenbestand (z. B. aus dem Sheet) in das Konto der Person. */
   importLibrary(src: ImportBundle, onProgress?: (step: string, done: number, total: number) => void): Promise<ImportSummary>;
 }
