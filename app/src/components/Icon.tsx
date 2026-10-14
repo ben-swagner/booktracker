@@ -18,6 +18,7 @@ const PATHS = {
   arrow: "M5 12h14M13 6l6 6-6 6",
   pencil: "M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4",
   flag: "M5 21V4M5 4h11l-2 4 2 4H5",
+  cover: "M4 4.5h7v15H4zM13 4.5h7v15h-7zM6.5 8h2M15.5 8h2",
   moon: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"
 } as const;
 

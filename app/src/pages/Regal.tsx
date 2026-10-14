@@ -4,7 +4,8 @@ import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, STATUS_ORDER, coverColors } from "../lib/labels";
 import { countBy, lastFinished, readEvents } from "../lib/stats";
-import { Empty, ShelfRows, authorNames } from "../components/ui";
+import { CoverShelfRows, Empty, ShelfRows, authorNames } from "../components/ui";
+import { Icon } from "../components/Icon";
 
 type Sort = "titel" | "autor" | "bewertung" | "seiten" | "neu" | "beendet" | "reihe";
 type Color = "einband" | "status" | "bewertung";
@@ -38,6 +39,11 @@ export default function Regal() {
   const sort = (params.get("sort") ?? "titel") as Sort;
   const jahr = params.get("jahr") ?? "";
   const [color, setColor] = useState<Color>("einband");
+  // Darstellung: Buchrücken oder Cover. Die Wahl merkt sich das Gerät.
+  const [look, setLookState] = useState<"ruecken" | "cover">(() => { try { return localStorage.getItem("bt-regal-look") === "cover" ? "cover" : "ruecken"; } catch { return "ruecken"; } });
+  const setLook = (v: "ruecken" | "cover") => { setLookState(v); try { localStorage.setItem("bt-regal-look", v); } catch { /* egal */ } };
+  const rows = (items: Entry[], colors?: (e: Entry) => { bg: string; fg: string }) =>
+    look === "cover" ? <CoverShelfRows entries={items} /> : <ShelfRows entries={items} colorFor={colors} />;
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v && v !== "alle") p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
 
   const genres = useMemo(() => [...countBy(entries, (e) => e.book.genre).entries()].sort((a, b) => b[1] - a[1]), [entries]);
@@ -81,9 +87,15 @@ export default function Regal() {
           <h1>Mein <em>Regal</em></h1>
           <p className="lede">{view === "gesamt" ? <><strong>{list.length}</strong> Bücher, <strong>{pages.toLocaleString("de-DE")}</strong> Seiten</> : jahr ? <>Dein Lesejahr {jahr}, Brett für Brett.</> : <>Deine Lesejahre, Brett für Brett.</>}</p>
         </div>
+        <div className="regal-switches">
+        <div className="view-switch" role="group" aria-label="Darstellung">
+          <button type="button" aria-pressed={look === "ruecken"} onClick={() => setLook("ruecken")} title="Buchrücken"><Icon name="books" size={20} /></button>
+          <button type="button" aria-pressed={look === "cover"} onClick={() => setLook("cover")} title="Cover"><Icon name="cover" size={20} /></button>
+        </div>
         <div className="tabs" role="tablist">
           <button className="tab" role="tab" aria-selected={view === "gesamt"} onClick={() => { const p = new URLSearchParams(params); p.delete("v"); p.delete("jahr"); setParams(p, { replace: true }); }}>Gesamt</button>
           <button className="tab" role="tab" aria-selected={view === "jahre"} onClick={() => set("v", "jahre")}>Nach Jahr</button>
+        </div>
         </div>
       </div>
 
@@ -101,13 +113,15 @@ export default function Regal() {
               <select className="input" value={sort} onChange={(e) => set("sort", e.target.value)} aria-label="Sortierung">
                 <option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Nach Reihe</option><option value="bewertung">Beste Bewertung</option><option value="seiten">Dickste zuerst</option><option value="neu">Zuletzt eingetragen</option><option value="beendet">Zuletzt beendet</option>
               </select>
-              <select className="input" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe">
-                <option value="einband">Farbe: Einband</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
-              </select>
+              {look === "ruecken" && (
+                <select className="input" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe">
+                  <option value="einband">Farbe: Einband</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
+                </select>
+              )}
             </div>
           </div>
-          {list.length ? <div className="panel shelf-box"><ShelfRows entries={list} colorFor={colorFor(color)} /></div> : <div className="grid"><Empty title="Leeres Brett" text="Zu diesen Filtern steht nichts im Regal." /></div>}
-          {color === "status" && <p className="meta">Farben: {STATUS_ORDER.map((s) => <span key={s} className={"pill st-" + s} style={{ marginRight: 6 }}>{STATUS[s]}</span>)}</p>}
+          {list.length ? <div className="panel shelf-box">{rows(list, colorFor(color))}</div> : <div className="grid"><Empty title="Leeres Brett" text="Zu diesen Filtern steht nichts im Regal." /></div>}
+          {look === "ruecken" && color === "status" && <p className="meta">Farben: {STATUS_ORDER.map((s) => <span key={s} className={"pill st-" + s} style={{ marginRight: 6 }}>{STATUS[s]}</span>)}</p>}
         </>
       ) : (
         years.length ? <>
@@ -125,7 +139,7 @@ export default function Regal() {
                 <h2>{y.year}</h2>
                 <span className="muted">{y.items.length} Bücher · {pg.toLocaleString("de-DE")} Seiten</span>
               </div>
-              <ShelfRows entries={y.items} />
+              {rows(y.items)}
             </section>
           );
         })}

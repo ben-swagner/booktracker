@@ -610,3 +610,15 @@ a.gchip-link:hover { filter: brightness(.97); }
 .ks-tag.reward { color: var(--yellow); }
 .btn .icon { vertical-align: -3px; }
 .now-done, .ks-reward button, .modal .btn.primary { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Regal mit Covern */
+.regal-switches { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cshelf { display: flex; align-items: flex-end; gap: 14px; padding: 10px 16px 0; min-height: 120px; }
+.cbook { flex: none; display: block; border-radius: 3px 6px 6px 3px; box-shadow: 0 6px 14px rgba(20, 40, 60, .16), 0 1px 2px rgba(20, 40, 60, .12); transition: transform .2s ease, box-shadow .2s ease; text-decoration: none; overflow: hidden; }
+.cbook:hover { transform: translateY(-6px); box-shadow: 0 12px 22px rgba(20, 40, 60, .22); }
+.cbook-in { display: block; width: 100%; height: 100%; }
+.cbook .cover { width: 100%; height: 100%; border-radius: inherit; padding: 10px 9px; }
+.cbook .cover-title { font-size: 12px; }
+.cbook .cover-author { font-size: 9.5px; }
+.cbook.b-ebook { opacity: .6; outline: 1.5px dashed var(--muted); outline-offset: 2px; }
+@media (max-width: 560px) { .cshelf { gap: 10px; padding-inline: 10px; } .cbook .cover-title { font-size: 10px; } }

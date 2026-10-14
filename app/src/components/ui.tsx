@@ -305,6 +305,63 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
   );
 }
 
+/** Größe eines Covers im Cover-Regal: gleiche Grundhöhe, Hardcover etwas größer, Manga etwas kleiner. */
+function coverSize(e: Entry, base: number) {
+  const bind = bindingOf(e);
+  const k = bind === "hardcover" ? 1 : bind === "manga" ? 0.84 : 0.93;
+  const h = Math.round(base * k);
+  return { w: Math.round(h * 0.66), h, bind };
+}
+const COVER_GAP = 14;
+
+/** Regal mit Covern: Bücher stehen mit der Vorderseite nach vorn auf den Brettern. */
+export function CoverShelfRows({ entries }: { entries: Entry[] }) {
+  const [ref, width] = useWidth<HTMLDivElement>();
+  const [hover, setHover] = useState<Entry | null>(null);
+  const openBook = useOpenBook();
+  const small = (width || 320) < 560;
+  const base = small ? 104 : 160;
+  const gap = small ? 10 : COVER_GAP;
+  const avail = Math.max(200, (width || 320) - (small ? 20 : 32));
+  const rows: Entry[][] = [];
+  let cur: Entry[] = [], used = 0;
+  for (const e of entries) {
+    const { w } = coverSize(e, base);
+    if (used + w + gap > avail && cur.length) { rows.push(cur); cur = []; used = 0; }
+    cur.push(e); used += w + gap;
+  }
+  if (cur.length) rows.push(cur);
+  return (
+    <div ref={ref} className="shelf-rows cover-shelf">
+      {rows.map((row, i) => (
+        <div key={i} className="shelf-row">
+          <div className="cshelf">
+            {row.map((e, j) => {
+              const { w, h, bind } = coverSize(e, base);
+              return (
+                <Link
+                  key={`${e.mine.id}-${j}`}
+                  to={`/buch/${e.mine.id}`}
+                  className={`cbook b-${bind}`}
+                  title={`${e.book.title} · ${authorNames(e)}`}
+                  style={{ width: w, height: h }}
+                  onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}
+                >
+                  <span className="cbook-in" onMouseEnter={() => setHover(e)} onMouseLeave={() => setHover(null)}>
+                    <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="plank" />
+        </div>
+      ))}
+      <ShelfInfo e={hover} fallback={<span className="desk-only">Fahr mit der Maus über ein Cover, um Titel und Infos zu sehen.</span>} />
+    </div>
+  );
+}
+
 /** Startseite: ein einziges langes Brett, das man seitlich rollt. */
 export function Shelf({ entries, note }: { entries: Entry[]; note?: React.ReactNode }) {
   const [hover, setHover] = useState<Entry | null>(null);
