@@ -151,7 +151,7 @@ export interface Challenge {
   user_id: string;
   name: string;
   description?: string | null;
-  kind: "liste" | "bingo";
+  kind: "liste" | "bingo" | "kaufstopp";
   target?: number | null;
   ends_on?: string | null;
   created_at?: string;

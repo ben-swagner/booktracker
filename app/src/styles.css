@@ -497,3 +497,20 @@ textarea.input { resize: vertical; min-height: 90px; }
 .tower-facts li { width: fit-content; max-width: 100%; }
 .picker-filters { max-width: 920px; }
 @media (max-width: 760px) { .tower { grid-template-columns: 1fr; } }
+
+/* Kaufstopp-Challenge */
+.kaufstopp { display: flex; flex-direction: column; gap: 14px; background: linear-gradient(120deg, color-mix(in srgb, var(--green-soft) 80%, var(--surface)), var(--surface) 60%); }
+.ks-main { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; }
+.ks-count { display: flex; align-items: baseline; gap: 8px; }
+.ks-num { font-family: var(--f-display); font-size: clamp(56px, 9vw, 84px); font-weight: 800; line-height: .9; letter-spacing: -.05em; color: var(--green); font-variant-numeric: tabular-nums; }
+.ks-unit { font-size: 20px; font-weight: 800; color: var(--green); }
+.ks-info { flex: 1 1 260px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ks-line { margin: 0; font-weight: 700; font-size: 16px; }
+.ks-bar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.ks-bar div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green-light), var(--green)); transition: width .4s; }
+.btn.ks-fail { border-color: var(--pink-light); color: var(--pink); }
+.btn.ks-fail:hover { background: var(--pink-soft); }
+.ks-history summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--muted); }
+.ks-history { display: flex; flex-direction: column; gap: 4px; }
+.ks-row { display: flex; align-items: center; gap: 14px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.ks-row .mono { color: var(--muted); flex: none; }
