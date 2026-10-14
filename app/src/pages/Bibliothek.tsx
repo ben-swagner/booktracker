@@ -89,7 +89,14 @@ export default function Bibliothek() {
             <option value="autor">Autor:in A-Z</option>
             <option value="bewertung">Beste Bewertung</option>
           </select>
-          <button className="btn" onClick={() => setView(view === "karten" ? "tabelle" : "karten")}>{view === "karten" ? "Tabelle" : "Karten"}</button>
+          <div className="view-switch" role="group" aria-label="Ansicht">
+            <button type="button" aria-pressed={view === "karten"} title="Als Karten zeigen" aria-label="Karten" onClick={() => setView("karten")}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><rect x="4" y="4" width="7" height="7" rx="2" /><rect x="13" y="4" width="7" height="7" rx="2" /><rect x="4" y="13" width="7" height="7" rx="2" /><rect x="13" y="13" width="7" height="7" rx="2" /></svg>
+            </button>
+            <button type="button" aria-pressed={view === "tabelle"} title="Als Liste zeigen" aria-label="Liste" onClick={() => setView("tabelle")}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 6h11M9 12h11M9 18h11" /><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" strokeWidth="3" /></svg>
+            </button>
+          </div>
         </div>
       </div>
 
