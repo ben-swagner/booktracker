@@ -170,10 +170,16 @@ export function Heatmap({ rows, cols, values, unit = "Bücher" }: { rows: string
 }
 
 /** Karte mit großem Wert, z. B. „Seiten: 29.083“. */
-export function Kpi({ icon, label, value, sub, tone = "blue", children }: { icon: IconName; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "blue" | "green" | "pink" | "yellow" | "lilac"; children?: React.ReactNode }) {
+/** Kleines Schild, für welchen Zeitraum eine Zahl gilt (z. B. „2026“ oder „Alle Jahre“). */
+export function Scope({ value }: { value?: string }) {
+  if (!value) return null;
+  return <span className={"scope" + (/^\d{4}$/.test(value) ? " year" : "")} title={/^\d{4}$/.test(value) ? `Gilt nur für ${value}` : value === "Alle Jahre" ? "Gilt für alle Jahre zusammen" : "Gilt für alle deine Bücher"}>{value}</span>;
+}
+
+export function Kpi({ icon, label, value, sub, tone = "blue", children, scope }: { icon: IconName; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "blue" | "green" | "pink" | "yellow" | "lilac"; children?: React.ReactNode; scope?: string }) {
   return (
     <div className={"kpi kpi-" + tone}>
-      <span className="kpi-icon"><Icon name={icon} size={18} /></span>
+      <span className="kpi-top"><span className="kpi-icon"><Icon name={icon} size={18} /></span><Scope value={scope} /></span>
       <span className="kpi-label">{label}</span>
       <span className="kpi-value">{value}</span>
       {sub && <span className="kpi-sub">{sub}</span>}
@@ -196,11 +202,12 @@ export function Fact({ icon, tone, big, children }: { icon: IconName; tone: stri
 }
 
 /** Karte für einen Bereich der Statistik. */
-export function Card({ title, icon, hint, children, wide }: { title: string; icon?: IconName; hint?: React.ReactNode; children: React.ReactNode; wide?: boolean }) {
+export function Card({ title, icon, hint, children, wide, scope }: { title: string; icon?: IconName; hint?: React.ReactNode; children: React.ReactNode; wide?: boolean; scope?: string }) {
   return (
     <section className={"panel scard" + (wide ? " wide" : "")}>
       <header className="scard-head">
         <h3>{icon && <Icon name={icon} size={18} />}{title}</h3>
+        <Scope value={scope} />
       </header>
       {children}
       {hint && <p className="scard-hint">{hint}</p>}

@@ -849,3 +849,9 @@ select.input.year-select { width: auto; min-width: 150px; border-radius: 999px; 
 .hls-row .hl { display: grid; grid-template-columns: 72px 1fr; column-gap: 16px; row-gap: 2px; align-content: center; padding: 12px; border-radius: 16px; background: var(--surface-2); }
 .hls-row .hl .cover { grid-row: 1 / span 3; width: 72px; }
 .hls-row .hl-kicker { margin-top: 0; align-self: end; }
+.scard-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.scope { flex: none; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.scope.year { background: var(--accent-soft); color: var(--accent); }
+.kpi-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.scope-help { margin: -4px 0 0; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.scope-help .scope:not(.year) { background: var(--surface); }
