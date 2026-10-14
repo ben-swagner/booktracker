@@ -111,15 +111,11 @@ export default function Regal() {
         </>
       ) : (
         years.length ? <>
-        <div className="toolbar">
-          <div className="tabs" role="tablist" aria-label="Lesejahr">
-            <button className="tab" role="tab" aria-selected={!jahr} onClick={() => set("jahr", "")}>Alle Jahre</button>
-            {years.map((y) => (
-              <button key={y.year} className="tab" role="tab" aria-selected={jahr === String(y.year)} onClick={() => set("jahr", String(y.year))}>
-                {y.year}<span className="n">{y.items.length}</span>
-              </button>
-            ))}
-          </div>
+        <div className="tools">
+          <select className="input" value={jahr} onChange={(e) => set("jahr", e.target.value)} aria-label="Lesejahr">
+            <option value="">Alle Jahre ({years.reduce((n, y) => n + y.items.length, 0)} Bücher)</option>
+            {years.map((y) => <option key={y.year} value={String(y.year)}>{y.year} ({y.items.length} Bücher)</option>)}
+          </select>
         </div>
         {(jahr ? years.filter((y) => String(y.year) === jahr) : years).map((y) => {
           const pg = y.items.reduce((s, e) => s + (e.book.pages ?? 0), 0);
