@@ -24,16 +24,26 @@ if (import.meta.env.VITE_ROUTER !== "hash") {
       document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
     }
   });
-  // Sobald die neue Version übernimmt: Seite einmal neu laden, damit sie auch angezeigt wird.
-  if ("serviceWorker" in navigator) {
-    const hadController = !!navigator.serviceWorker.controller;
-    let reloaded = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!hadController || reloaded) return;
-      reloaded = true;
+  // Absicherung: Liegt auf dem Gerät schon eine neuere Version als die gerade laufende, einmal neu laden.
+  // (Die neue Version kommt manchmal an, während die Seite noch lädt; dann wird das Umschalt-Signal verpasst.)
+  const running = (document.querySelector('script[type="module"][src*="/assets/index-"]') as HTMLScriptElement | null)?.src.split("/assets/")[1];
+  const checkFresh = async () => {
+    if (!running) return;
+    try {
+      const html = await fetch("/index.html", { cache: "no-cache" }).then((r) => r.text());
+      const latest = html.match(/assets\/(index-[^"']+\.js)/)?.[1];
+      if (!latest || latest === running) return;
+      if (sessionStorage.getItem("bt-fresh") === latest) return; // schon einmal versucht, keine Endlosschleife
+      sessionStorage.setItem("bt-fresh", latest);
       location.reload();
-    });
+    } catch { /* offline: egal */ }
+  };
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", () => { checkFresh(); });
+    navigator.serviceWorker.ready.then(() => setTimeout(checkFresh, 1500));
   }
+  setInterval(checkFresh, 10 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(checkFresh, 1500); });
 }
 
 // gespeicherte Darstellung (hell/dunkel) wiederherstellen
