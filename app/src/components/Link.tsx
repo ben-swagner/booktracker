@@ -8,14 +8,14 @@ import type { ReactNode } from "react";
  */
 const EMBEDDED = import.meta.env.VITE_ROUTER === "hash";
 
-type Props = { to: string; className?: string; children?: ReactNode; title?: string; style?: React.CSSProperties; end?: boolean };
+type Props = { to: string; className?: string; children?: ReactNode; title?: string; style?: React.CSSProperties; end?: boolean; onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void };
 
-export function Link({ to, className, children, title, style }: Props) {
+export function Link({ to, className, children, title, style, onClick }: Props) {
   const nav = useNavigate();
-  if (!EMBEDDED) return <RLink to={to} className={className} title={title} style={style}>{children}</RLink>;
+  if (!EMBEDDED) return <RLink to={to} className={className} title={title} style={style} onClick={onClick}>{children}</RLink>;
   return (
     <a role="link" tabIndex={0} className={className} title={title} style={{ cursor: "pointer", ...style }}
-      onClick={(e) => { e.preventDefault(); nav(to); }}
+      onClick={(e) => { onClick?.(e); if (e.defaultPrevented) return; e.preventDefault(); nav(to); }}
       onKeyDown={(e) => { if (e.key === "Enter") nav(to); }}>
       {children}
     </a>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { isDesktop, useOpenBook } from "../components/openBook";
 import { Link } from "../components/Link";
 import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
@@ -16,7 +17,7 @@ function norm(s: string) {
 export default function Bibliothek() {
   const { entries, isLoading } = useEntries();
   const [params, setParams] = useSearchParams();
-  const nav = useNavigate();
+  const openBook = useOpenBook();
   const status = (params.get("status") ?? "alle") as ReadingStatus | "alle";
   const q = params.get("q") ?? "";
   const sort = (params.get("sort") ?? "neu") as Sort;
@@ -117,9 +118,9 @@ export default function Bibliothek() {
               {list.slice(0, limit).map((e) => {
                 const last = lastReading(e);
                 return (
-                  <tr key={e.mine.id} className="row-link" onClick={(ev) => { if (!(ev.target as HTMLElement).closest("a")) nav(`/buch/${e.mine.id}`); }}>
+                  <tr key={e.mine.id} className="row-link" onClick={(ev) => { if (!(ev.target as HTMLElement).closest("a")) openBook(e.mine.id); }}>
                     <td className="cover-cell"><Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} /></td>
-                    <td className="title-cell"><Link to={`/buch/${e.mine.id}`}>{e.book.title}</Link></td>
+                    <td className="title-cell"><Link to={`/buch/${e.mine.id}`} onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}>{e.book.title}</Link></td>
                     <td>{authorNames(e)}</td>
                     <td>{e.series ? `${e.series.name}${e.book.series_number ? ` #${e.book.series_number}` : ""}` : ""}</td>
                     <td><StatusPill status={e.mine.status} /></td>

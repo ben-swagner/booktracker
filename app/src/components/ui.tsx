@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "./Link";
+import { isDesktop, useOpenBook } from "./openBook";
 import { data } from "../data";
 import { findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
@@ -112,8 +113,13 @@ export function BookCard({ e }: { e: Entry }) {
   const m = e.mine;
   const last = lastReading(e);
   const progress = m.status === "lese" && b.pages && m.current_page ? Math.min(100, Math.round((m.current_page / b.pages) * 100)) : null;
+  const openBook = useOpenBook();
   return (
-    <Link className="card" to={`/buch/${m.id}`}>
+    <Link className="card" to={`/buch/${m.id}`} onClick={(ev) => {
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return;
+      ev.preventDefault();
+      openBook(m.id);
+    }}>
       <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} />
       <div className="card-body">
         <div className="card-top">

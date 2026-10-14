@@ -15,8 +15,11 @@ function Chips({ items }: { items?: string[] }) {
   return <div className="chips">{items.map((x) => <span key={x} className="chip">{x}</span>)}</div>;
 }
 
-export default function BookDetail() {
-  const { id } = useParams();
+/** Buchseite. Mit `id` und `onClose` läuft sie als Fenster über einer anderen Seite (am Computer). */
+export default function BookDetail(props: { id?: string; onClose?: () => void } = {}) {
+  const params = useParams();
+  const id = props.id ?? params.id;
+  const inModal = !!props.onClose;
   const nav = useNavigate();
   const { entries, isLoading } = useEntries();
   const saveUB = useSaveUserBook();
@@ -86,7 +89,7 @@ export default function BookDetail() {
   async function remove() {
     if (!confirm(`„${b.title}“ wirklich aus deinem Regal entfernen?`)) return;
     await del.mutateAsync(m.id);
-    nav("/bibliothek");
+    if (props.onClose) props.onClose(); else nav("/bibliothek");
   }
 
   const fact = (label: string, v: any) => (v == null || v === "" || (Array.isArray(v) && !v.length) ? null : (
@@ -95,9 +98,11 @@ export default function BookDetail() {
 
   return (
     <>
-      <div className="actions">
-        <button className="btn ghost" onClick={() => nav(-1)}>← Zurück</button>
-      </div>
+      {!inModal && (
+        <div className="actions">
+          <button className="btn ghost" onClick={() => nav(-1)}>← Zurück</button>
+        </div>
+      )}
       <div className="panel detail">
         <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} large />
         <div className="section">
