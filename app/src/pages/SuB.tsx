@@ -6,6 +6,7 @@ import { countBy, seriesNo, shuffle } from "../lib/stats";
 import { BookCard, Cover, Empty, authorNames } from "../components/ui";
 import { Link } from "../components/Link";
 import { toast } from "../App";
+import { SubTower } from "../components/SubTower";
 
 type Len = "alle" | "kurz" | "mittel" | "lang";
 const LEN: Record<Len, [number, number]> = { alle: [0, 99999], kurz: [0, 250], mittel: [251, 450], lang: [451, 99999] };
@@ -182,6 +183,8 @@ export default function SuB() {
         </section>
       )}
       {!candidates.length && <div className="grid"><Empty title="Nichts passt zu den Filtern" text="Lockere einen Filter, dann hat der Zufall wieder Auswahl." /></div>}
+
+      <SubTower books={tbr} />
 
       <AllTbr tbr={tbr} />
     </>
