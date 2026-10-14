@@ -693,3 +693,14 @@ select.input.prio-niedrig { background-color: var(--surface-2); color: var(--mut
 .wish-actions { display: flex; gap: 4px; justify-content: flex-end; align-items: center; white-space: nowrap; }
 .btn.wish-buy { display: inline-flex; align-items: center; gap: 5px; background: var(--green-soft); color: var(--green); border-color: transparent; }
 .btn.wish-buy:hover { filter: brightness(.96); }
+.spend { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap; padding: 18px 22px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); --gc: var(--green); }
+.spend-main { display: flex; flex-direction: column; gap: 2px; }
+.spend-sum { font-family: var(--f-display); font-size: 34px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); line-height: 1.1; }
+.spend .gchips { margin-top: 0; }
+.check-col { width: 64px; text-align: center !important; }
+.wish-check { width: 22px; height: 22px; accent-color: var(--green); cursor: pointer; vertical-align: middle; }
+select.input.how-select { width: auto; min-width: 136px; height: 34px; padding: 0 30px 0 12px; border-radius: 999px; font-size: 13.5px; font-weight: 700; border-color: transparent; }
+select.input.how-gekauft { background-color: var(--green-soft); color: var(--green); }
+select.input.how-geschenkt { background-color: var(--pink-soft); color: var(--pink); }
+select.input.how-mitgenommen { background-color: var(--blue-soft); color: var(--blue); }
+.input.price-input { width: 96px; height: 34px; padding: 0 10px; text-align: right; font-family: var(--f-mono, monospace); }
