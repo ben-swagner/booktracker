@@ -28,6 +28,35 @@
         if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
         Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
       }, 8000);
+
+      // Prüfung des Offline-Speichers: Hat er statt einer Programm- oder Gestaltungsdatei die Startseite
+      // gespeichert (passiert, wenn eine Datei gerade während eines Updates abgerufen wurde), wird dieser
+      // Eintrag gelöscht. Danach holt die App die Datei frisch aus dem Netz. Fehlt dadurch gerade die
+      // Gestaltung, lädt die Seite einmal neu.
+      window.addEventListener("load", function () {
+        if (!window.caches) return;
+        caches.keys().then(function (ks) {
+          return Promise.all(ks.filter(function (k) { return k.indexOf("precache") >= 0; }).map(function (k) {
+            return caches.open(k).then(function (c) {
+              return c.keys().then(function (reqs) {
+                return Promise.all(reqs.filter(function (r) { return /\/assets\/[^?]+\.(js|css)(\?|$)/.test(r.url); }).map(function (r) {
+                  return c.match(r).then(function (res) {
+                    var ct = (res && res.headers.get("content-type")) || "";
+                    if (ct.indexOf("text/html") >= 0) return c.delete(r).then(function () { return true; });
+                    return false;
+                  });
+                }));
+              });
+            });
+          }));
+        }).then(function (res) {
+          var bad = [].concat.apply([], res).some(Boolean);
+          var unstyled = !getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+          if (!bad && !unstyled) { try { sessionStorage.removeItem("bt-fix"); } catch (e) {} return; }
+          try { if (sessionStorage.getItem("bt-fix")) return; sessionStorage.setItem("bt-fix", "1"); } catch (e) {}
+          location.reload();
+        }).catch(function () {});
+      });
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
