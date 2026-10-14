@@ -176,7 +176,7 @@ export default function SuB() {
           {seriesInfo(pick) && <p className="meta" style={{ margin: 0 }}>{seriesInfo(pick)}</p>}
           {pick.book.blurb && <p className="prose" style={{ margin: 0 }}>{pick.book.blurb.length > 360 ? pick.book.blurb.slice(0, 360) + "…" : pick.book.blurb}</p>}
           <div className="actions">
-            <button className="btn primary" onClick={() => startReading(pick)}>Lese ich jetzt</button>
+            <button className="btn primary" onClick={() => startReading(pick)}>Jetzt lesen</button>
             <Link className="btn" to={`/buch/${pick.mine.id}`}>Details</Link>
             <button className="btn ghost" onClick={run}>Lieber ein anderes</button>
           </div>

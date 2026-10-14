@@ -2,6 +2,7 @@ import { readEvents } from "../lib/stats";
 import { Link } from "../components/Link";
 import { useEntries, useUser } from "../data/hooks";
 import { BookCard, Empty, Shelf } from "../components/ui";
+import { ReadingNowCard } from "../components/ReadingNow";
 
 export default function Start() {
   const { entries, lib, isLoading } = useEntries();
@@ -13,7 +14,7 @@ export default function Start() {
   const goal = lib.goals.find((g) => g.year === year)?.books_goal ?? null;
   const by = (s: string) => entries.filter((e) => e.mine.status === s);
   const reading = by("lese");
-  const recent = [...entries].sort((a, b) => (b.mine.created_at ?? "").localeCompare(a.mine.created_at ?? "")).slice(0, 6);
+  const recent = [...entries].sort((a, b) => (b.mine.created_at ?? "").localeCompare(a.mine.created_at ?? "")).slice(0, 3);
   // Jeder beendete Durchgang dieses Jahres steht einmal auf dem Brett, ein Reread also ein zweites Mal
   const finished = readEvents(entries)
     .filter((x) => x.year === year)
@@ -35,6 +36,19 @@ export default function Start() {
         </div>
       </div>
 
+      <section className="section">
+        <div className="section-head"><h2>Gerade dabei</h2>{reading.length > 0 && <span className="muted">{reading.length === 1 ? "1 Buch" : `${reading.length} Bücher`}</span>}</div>
+        {reading.length ? (
+          <div className="now-grid">{reading.map((e) => <ReadingNowCard key={e.mine.id} e={e} />)}</div>
+        ) : (
+          <div className="grid">
+            <Empty title="Gerade kein Buch in der Hand" text="Such dir eins vom SuB aus und setz es auf „Am Lesen“.">
+              <Link className="btn" to="/sub">Zum SuB</Link>
+            </Empty>
+          </div>
+        )}
+      </section>
+
       <Shelf entries={finished} note={finished.length ? <>Dein Lesejahr {year}: {finished.length} Bücher auf dem Regalbrett. <Link to={`/regal?v=jahre&jahr=${year}`}>Im Regal ansehen →</Link></> : `Das Regalbrett ${year} ist noch leer.`} />
 
       <div className="stats">
@@ -43,22 +57,12 @@ export default function Start() {
           <span className="stat-value">{readThisYear.length}{goal ? <small> / {goal}</small> : null}</span>
           {goal ? <div className="goalbar"><div style={{ width: `${Math.min(100, (readThisYear.length / goal) * 100)}%` }} /></div> : null}
         </Link>
-        <Link className="stat" to="/bibliothek?status=lese"><span className="stat-label">Lese ich</span><span className="stat-value">{reading.length}</span></Link>
+        <Link className="stat" to="/bibliothek?status=lese"><span className="stat-label">Am Lesen</span><span className="stat-value">{reading.length}</span></Link>
         <Link className="stat" to="/bibliothek?status=gelesen"><span className="stat-label">Gelesen</span><span className="stat-value">{by("gelesen").length}</span></Link>
         <Link className="stat" to="/sub"><span className="stat-label">SuB</span><span className="stat-value">{by("tbr").length}</span></Link>
         <Link className="stat" to="/bibliothek?status=ungelesen"><span className="stat-label">Ungelesen</span><span className="stat-value">{by("ungelesen").length}</span></Link>
       </div>
 
-      <section className="section">
-        <div className="section-head"><h2>Gerade dabei</h2></div>
-        <div className="grid">
-          {reading.length ? reading.map((e) => <BookCard key={e.mine.id} e={e} />) : (
-            <Empty title="Gerade kein Buch in der Hand" text="Such dir eins vom SuB aus und setz es auf „Lese ich“.">
-              <Link className="btn" to="/bibliothek?status=tbr">Zum SuB</Link>
-            </Empty>
-          )}
-        </div>
-      </section>
 
       <section className="section">
         <div className="section-head"><h2>Zuletzt eingetragen</h2></div>

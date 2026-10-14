@@ -521,3 +521,17 @@ textarea.input { resize: vertical; min-height: 90px; }
 .ks-dots span { width: 22px; height: 22px; border-radius: 999px; border: 2px dashed var(--line); }
 .ks-dots span.on { border: 0; background: var(--green-light); }
 .ks-tag { flex: none; font-size: 12px; font-weight: 700; color: var(--muted); }
+
+/* Übersicht: Bücher, die gerade gelesen werden */
+.now-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 16px; }
+.now-card { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 20px; padding: 20px; border-radius: var(--r); background: var(--surface); box-shadow: var(--shadow); cursor: pointer; transition: transform .15s, box-shadow .15s; background-image: linear-gradient(135deg, color-mix(in srgb, var(--lese-bg) 70%, transparent), transparent 55%); }
+.now-card:hover { transform: translateY(-2px); }
+.now-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.now-title { font-size: clamp(20px, 2.4vw, 26px); line-height: 1.15; }
+.now-progress { display: flex; flex-direction: column; gap: 4px; margin-top: auto; padding-top: 8px; }
+.now-progress .mono { font-size: 12.5px; color: var(--muted); }
+.progress.big { height: 10px; border-radius: 999px; margin-top: 0; }
+.progress.big div { border-radius: inherit; }
+.now-page { display: flex; gap: 8px; align-items: center; cursor: default; }
+.now-page .input { width: 110px; padding: 7px 12px; }
+@media (max-width: 520px) { .now-card { grid-template-columns: 100px minmax(0, 1fr); gap: 14px; padding: 14px; } .now-card .cover.lg { width: 100px; height: 148px; padding: 10px; } .now-card .cover.lg .cover-title { font-size: 12px; } }

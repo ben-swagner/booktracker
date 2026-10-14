@@ -84,7 +84,7 @@ export default function Reihen() {
                     <p className="meta">{g.authors}{g.series.kind ? ` · ${g.series.kind}` : ""}{g.series.is_complete === false ? " · läuft noch" : ""}</p>
                   </div>
                   <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>
-                    {complete ? "Durch" : g.reading ? "Lese ich" : g.read ? `${g.read} von ${g.total}` : "Offen"}
+                    {complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? `${g.read} von ${g.total}` : "Offen"}
                   </span>
                 </div>
                 <div className="dots" aria-label={`${g.read} von ${g.total} gelesen`}>

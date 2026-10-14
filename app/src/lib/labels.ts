@@ -1,7 +1,7 @@
 import type { ReadingStatus, Verdict } from "../data/types";
 
 export const STATUS: Record<ReadingStatus, string> = {
-  lese: "Lese ich",
+  lese: "Am Lesen",
   tbr: "SuB",
   ungelesen: "Ungelesen",
   gelesen: "Gelesen",
