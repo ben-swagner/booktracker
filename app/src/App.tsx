@@ -30,7 +30,7 @@ const ICONS = {
   more: "M5 12h.01M12 12h.01M19 12h.01"
 };
 const TABS = [
-  { to: "/", label: "Start", icon: ICONS.home },
+  { to: "/", label: "Übersicht", icon: ICONS.home },
   { to: "/bibliothek", label: "Bibliothek", icon: ICONS.books },
   { to: "/regal", label: "Regal", icon: ICONS.shelf },
   { to: "/sub", label: "SuB", icon: ICONS.dice },
@@ -39,7 +39,7 @@ const TABS = [
 // Oben am Computer: Gruppen mit Aufklappmenü
 type NavItem = { to: string; label: string; hint?: string };
 const GROUPS: { label: string; to?: string; items?: NavItem[] }[] = [
-  { label: "Start", to: "/" },
+  { label: "Übersicht", to: "/" },
   { label: "Bücher", items: [
     { to: "/bibliothek", label: "Bibliothek", hint: "Alle Bücher als Karten oder Tabelle" },
     { to: "/regal", label: "Regal", hint: "Buchrücken, gesamt oder nach Jahr" },
