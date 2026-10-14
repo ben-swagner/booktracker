@@ -1,10 +1,13 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEntries, useSaveBook } from "../data/hooks";
 import type { Book, ReadingStatus, UserBook } from "../data/types";
 import { AUDIENCE, BURN, COMPANY, EXPECTATION, FORMATS, KINDS, MEDIA, PERIODS, STATUS, STATUS_ORDER, VERDICT } from "../lib/labels";
 import { lookupIsbn } from "../lib/isbn";
 import { toast } from "../App";
+import { findDuplicates, normIsbn } from "../lib/duplicates";
+import { Cover, StatusPill, authorNames } from "../components/ui";
+import { Link } from "../components/Link";
 // Der Scanner wird erst geladen, wenn er gebraucht wird (spart Ladezeit)
 const Scanner = lazy(() => import("../components/Scanner").then((m) => ({ default: m.Scanner })));
 
@@ -67,6 +70,13 @@ export default function BookForm() {
   const [scanning, setScanning] = useState(false);
   const existing = id ? entries.find((x) => x.mine.id === id) : undefined;
 
+  // Gibt es das Buch schon in der eigenen Bibliothek? (gleiche ISBN oder gleicher Titel + Autor:in)
+  const dupes = useMemo(
+    () => findDuplicates(entries, { isbn: f.isbn13, title: f.title, authors: list(f.authors) }, existing?.mine.id),
+    [entries, f.isbn13, f.title, f.authors, existing?.mine.id]
+  );
+  const sameIsbn = dupes.find((d) => d.kind === "isbn");
+
   useEffect(() => {
     if (!existing) return;
     const { book: b, mine: m } = existing;
@@ -113,13 +123,17 @@ export default function BookForm() {
   const onScanned = useCallback((isbn: string) => {
     setScanning(false);
     setF((cur) => ({ ...cur, isbn13: isbn }));
+    const owned = entries.find((x) => normIsbn(x.book.isbn13) === normIsbn(isbn) && x.mine.id !== existing?.mine.id);
+    if (owned) { toast(`Du hast „${owned.book.title}“ schon.`); return; }
     toast(`ISBN ${isbn} erkannt, hole Daten…`);
     setTimeout(() => document.getElementById("btnIsbn")?.click(), 50);
-  }, []);
+  }, [entries, existing?.mine.id]);
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
     if (!f.title.trim()) { toast("Ein Titel fehlt noch."); return; }
+    if (sameIsbn) { toast(`Diese ISBN hast du schon: „${sameIsbn.e.book.title}“.`); return; }
+    if (!existing && dupes.length && !confirm(`Du hast „${dupes[0].e.book.title}“ schon in einer anderen Ausgabe. Trotzdem als eigene Ausgabe anlegen?`)) return;
     const book: Partial<Book> & { id?: string } = {
       id: existing?.book.id, title: f.title.trim(), subtitle: f.subtitle || null, original_title: f.original_title || null,
       isbn13: f.isbn13.replace(/[^0-9Xx]/g, "") || null, blurb: f.blurb || null, first_published: f.first_published || null,
@@ -169,6 +183,27 @@ export default function BookForm() {
           <TextField k="title" label="Titel" span value={f.title} onChange={up("title")} />
           <TextField k="authors" label="Autor:in (mehrere mit Komma)" span value={f.authors} onChange={up("authors")} />
         </div>
+        {dupes.length > 0 && (
+          <div className={"dupe-box" + (sameIsbn ? " hard" : "")} role="status">
+            <strong>{sameIsbn ? "Dieses Buch hast du schon." : dupes.length > 1 ? "Diese Bücher hast du vermutlich schon (andere Ausgabe):" : "Das hast du vermutlich schon in einer anderen Ausgabe:"}</strong>
+            {dupes.slice(0, 3).map(({ e, kind }) => (
+              <div key={e.mine.id} className="dupe-row">
+                <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} />
+                <div className="card-body">
+                  <div className="card-top"><StatusPill status={e.mine.status} />{kind === "isbn" ? <span className="tag">gleiche ISBN</span> : <span className="tag">gleicher Titel</span>}</div>
+                  <div className="book-title">{e.book.title}</div>
+                  <p className="book-author">{authorNames(e)}{(e.mine.format ?? []).length ? ` · ${e.mine.format!.join(", ")}` : ""}{e.book.isbn13 ? ` · ISBN ${e.book.isbn13}` : ""}</p>
+                </div>
+                <Link className="btn small" to={`/buch/${e.mine.id}`}>Zum Buch</Link>
+              </div>
+            ))}
+            <p className="meta" style={{ margin: 0 }}>
+              {sameIsbn
+                ? "Ein zweites Mal kann diese Ausgabe nicht angelegt werden. Willst du den Status ändern oder einen Reread eintragen, öffne das Buch."
+                : "Ist es wirklich eine weitere Ausgabe (zum Beispiel Hardcover und Taschenbuch), kannst du trotzdem speichern."}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="tabs" role="tablist" style={{ alignSelf: "flex-start" }}>

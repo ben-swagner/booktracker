@@ -399,3 +399,10 @@ textarea.input { resize: vertical; min-height: 90px; }
 .reading-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .reading-dates .field span:first-child { font-size: 12px; font-weight: 700; color: var(--muted); }
 .reading .input.date { padding: 7px 10px; font-size: 14px; min-width: 0; width: 100%; }
+
+/* Hinweis: Buch schon vorhanden */
+.dupe-box { margin-top: 14px; border: 1px solid var(--yellow-light); background: var(--yellow-soft); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.dupe-box.hard { border-color: var(--pink-light); background: var(--pink-soft); }
+.dupe-row { display: flex; gap: 12px; align-items: center; background: var(--surface); border-radius: 12px; padding: 8px; }
+.dupe-row .cover { width: 40px; height: 59px; padding: 4px; }
+.dupe-row .cover-title { font-size: 6.5px; } .dupe-row .cover-author { display: none; }
