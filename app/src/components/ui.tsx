@@ -96,6 +96,12 @@ export function Stars({ value }: { value?: number | null }) {
   );
 }
 
+/** Nummer eines Reihenbands als kleines rundes Abzeichen (statt „#3“). */
+export function SeriesNo({ n, total }: { n?: string | number | null; total?: number | null }) {
+  if (n == null || n === "") return null;
+  return <span className="sno" title={`Band ${n}${total ? ` von ${total}` : ""}`} aria-label={`Band ${n}${total ? ` von ${total}` : ""}`}>{n}</span>;
+}
+
 export function StatusPill({ status }: { status: ReadingStatus }) {
   return <span className={"pill st-" + status}>{STATUS[status]}</span>;
 }
@@ -127,7 +133,7 @@ export function BookCard({ e }: { e: Entry }) {
           {e.series && (
             <span className="tag">
               {e.series.name}
-              {b.series_number ? ` #${b.series_number}` : ""}
+              <SeriesNo n={b.series_number} />
             </span>
           )}
         </div>

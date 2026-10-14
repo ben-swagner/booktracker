@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useDeleteWishlistItem, useLibrary, useSaveWishlistItem } from "../data/hooks";
 import type { WishlistItem } from "../data/types";
 import { euro, fmtDate } from "../lib/labels";
-import { Empty } from "../components/ui";
+import { Empty, SeriesNo } from "../components/ui";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
 
@@ -137,7 +137,7 @@ export default function Wunschliste() {
                   )}
                   <td><strong>{w.title}</strong>{w.recommended_by ? <div className="meta">Empfohlen von {w.recommended_by}</div> : null}</td>
                   <td>{w.author}</td>
-                  <td>{w.series_name ? `${w.series_name}${w.series_number ? ` #${w.series_number}` : ""}` : ""}</td>
+                  <td>{w.series_name ? <>{w.series_name}<SeriesNo n={w.series_number} total={w.series_total} /></> : ""}</td>
                   <td>{w.wanted_format}</td>
                   <td className="mono">{fmtDate(w.release_date, w.release_text)}</td>
                   {filter === "offen" ? <td className="mono">{euro(w.price_cents)}</td> : (

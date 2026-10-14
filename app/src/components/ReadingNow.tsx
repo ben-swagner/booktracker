@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Entry } from "../data/types";
 import { useSaveReading, useSaveUserBook } from "../data/hooks";
 import { fmtDate, today } from "../lib/labels";
-import { Cover, authorNames } from "./ui";
+import { Cover, SeriesNo, authorNames } from "./ui";
 import { useOpenBook } from "./openBook";
 import { toast } from "../App";
 import { Icon } from "./Icon";
@@ -43,7 +43,7 @@ export function ReadingNowCard({ e }: { e: Entry }) {
       <div className="now-body">
         <div className="card-top">
           <span className="pill st-lese">Am Lesen</span>
-          {e.series && <span className="tag">{e.series.name}{b.series_number ? ` #${b.series_number}` : ""}</span>}
+          {e.series && <span className="tag">{e.series.name}<SeriesNo n={b.series_number} /></span>}
         </div>
         <h3 className="now-title">{b.title}</h3>
         <p className="book-author" style={{ margin: 0 }}>{authorNames(e)}</p>

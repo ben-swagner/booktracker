@@ -3,7 +3,7 @@ import { useEntries } from "../data/hooks";
 import type { Entry, Series } from "../data/types";
 import { seriesNo } from "../lib/stats";
 import { Link } from "../components/Link";
-import { Empty, StatusPill, authorNames } from "../components/ui";
+import { Empty, SeriesNo, StatusPill, authorNames } from "../components/ui";
 
 type Group = { series: Series; vols: Entry[]; read: number; owned: number; reading: number; total: number; next?: Entry; authors: string };
 type Filter = "alle" | "dabei" | "fertig" | "offen" | "unvollstaendig";
@@ -102,7 +102,7 @@ export default function Reihen() {
                   <div>
                     {g.vols.map((e) => (
                       <div key={e.mine.id} className="vol-row">
-                        <span className="n">{e.book.series_number ?? "–"}</span>
+                        <span className="n">{e.book.series_number ? <SeriesNo n={e.book.series_number} /> : "–"}</span>
                         <Link to={`/buch/${e.mine.id}`}>{e.book.title}</Link>
                         <StatusPill status={e.mine.status} />
                       </div>

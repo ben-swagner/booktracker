@@ -704,3 +704,8 @@ select.input.how-gekauft { background-color: var(--green-soft); color: var(--gre
 select.input.how-geschenkt { background-color: var(--pink-soft); color: var(--pink); }
 select.input.how-mitgenommen { background-color: var(--blue-soft); color: var(--blue); }
 .input.price-input { width: 96px; height: 34px; padding: 0 10px; text-align: right; font-family: var(--f-mono, monospace); }
+/* Reihenband als Zahl im Kreis */
+.sno { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; padding: 0 .4em; margin-left: .4em; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: .78em; font-weight: 800; line-height: 1; vertical-align: .08em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag .sno { font-size: .9em; }
+.sno-total { margin-left: .35em; font-size: .85em; color: var(--muted); font-weight: 600; }
+.vol-row .n .sno { margin-left: 0; }

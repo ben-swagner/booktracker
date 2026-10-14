@@ -3,7 +3,7 @@ import { useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry } from "../data/types";
 import { today } from "../lib/labels";
 import { countBy, seriesNo, shuffle } from "../lib/stats";
-import { BookCard, Cover, Empty, authorNames } from "../components/ui";
+import { BookCard, Cover, Empty, SeriesNo, authorNames } from "../components/ui";
 import { Link } from "../components/Link";
 import { toast } from "../App";
 import { SubTower } from "../components/SubTower";
@@ -108,7 +108,7 @@ export default function SuB() {
     if (!e.series) return null;
     const n = e.book.series_number;
     const read = entries.filter((x) => x.series?.id === e.series!.id && isRead(x)).length;
-    return `${e.series.name}${n ? `, Band ${n}` : ""}${e.series.total_count ? ` von ${e.series.total_count}` : ""}${read ? ` · ${read} davon gelesen` : ""}`;
+    return <>{e.series.name}<SeriesNo n={n} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}{read ? ` · ${read} davon gelesen` : ""}</>;
   };
 
   return (

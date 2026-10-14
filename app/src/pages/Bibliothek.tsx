@@ -7,7 +7,7 @@ import { Link } from "../components/Link";
 import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, STATUS_ORDER, fmtDate } from "../lib/labels";
-import { BookCard, Cover, Empty, Stars, StatusPill, authorNames, lastReading } from "../components/ui";
+import { BookCard, Cover, Empty, SeriesNo, Stars, StatusPill, authorNames, lastReading } from "../components/ui";
 
 type Sort = "neu" | "beendet" | "titel" | "autor" | "bewertung";
 const PAGE = 60;
@@ -147,7 +147,7 @@ export default function Bibliothek() {
                     <td className="cover-cell"><Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} /></td>
                     <td className="title-cell"><Link to={`/buch/${e.mine.id}`} onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}>{e.book.title}</Link></td>
                     <td>{authorNames(e)}</td>
-                    <td>{e.series ? `${e.series.name}${e.book.series_number ? ` #${e.book.series_number}` : ""}` : ""}</td>
+                    <td>{e.series ? <>{e.series.name}<SeriesNo n={e.book.series_number} total={e.series.total_count} /></> : ""}</td>
                     <td><StatusPill status={e.mine.status} /></td>
                     <td><Stars value={e.mine.rating} /></td>
                     <td className="mono">{last ? fmtDate(last.finished_on, last.finished_text) : ""}</td>

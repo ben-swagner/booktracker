@@ -4,7 +4,7 @@ import type { Author, Entry } from "../data/types";
 import { data } from "../data";
 import { useEntries, useSaveAuthor } from "../data/hooks";
 import { cachedAuthorPhoto, findAuthorPhoto } from "../lib/authorPhotos";
-import { Cover, Stars, StatusPill } from "./ui";
+import { Cover, SeriesNo, Stars, StatusPill } from "./ui";
 import { isDesktop, useOpenBook } from "./openBook";
 import { Icon } from "./Icon";
 
@@ -187,7 +187,7 @@ export function AuthorModal() {
                 <button key={e.mine.id} type="button" className="am-book" onClick={() => (isDesktop() ? openBook(e.mine.id) : nav(`/buch/${e.mine.id}`))}>
                   <Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
                   <span className="am-book-title">{e.book.title}</span>
-                  <span className="am-book-meta">{e.series ? `${e.series.name}${e.book.series_number ? ` #${e.book.series_number}` : ""}` : e.book.pages ? `${e.book.pages} Seiten` : ""}</span>
+                  <span className="am-book-meta">{e.series ? <>{e.series.name}<SeriesNo n={e.book.series_number} /></> : e.book.pages ? `${e.book.pages} Seiten` : ""}</span>
                   <span className="am-book-foot"><StatusPill status={e.mine.status} />{e.mine.rating != null && <Stars value={e.mine.rating} />}</span>
                 </button>
               ))}

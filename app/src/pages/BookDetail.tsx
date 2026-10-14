@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
-import { Cover, Stars, StatusPill, authorNames } from "../components/ui";
+import { Cover, SeriesNo, Stars, StatusPill, authorNames } from "../components/ui";
 import { useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
@@ -118,7 +118,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
         <div className="section">
           <div className="card-top">
             <StatusPill status={m.status} />
-            {e.series && <span className="tag">{e.series.name}{b.series_number ? ` #${b.series_number}` : ""}{e.series.total_count ? ` von ${e.series.total_count}` : ""}</span>}
+            {e.series && <span className="tag">{e.series.name}<SeriesNo n={b.series_number} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}</span>}
             {b.series_roles?.map((r) => <span key={r} className="tag">{r}</span>)}
           </div>
           <h1 style={{ fontSize: "clamp(24px,4vw,36px)" }}>{b.title}</h1>
