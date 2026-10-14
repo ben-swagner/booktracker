@@ -293,7 +293,7 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
 }
 
 /** Startseite: ein einziges langes Brett, das man seitlich rollt. */
-export function Shelf({ entries, note }: { entries: Entry[]; note?: string }) {
+export function Shelf({ entries, note }: { entries: Entry[]; note?: React.ReactNode }) {
   const [hover, setHover] = useState<Entry | null>(null);
   return (
     <div className="panel shelf-box">

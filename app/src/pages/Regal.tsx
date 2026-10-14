@@ -36,6 +36,7 @@ export default function Regal() {
   const kind = params.get("art") ?? "";
   const q = params.get("q") ?? "";
   const sort = (params.get("sort") ?? "titel") as Sort;
+  const jahr = params.get("jahr") ?? "";
   const [color, setColor] = useState<Color>("einband");
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v && v !== "alle") p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
 
@@ -78,10 +79,10 @@ export default function Regal() {
       <div className="mast">
         <div>
           <h1>Mein <em>Regal</em></h1>
-          <p className="lede">{view === "gesamt" ? <><strong>{list.length}</strong> Bücher, <strong>{pages.toLocaleString("de-DE")}</strong> Seiten</> : <>Deine Lesejahre, Brett für Brett.</>}</p>
+          <p className="lede">{view === "gesamt" ? <><strong>{list.length}</strong> Bücher, <strong>{pages.toLocaleString("de-DE")}</strong> Seiten</> : jahr ? <>Dein Lesejahr {jahr}, Brett für Brett.</> : <>Deine Lesejahre, Brett für Brett.</>}</p>
         </div>
         <div className="tabs" role="tablist">
-          <button className="tab" role="tab" aria-selected={view === "gesamt"} onClick={() => set("v", "gesamt")}>Gesamt</button>
+          <button className="tab" role="tab" aria-selected={view === "gesamt"} onClick={() => { const p = new URLSearchParams(params); p.delete("v"); p.delete("jahr"); setParams(p, { replace: true }); }}>Gesamt</button>
           <button className="tab" role="tab" aria-selected={view === "jahre"} onClick={() => set("v", "jahre")}>Nach Jahr</button>
         </div>
       </div>
@@ -109,7 +110,18 @@ export default function Regal() {
           {color === "status" && <p className="meta">Farben: {STATUS_ORDER.map((s) => <span key={s} className={"pill st-" + s} style={{ marginRight: 6 }}>{STATUS[s]}</span>)}</p>}
         </>
       ) : (
-        years.length ? years.map((y) => {
+        years.length ? <>
+        <div className="toolbar">
+          <div className="tabs" role="tablist" aria-label="Lesejahr">
+            <button className="tab" role="tab" aria-selected={!jahr} onClick={() => set("jahr", "")}>Alle Jahre</button>
+            {years.map((y) => (
+              <button key={y.year} className="tab" role="tab" aria-selected={jahr === String(y.year)} onClick={() => set("jahr", String(y.year))}>
+                {y.year}<span className="n">{y.items.length}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        {(jahr ? years.filter((y) => String(y.year) === jahr) : years).map((y) => {
           const pg = y.items.reduce((s, e) => s + (e.book.pages ?? 0), 0);
           return (
             <section key={y.year} className="panel shelf-box">
@@ -120,7 +132,9 @@ export default function Regal() {
               <ShelfRows entries={y.items} />
             </section>
           );
-        }) : <div className="grid"><Empty title="Noch kein Lesejahr" text="Sobald ein Buch ein Beendet-Datum hat, bekommt es hier sein Brett." /></div>
+        })}
+        {jahr && !years.some((y) => String(y.year) === jahr) && <div className="grid"><Empty title={`${jahr} ist noch leer`} text="Sobald du in diesem Jahr ein Buch beendest, steht es hier." /></div>}
+        </> : <div className="grid"><Empty title="Noch kein Lesejahr" text="Sobald ein Buch ein Beendet-Datum hat, bekommt es hier sein Brett." /></div>
       )}
     </>
   );

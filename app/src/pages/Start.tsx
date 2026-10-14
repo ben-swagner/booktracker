@@ -36,10 +36,10 @@ export default function Start() {
         </div>
       </div>
 
-      <Shelf entries={finished} note={finished.length ? `Dein Lesejahr ${year}: ${finished.length} Bücher auf dem Regalbrett.` : `Das Regalbrett ${year} ist noch leer.`} />
+      <Shelf entries={finished} note={finished.length ? <>Dein Lesejahr {year}: {finished.length} Bücher auf dem Regalbrett. <Link to={`/regal?v=jahre&jahr=${year}`}>Im Regal ansehen →</Link></> : `Das Regalbrett ${year} ist noch leer.`} />
 
       <div className="stats">
-        <Link className="stat" to="/statistik">
+        <Link className="stat" to={`/regal?v=jahre&jahr=${year}`}>
           <span className="stat-label">Lesejahr {year}</span>
           <span className="stat-value">{readThisYear.length}{goal ? <small> / {goal}</small> : null}</span>
           {goal ? <div className="goalbar"><div style={{ width: `${Math.min(100, (readThisYear.length / goal) * 100)}%` }} /></div> : null}

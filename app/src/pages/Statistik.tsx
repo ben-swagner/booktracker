@@ -3,6 +3,7 @@ import { useEntries, useSaveGoal } from "../data/hooks";
 import type { Entry } from "../data/types";
 import { VERDICT } from "../lib/labels";
 import { toast } from "../App";
+import { Link } from "../components/Link";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 
@@ -100,8 +101,8 @@ export default function Statistik() {
       </div>
 
       <div className="stats">
-        <div className="stat"><span className="stat-label">Gelesen {year === "alle" ? "insgesamt" : year}</span><span className="stat-value">{stats.events.length}{goal && year !== "alle" ? <small> / {goal}</small> : null}</span>
-          {goal && year !== "alle" ? <div className="goalbar"><div style={{ width: `${Math.min(100, (stats.events.length / goal) * 100)}%` }} /></div> : null}</div>
+        <Link className="stat" to={year === "alle" ? "/regal?v=jahre" : `/regal?v=jahre&jahr=${year}`} title="Im Regal ansehen"><span className="stat-label">Gelesen {year === "alle" ? "insgesamt" : year} →</span><span className="stat-value">{stats.events.length}{goal && year !== "alle" ? <small> / {goal}</small> : null}</span>
+          {goal && year !== "alle" ? <div className="goalbar"><div style={{ width: `${Math.min(100, (stats.events.length / goal) * 100)}%` }} /></div> : null}</Link>
         <div className="stat"><span className="stat-label">Seiten</span><span className="stat-value">{stats.pages.toLocaleString("de-DE")}</span></div>
         <div className="stat"><span className="stat-label">Ø Sterne</span><span className="stat-value">{stats.avg != null ? stats.avg.toFixed(2) : "–"}</span></div>
         <div className="stat"><span className="stat-label">Abgebrochen</span><span className="stat-value">{stats.dnf}</span></div>
@@ -111,7 +112,7 @@ export default function Statistik() {
       {year !== "alle" && (
         <div className="panel section">
           <div className="section-head">
-            <h2>Lesejahr {year}</h2>
+            <h2>Lesejahr {year} <Link to={`/regal?v=jahre&jahr=${year}`} className="btn small ghost">Im Regal ansehen →</Link></h2>
             <form className="actions" onSubmit={async (ev) => { ev.preventDefault(); const n = Number(goalDraft); if (!n) return; await saveGoal.mutateAsync({ user_id: "", year: Number(year), books_goal: n }); setGoalDraft(""); toast("Ziel gespeichert."); }}>
               <input className="input" style={{ width: 110 }} type="number" min={1} placeholder={goal ? `Ziel: ${goal}` : "Jahresziel"} value={goalDraft} onChange={(e) => setGoalDraft(e.target.value)} />
               <button className="btn small" type="submit">Ziel setzen</button>
