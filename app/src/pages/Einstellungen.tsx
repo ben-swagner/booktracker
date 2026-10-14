@@ -6,7 +6,7 @@ import { clearLibraryCache, useEntries, useUser } from "../data/hooks";
 import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
-import { coverRun } from "../lib/covers";
+import { NO_COVER, coverRun, isGuessedCover } from "../lib/covers";
 
 // Der Sheet-Import gehört nur zum Konto, aus dem das Sheet stammt.
 const OWNER_ID = "12804274-56db-41a9-a074-6318d4a7f463";
@@ -31,16 +31,29 @@ export default function Einstellungen() {
   const [coverRunning, setCoverRunning] = useState(false);
   const stopRef = useRef(false);
 
-  async function runCovers() {
-    const missing = entries.filter((e) => !e.book.cover_url).map((e) => ({ id: e.book.id, isbn13: e.book.isbn13, title: e.book.title, author: authorNames(e) }));
-    if (!missing.length) { setCoverMsg("Alle Bücher haben schon ein Cover."); return; }
+  const missing = entries.filter((e) => !e.book.cover_url);
+  const guessed = entries.filter((e) => isGuessedCover(e.book.cover_url));
+  const toJob = (list: typeof entries) => list.map((e) => ({ id: e.book.id, isbn13: e.book.isbn13, title: e.book.title, author: authorNames(e) }));
+
+  async function runCovers(mode: "fehlend" | "geraten") {
+    const jobs = toJob(mode === "fehlend" ? missing : guessed);
+    if (!jobs.length) { setCoverMsg(mode === "fehlend" ? "Alle Bücher haben schon ein Cover." : "Es gibt keine geratenen Cover mehr."); return; }
     setCoverRunning(true); stopRef.current = false;
-    setCoverMsg(`Starte: ${missing.length} Bücher ohne Cover…`);
-    const res = await coverRun(missing, (id, url) => data.saveCover(id, url), (d, t, f) => setCoverMsg(`${d} von ${t} geprüft, ${f} Cover gefunden…`), () => stopRef.current);
-    setCoverMsg(`Fertig: ${res.found} neue Cover bei ${res.done} geprüften Büchern. Der Rest hat bei keiner Quelle ein Bild; dort hilft „Cover suchen“ im Buch oder ein eigener Bild-Link.`);
+    setCoverMsg(`Starte: ${jobs.length} Bücher…`);
+    const res = await coverRun(
+      jobs,
+      (id, url) => data.saveCover(id, url),
+      (d, t, f) => setCoverMsg(`${d} von ${t} geprüft, ${f} sichere Cover gefunden…`),
+      () => stopRef.current,
+      mode === "geraten"
+    );
+    setCoverMsg(mode === "fehlend"
+      ? `Fertig: ${res.found} neue Cover bei ${res.done} geprüften Büchern. Für den Rest gibt es keinen sicheren Treffer; im Buch unter „Cover suchen“ kannst du selbst aus Vorschlägen wählen.`
+      : `Fertig: ${res.done} geratene Cover geprüft, ${res.found} davon sicher ersetzt oder bestätigt. ${res.done - res.found} wurden entfernt, weil nichts eindeutig passte; dort zeigt die App wieder den farbigen Einband.`);
     setCoverRunning(false);
     await qc.invalidateQueries({ queryKey: ["library"] });
   }
+
 
   async function savePassword(ev: React.FormEvent) {
     ev.preventDefault();
@@ -119,13 +132,18 @@ export default function Einstellungen() {
         </div>
       )}
       <div className="panel section">
-        <h3>Cover nachladen</h3>
-        <p className="muted" style={{ margin: 0 }}>Sucht für alle Bücher ohne Bild bei Open Library und Google Books nach einem Cover und speichert die Treffer. Dauert je nach Anzahl einige Minuten, die Seite dabei offen lassen. Bisher ohne Cover: <strong>{entries.filter((e) => !e.book.cover_url).length}</strong> von {entries.length}.</p>
+        <h3>Cover</h3>
+        <p className="muted" style={{ margin: 0 }}>
+          Die App holt Bilder von Open Library und Google Books. Sicher sind Bilder, die direkt zur ISBN gehören. Bei Büchern ohne ISBN oder ohne Bild zur ISBN sucht sie nach Titel und Autor:in und nimmt nur noch Treffer, bei denen beides passt.
+          Ohne Cover: <strong>{missing.filter((e) => e.book.cover_url !== NO_COVER).length}</strong>, aus der alten lockeren Suche geraten: <strong>{guessed.length}</strong> von {entries.length}.
+        </p>
         {coverMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{coverMsg}</p>}
         <div className="actions">
-          <button className="btn primary" onClick={runCovers} disabled={coverRunning}>{coverRunning ? "Läuft…" : "Cover suchen"}</button>
+          <button className="btn primary" onClick={() => runCovers("geraten")} disabled={coverRunning || !guessed.length}>{coverRunning ? "Läuft…" : "Geratene Cover prüfen"}</button>
+          <button className="btn" onClick={() => runCovers("fehlend")} disabled={coverRunning}>Fehlende Cover suchen</button>
           {coverRunning && <button className="btn" onClick={() => { stopRef.current = true; }}>Anhalten</button>}
         </div>
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>Einzelne Bücher: im Buch auf „Cover ändern“ tippen, dann aus Vorschlägen wählen oder einen eigenen Bild-Link eintragen.</p>
       </div>
       <div className="panel section">
         <h3>Darstellung</h3>

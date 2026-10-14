@@ -41,7 +41,7 @@ export interface DataProvider {
   /** Favoritenliste einer Art komplett ersetzen (Reihenfolge = Rang). */
   saveFavorites(kind: Favorite["kind"], items: Partial<Favorite>[]): Promise<void>;
   /** Cover-Adresse an einem Buch merken (gemeinsame Buchdaten). */
-  saveCover(bookId: string, url: string): Promise<void>;
+  saveCover(bookId: string, url: string | null): Promise<void>;
   /** Foto-Adresse an einer Autor:in merken (gemeinsame Buchdaten). */
   saveAuthorPhoto(authorId: string, url: string): Promise<void>;
   /** Angaben einer Autor:in ändern (z. B. Geschlecht, Land). */

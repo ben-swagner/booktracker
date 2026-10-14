@@ -233,7 +233,7 @@ export class SupabaseProvider implements DataProvider {
       if (error) throw error;
     }
   }
-  async saveCover(bookId: string, url: string) {
+  async saveCover(bookId: string, url: string | null) {
     await this.sb.from("books").update({ cover_url: url }).eq("id", bookId);
   }
 

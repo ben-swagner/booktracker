@@ -192,7 +192,7 @@ export class LocalProvider implements DataProvider {
     lib.favorites = lib.favorites.filter((f) => f.kind !== kind).concat(items.map((f, i) => ({ id: newId(), user_id: "demo", kind, rank: i + 1, ...f } as Favorite)));
     this.persist();
   }
-  async saveCover(bookId: string, url: string) {
+  async saveCover(bookId: string, url: string | null) {
     const lib = await this.loadLibrary();
     const b = lib.books.find((x) => x.id === bookId);
     if (b) { b.cover_url = url; this.persist(); }

@@ -8,7 +8,8 @@ import { Cover, SeriesNo, Stars, StatusPill, authorNames } from "../components/u
 import { useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
-import { lookupIsbn } from "../lib/isbn";
+import { CoverPicker } from "../components/CoverPicker";
+import { NO_COVER } from "../lib/covers";
 import { data } from "../data";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -36,6 +37,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const saveReading = useSaveReading();
   const del = useDeleteUserBook();
   const [page, setPage] = useState<string>("");
+  const [pickCover, setPickCover] = useState(false);
   const qc = useQueryClient();
 
   if (isLoading) return <p className="muted">Lade…</p>;
@@ -83,18 +85,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
     toast(`Seite ${n} gemerkt.`);
   }
 
-  async function findCover() {
-    if (!b.isbn13) { toast("Ohne ISBN kann ich kein Cover suchen. Trag sie unter Bearbeiten ein."); return; }
-    toast("Suche Cover…");
-    try {
-      const r = await lookupIsbn(b.isbn13);
-      if (r?.cover_url) {
-        await data.saveCover(b.id, r.cover_url);
-        await qc.invalidateQueries({ queryKey: ["library"] });
-        toast("Cover gefunden.");
-      } else toast("Leider kein Cover gefunden. Du kannst unter Bearbeiten einen Bild-Link eintragen.");
-    } catch { toast("Die Suche hat nicht geklappt."); }
-  }
+
 
   async function remove() {
     if (!confirm(`„${b.title}“ wirklich aus deinem Regal entfernen?`)) return;
@@ -138,7 +129,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
               );
             })()}
             <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}>Bearbeiten</Link>
-            {!b.cover_url && <button className="btn small ghost" onClick={findCover}>Cover suchen</button>}
+            <button className="btn small ghost" onClick={() => setPickCover(true)}>{b.cover_url && b.cover_url !== NO_COVER ? "Cover ändern" : "Cover suchen"}</button>
           </div>
           {m.status === "lese" && (
             <div className="panel" style={{ background: "var(--lese-bg)", boxShadow: "none" }}>
@@ -187,6 +178,18 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
       <div className="actions">
         <button className="btn danger" onClick={remove}>Aus dem Regal entfernen</button>
       </div>
+      {pickCover && (
+        <CoverPicker
+          book={{ isbn: b.isbn13, title: b.title, author: authorNames(e) }}
+          current={b.cover_url === NO_COVER ? null : b.cover_url}
+          onClose={() => setPickCover(false)}
+          onPick={async (url) => {
+            await data.saveCover(b.id, url ?? NO_COVER);
+            await qc.invalidateQueries({ queryKey: ["library"] });
+            toast(url ? "Cover gespeichert." : "Bild entfernt.");
+          }}
+        />
+      )}
     </>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "./Link";
 import { isDesktop, useOpenBook } from "./openBook";
 import { data } from "../data";
-import { findCover } from "../lib/covers";
+import { NO_COVER, findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, fmtDate, genreColors } from "../lib/labels";
 
@@ -24,16 +24,18 @@ export function olCoverUrl(isbn: string, size: "S" | "M" | "L" = "M") {
  * Buchcover: echtes Bild, wenn eine Adresse bekannt ist; sonst Versuch über die ISBN bei Open Library;
  * sonst ein farbiger Stoffeinband mit Titel. Ein gefundenes Bild wird am Buch gespeichert.
  */
-export function Cover({ title, author, url, isbn, bookId, large, genre }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean; genre?: string | null }) {
+export function Cover({ title, author, url: rawUrl, isbn, bookId, large, genre }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean; genre?: string | null }) {
   const c = genreColors(genre, title);
-  const olTry = !url && isbn && !noCover.has(isbn) ? isbn : null;
+  const wantsNone = rawUrl === NO_COVER; // ausdrücklich kein Bild: dann auch nicht suchen
+  const url = wantsNone ? null : rawUrl;
+  const olTry = !url && !wantsNone && isbn && !noCover.has(isbn) ? isbn : null;
   const [src, setSrc] = useState<string | null>(url ?? (olTry ? olCoverUrl(olTry, large ? "L" : "M") : null));
-  const [stage, setStage] = useState<"url" | "ol" | "google" | "none">(url ? "url" : olTry ? "ol" : "google");
+  const [stage, setStage] = useState<"url" | "ol" | "google" | "none">(url ? "url" : olTry ? "ol" : wantsNone ? "none" : "google");
 
   useEffect(() => {
     setSrc(url ?? (olTry ? olCoverUrl(olTry, large ? "L" : "M") : null));
-    setStage(url ? "url" : olTry ? "ol" : "google");
-  }, [url, olTry, large]);
+    setStage(url ? "url" : olTry ? "ol" : wantsNone ? "none" : "google");
+  }, [url, olTry, large, wantsNone]);
 
   // Weitere Stufen (Open-Library-Suche, Google Books), sobald das ISBN-Bild ausscheidet
   useEffect(() => {
