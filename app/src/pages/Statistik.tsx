@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEntries } from "../data/hooks";
 import type { Entry, Reading } from "../data/types";
-import { GENRE_FAMILY, VERDICT, euro } from "../lib/labels";
+import { GENRE_FAMILY, STATUS, VERDICT, euro } from "../lib/labels";
 import { readEvents } from "../lib/stats";
 import { Link } from "../components/Link";
 import { Cover } from "../components/ui";
@@ -26,9 +26,9 @@ const CAPPUCCINO = 360;            // Cent
 const LANDMARKS: [string, number][] = [["ein Gartenzwerg", 0.4], ["ein Kühlschrank", 1.8], ["eine Giraffe", 5.5], ["ein Einfamilienhaus", 10], ["das Brandenburger Tor", 26], ["der Schiefe Turm von Pisa", 56], ["die Freiheitsstatue", 93], ["der Kölner Dom", 157], ["der Eiffelturm", 330]];
 const WEIGHTS: [string, number][] = [["eine Katze", 4.5], ["ein Mops", 8], ["ein Beagle", 12], ["ein Labrador", 30], ["ein Bernhardiner", 70], ["ein Pandabär", 100], ["ein Klavier", 250], ["ein Pferd", 500], ["ein Kleinwagen", 900]];
 
-type Tab = "ueberblick" | "lesen" | "inhalte" | "autoren" | "geld";
+type Tab = "ueberblick" | "lesen" | "inhalte" | "autoren" | "bestand" | "geld";
 const TABS: [Tab, string, Parameters<typeof Icon>[0]["name"]][] = [
-  ["ueberblick", "Überblick", "sparkle"], ["lesen", "Lesen", "clock"], ["inhalte", "Inhalte", "layers"], ["autoren", "Autor:innen", "user"], ["geld", "Geld", "coffee"]
+  ["ueberblick", "Überblick", "sparkle"], ["lesen", "Lesen", "clock"], ["inhalte", "Inhalte", "layers"], ["autoren", "Autor:innen", "user"], ["bestand", "Bestand", "books"], ["geld", "Geld", "coffee"]
 ];
 
 type Ev = { e: Entry; r: Reading; year: number; date: string | null };
@@ -189,6 +189,35 @@ export default function Statistik() {
     const tbr = entries.filter((e) => e.mine.status === "tbr").length;
     return { bought, spent, unreadBought, readBought, nBought, perFormat, priciest, wishOpen, tbr, notBought: entries.length - nBought };
   }, [entries, lib]);
+
+  // Bestand: alles, was im Regal steht (Wunschliste zählt nicht), unabhängig vom Lesen
+  const own = useMemo(() => {
+    const books = entries.filter((e) => e.mine.status !== "wunschliste");
+    const pages = books.reduce((n, e) => n + (e.book.pages ?? 0), 0);
+    const read = books.filter((e) => e.mine.status === "gelesen").length;
+    const firstAuthor = (e: Entry) => e.authors[0];
+    const gender = countMap(books, (e) => (e.authors.length > 1 && new Set(e.authors.map((a) => a.gender ?? "unbekannt")).size > 1 ? "gemischt" : firstAuthor(e)?.gender ?? "unbekannt"));
+    const pagesHist = [["< 200", 0, 199], ["200", 200, 299], ["300", 300, 399], ["400", 400, 499], ["500", 500, 699], ["700+", 700, 99999]].map(([label, a, b]) => ({ label: label as string, value: books.filter((e) => (e.book.pages ?? -1) >= (a as number) && (e.book.pages ?? -1) <= (b as number)).length }));
+    return {
+      books, pages, read,
+      authors: new Set(books.flatMap((e) => e.authors.map((a) => a.id))).size,
+      series: new Set(books.map((e) => e.series?.id).filter(Boolean)).size,
+      status: countMap(books, (e) => e.mine.status),
+      media: countMap(books, (e) => e.mine.medium ?? []),
+      formats: countMap(books, (e) => e.mine.format ?? []),
+      gender,
+      countries: countMap(books, (e) => firstAuthor(e)?.country).slice(0, 8),
+      genres: countMap(books, (e) => e.book.genre),
+      kinds: countMap(books, (e) => e.book.kind).slice(0, 7),
+      audience: countMap(books, (e) => e.book.audience).slice(0, 6),
+      languages: countMap(books, (e) => e.book.language ?? []).slice(0, 6),
+      categories: countMap(books, (e) => e.book.category ?? []),
+      editions: countMap(books, (e) => e.mine.edition).slice(0, 6),
+      specials: countMap(books, (e) => e.mine.specials ?? []).slice(0, 8),
+      seriesSplit: [books.filter((e) => e.series).length, books.filter((e) => !e.series).length],
+      pagesHist
+    };
+  }, [entries]);
 
   const tendencies = useMemo(() => {
     const out: { icon: Parameters<typeof Icon>[0]["name"]; text: string }[] = [];
@@ -425,6 +454,56 @@ export default function Statistik() {
             <Donut items={S("c29").genderCounts.map(([k, n]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : GENDER_COLOR[k]?.label ?? k, value: n, color: GENDER_COLOR[k]?.band ?? "var(--c0)" }))} center={<strong>{S("c29").authorsRead.length}</strong>} sub="Personen" />
           </Card>
           <Card scope={pick("c30")} title="Herkunft" icon="globe"><BarList items={S("c30").countries.map(([k, n]) => ({ label: k, value: n }))} color="var(--c6)" /></Card>
+          </div>
+        </div>
+      )}
+
+      {tab === "bestand" && (
+        <div className="scards">
+          <p className="scard-note"><Icon name="books" size={16} /> Hier zählt alles, was du besitzt, egal ob und wann du es gelesen hast. Die Wunschliste ist nicht dabei.</p>
+          <div className="kpis">
+            <Kpi scope="Gesamt" icon="books" tone="blue" label="Bücher im Regal" value={fmtN(own.books.length)} sub={`${fmtN(own.pages)} Seiten`} />
+            <Kpi scope="Gesamt" icon="check" tone="green" label="Davon gelesen" value={<>{own.books.length ? Math.round((own.read / own.books.length) * 100) : 0}<small> %</small></>} sub={`${fmtN(own.read)} Bücher`} />
+            <Kpi scope="Gesamt" icon="user" tone="lilac" label="Autor:innen" value={fmtN(own.authors)} />
+            <Kpi scope="Gesamt" icon="layers" tone="yellow" label="Reihen" value={fmtN(own.series)} />
+          </div>
+          <div className="srow">
+            <Card scope="Gesamt" title="Print, digital oder Hörbuch" icon="book">
+              <Donut items={own.media.map(([k, n], i) => ({ label: k === "Audiobook" ? "Hörbuch" : k, value: n, color: ["var(--c3)", "var(--c1)", "var(--c5)", "var(--c4)"][i] ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+            </Card>
+            <Card scope="Gesamt" title="Format" icon="books">
+              <Donut items={own.formats.map(([k, n], i) => ({ label: k, value: n, color: ["var(--c6)", "var(--c2)", "var(--c5)", "var(--c1)", "var(--c4)", "var(--c3)"][i] ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+            </Card>
+          </div>
+          <div className="srow">
+            <Card scope="Gesamt" title="Wer hat sie geschrieben?" icon="user" hint="Gezählt pro Buch. Bei mehreren Autor:innen mit unterschiedlichen Angaben: gemischt.">
+              <Donut items={own.gender.map(([k, n]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : k === "gemischt" ? "Gemischt" : GENDER_COLOR[k]?.label ?? k, value: n, color: k === "gemischt" ? "var(--c6)" : GENDER_COLOR[k]?.band ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+            </Card>
+            <Card scope="Gesamt" title="Status" icon="check">
+              <Donut items={own.status.map(([k, n]) => ({ label: STATUS[k as keyof typeof STATUS] ?? k, value: n, color: `var(--${k === "lese" ? "lese" : k === "gelesen" ? "gelesen" : k === "tbr" ? "tbr" : k === "ungelesen" ? "ungelesen" : "abg"})` }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+            </Card>
+          </div>
+          <div className="srow">
+            <Card scope="Gesamt" title="Genres" icon="layers">
+              <Donut items={own.genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} center={<strong>{own.genres.length}</strong>} sub="Genres" />
+            </Card>
+            <Card scope="Gesamt" title="Art" icon="book"><BarList items={own.kinds.map(([k, n]) => ({ label: k, value: n }))} color="var(--c1)" /></Card>
+          </div>
+          <div className="srow">
+            <Card scope="Gesamt" title="Herkunft der Autor:innen" icon="globe"><BarList items={own.countries.map(([k, n]) => ({ label: k, value: n }))} color="var(--c6)" /></Card>
+            {own.specials.length > 0 && <Card scope="Gesamt" title="Besonderheiten" icon="sparkle"><BarList items={own.specials.map(([k, n]) => ({ label: k, value: n }))} color="var(--c8)" /></Card>}
+          </div>
+          <div className="srow">
+            <Card scope="Gesamt" title="Zielgruppe" icon="user"><BarList items={own.audience.map(([k, n]) => ({ label: k, value: n }))} color="var(--c6)" /></Card>
+            <Card scope="Gesamt" title="Sprache" icon="globe"><BarList items={own.languages.map(([k, n]) => ({ label: k, value: n }))} color="var(--c3)" /></Card>
+            <Card scope="Gesamt" title="Ausgabe" icon="book"><BarList items={own.editions.map(([k, n]) => ({ label: k === "Normal" ? "Normale Ausgabe" : k === "Other" ? "Andere" : k, value: n }))} color="var(--c2)" /></Card>
+          </div>
+          <div className="srow">
+            <Card scope="Gesamt" title="Wie dick sind deine Bücher?" icon="book" hint="Anzahl Bücher je Seitenzahl."><Columns data={own.pagesHist} color="var(--c5)" unit=" Bücher" /></Card>
+            <Card scope="Gesamt" title="Reihe oder Einzelband" icon="layers">
+              <StackBar items={[{ label: "Teil einer Reihe", value: own.seriesSplit[0], color: "var(--c1)" }, { label: "Einzelband", value: own.seriesSplit[1], color: "var(--c5)" }]} />
+              {own.categories.length > 0 && <><p className="scard-sub">Kategorie</p><StackBar items={own.categories.map(([k, n], i) => ({ label: k, value: n, color: ["var(--c3)", "var(--c4)", "var(--c2)"][i] ?? "var(--c0)" }))} /></>}
+            </Card>
           </div>
         </div>
       )}
