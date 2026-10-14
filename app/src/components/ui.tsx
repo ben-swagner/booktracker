@@ -170,13 +170,90 @@ export function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, n
   return [ref, w];
 }
 
-/** Maße eines Buchrückens: Breite nach Seitenzahl, Höhe nach Art und Dicke, kleiner Wackler pro Titel. */
+/** Welche Bauart ein Buch im Regal hat. Bei mehreren Formaten zählt das gedruckte. */
+export type Binding = "hardcover" | "paperback" | "taschenbuch" | "manga" | "ebook";
+
+export function bindingOf(e: Entry): Binding {
+  const f = (e.mine.format ?? []).map((x) => x.toLowerCase());
+  if (/Manga|Manhwa|Comic|Kinderbuch/.test(e.book.kind ?? "") && !f.includes("hardcover")) return "manga";
+  if (f.includes("hardcover")) return "hardcover";
+  if (f.includes("paperback") || f.some((x) => x.includes("klappen"))) return "paperback";
+  if (f.includes("taschenbuch")) return "taschenbuch";
+  if (f.includes("ebook") || (e.mine.medium?.length && !e.mine.medium.includes("Print"))) return "ebook";
+  return "taschenbuch";
+}
+
+export const BINDING_LABEL: Record<Binding, string> = {
+  hardcover: "Hardcover", paperback: "Paperback", taschenbuch: "Taschenbuch", manga: "Manga/Comic", ebook: "eBook"
+};
+
+/** Echte Höhen in cm (ungefähr): Manga 17,5 · Taschenbuch 18,7 · Paperback 21 · Hardcover 22. */
+const HEIGHT_CM: Record<Binding, number> = { manga: 17.5, taschenbuch: 18.7, ebook: 20, paperback: 21, hardcover: 22.2 };
+
+/** Maße eines Buchrückens: Breite nach Seitenzahl, Höhe nach Bauart (Hardcover, Taschenbuch …). */
 export function spineSize(e: Entry, compact = false) {
   const pages = e.book.pages ?? 250;
-  const w = Math.max(compact ? 12 : 14, Math.min(compact ? 36 : 44, Math.round(pages / (compact ? 24 : 20))));
-  const base = /Manga|Manhwa|Comic|Kurzgeschichte|Kinderbuch/.test(e.book.kind ?? "") ? (compact ? 70 : 82) : (compact ? 84 : 98);
-  const h = base + Math.min(22, Math.round(pages / 40)) + ((e.book.title.length * 7) % 9);
-  return { w, h };
+  const bind = bindingOf(e);
+  const extra = bind === "hardcover" ? 3 : 0; // Buchdeckel machen den Rücken etwas breiter
+  const w = Math.max(compact ? 12 : 14, Math.min(compact ? 38 : 46, Math.round(pages / (compact ? 24 : 20)) + extra));
+  const h = Math.round(HEIGHT_CM[bind] * (compact ? 4.6 : 5.2)) + ((e.book.title.length * 7) % 3);
+  return { w, h, bind };
+}
+
+/** Kurzer Titel für den Rücken: ohne Untertitel nach „:“ oder „ - “. */
+function spineTitle(t: string) {
+  return t.split(/:| [-–] | \(/)[0].trim();
+}
+
+/** Passt der Titel vollständig auf den Rücken? Sonst bleibt der Rücken ohne Schrift. */
+function titleFits(title: string, w: number, h: number) {
+  const lines = w >= 34 ? 2 : w >= 17 ? 1 : 0;
+  if (!lines) return false;
+  const perLine = Math.floor((h - 14) / 6.1);
+  if (title.length <= perLine) return true;
+  if (lines < 2) return false;
+  // auf zwei Zeilen an Wortgrenzen umbrechen
+  let line = 0, used = 0;
+  for (const word of title.split(" ")) {
+    const len = used ? used + 1 + word.length : word.length;
+    if (len <= perLine) used = len;
+    else { line++; used = word.length; if (word.length > perLine || line >= lines) return false; }
+  }
+  return true;
+}
+
+function Spine({ e, compact, color, onHover }: { e: Entry; compact?: boolean; color: { bg: string; fg: string }; onHover: (e: Entry | null) => void }) {
+  const { w, h, bind } = spineSize(e, compact);
+  const openBook = useOpenBook();
+  const t = spineTitle(e.book.title);
+  const show = titleFits(t, w, h);
+  return (
+    <Link
+      to={`/buch/${e.mine.id}`}
+      className={`spine b-${bind}`}
+      title={`${e.book.title} · ${authorNames(e)}`}
+      style={{ width: w, height: h, background: color.bg, color: color.fg }}
+      onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}
+    >
+      <span className="spine-hover" onMouseEnter={() => onHover(e)} onMouseLeave={() => onHover(null)} />
+      {show ? <span className={"spine-title" + (w >= 34 && t.length > Math.floor((h - 14) / 6.1) ? " two" : "")}>{t}</span> : <span className="spine-bands" />}
+    </Link>
+  );
+}
+
+/** Zeile unter dem Brett: zeigt Titel und Infos zum Buch, über dem die Maus gerade ist. */
+function ShelfInfo({ e, fallback }: { e: Entry | null; fallback?: React.ReactNode }) {
+  if (!e) return <p className="shelf-note">{fallback}</p>;
+  const last = lastReading(e);
+  return (
+    <p className="shelf-note shelf-info">
+      <strong>{e.book.title}</strong>
+      {" · "}{authorNames(e)}
+      {e.book.pages ? ` · ${e.book.pages} S.` : ""}
+      {` · ${BINDING_LABEL[bindingOf(e)]}`}
+      {last && (last.finished_on || last.finished_text) ? ` · beendet ${fmtDate(last.finished_on, last.finished_text)}` : ""}
+    </p>
+  );
 }
 
 const GAP = 4;
@@ -188,6 +265,7 @@ const SHELF_PADDING = 24;
  */
 export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: Entry[]; compact?: boolean; colorFor?: (e: Entry) => { bg: string; fg: string }; maxRows?: number }) {
   const [ref, width] = useWidth<HTMLDivElement>();
+  const [hover, setHover] = useState<Entry | null>(null);
   const avail = Math.max(200, (width || 320) - SHELF_PADDING);
   const rows: Entry[][] = [];
   let cur: Entry[] = [], used = 0;
@@ -204,43 +282,28 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
       {shown.map((row, i) => (
         <div key={i} className="shelf-row">
           <div className="shelf shelf-wrap">
-            {row.map((e) => {
-              const { w, h } = spineSize(e, compact);
-              const c = colorFor ? colorFor(e) : coverColors(e.book.title);
-              return (
-                <Link key={e.mine.id} to={`/buch/${e.mine.id}`} className="spine" title={`${e.book.title} · ${authorNames(e)}`} style={{ width: w, height: h, background: c.bg, color: c.fg }}>
-                  <span>{e.book.title}</span>
-                </Link>
-              );
-            })}
+            {row.map((e) => <Spine key={e.mine.id} e={e} compact={compact} color={colorFor ? colorFor(e) : coverColors(e.book.title)} onHover={setHover} />)}
           </div>
           <div className="plank" />
         </div>
       ))}
-      {hidden > 0 && <p className="shelf-note">… und {hidden} weitere. <Link to="/regal?v=jahre">Alle Bretter ansehen</Link></p>}
+      <ShelfInfo e={hover} fallback={hidden > 0 ? <>… und {hidden} weitere. <Link to="/regal?v=jahre">Alle Bretter ansehen</Link></> : <span className="desk-only">Fahr mit der Maus über ein Buch, um den Titel zu sehen.</span>} />
     </div>
   );
 }
 
 /** Startseite: ein einziges langes Brett, das man seitlich rollt. */
 export function Shelf({ entries, note }: { entries: Entry[]; note?: string }) {
+  const [hover, setHover] = useState<Entry | null>(null);
   return (
     <div className="panel shelf-box">
       <div className="shelf-scroll">
         <div className="shelf">
-          {entries.map((e) => {
-            const c = coverColors(e.book.title);
-            const { w, h } = spineSize(e, true);
-            return (
-              <Link key={e.mine.id} to={`/buch/${e.mine.id}`} className="spine" title={e.book.title} style={{ width: w, height: h, background: c.bg, color: c.fg }}>
-                <span>{e.book.title}</span>
-              </Link>
-            );
-          })}
+          {entries.map((e) => <Spine key={e.mine.id} e={e} compact color={coverColors(e.book.title)} onHover={setHover} />)}
         </div>
       </div>
       <div className="plank" />
-      {note && <p className="shelf-note">{note}</p>}
+      <ShelfInfo e={hover} fallback={note} />
     </div>
   );
 }
