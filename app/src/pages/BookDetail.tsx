@@ -10,9 +10,16 @@ import { lookupIsbn } from "../lib/isbn";
 import { data } from "../data";
 import { useQueryClient } from "@tanstack/react-query";
 
-function Chips({ items }: { items?: string[] }) {
+/** Chips, die zur Bibliothek mit passendem Filter führen (z. B. alle Bücher mit diesem Trope). */
+function Chips({ items, param }: { items?: string[]; param?: "trope" | "ohne" }) {
   if (!items?.length) return null;
-  return <div className="chips">{items.map((x) => <span key={x} className="chip">{x}</span>)}</div>;
+  return (
+    <div className="chips">
+      {items.map((x) => param
+        ? <Link key={x} className="chip chip-link" to={`/bibliothek?${param}=${encodeURIComponent(x)}`} title={param === "trope" ? `Alle Bücher mit „${x}“` : `Bücher ohne „${x}“`}>{x}</Link>
+        : <span key={x} className="chip">{x}</span>)}
+    </div>
+  );
 }
 
 /** Buchseite. Mit `id` und `onClose` läuft sie als Fenster über einer anderen Seite (am Computer). */
@@ -157,7 +164,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             {fact("Seiten", b.pages)}{fact("Kapitel", b.chapters)}{fact("ISBN", b.isbn13)}{fact("Zeit", b.period)}{fact("Schauplatz", b.setting)}
             {fact("Erzählperspektive", b.pov)}{fact("Hauptfiguren", b.main_characters)}{fact("Adaption", b.adaptations)}
           </dl>
-          {b.tropes?.length ? <><h3>Tropes</h3><Chips items={b.tropes} /></> : null}
+          {b.tropes?.length ? <><h3>Tropes</h3><Chips items={b.tropes} param="trope" /></> : null}
           {b.trigger_warnings?.length ? <><h3>Triggerwarnungen</h3><Chips items={b.trigger_warnings} /></> : null}
         </div>
         <div className="panel section">

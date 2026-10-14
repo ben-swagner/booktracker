@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isDesktop, useOpenBook } from "../components/openBook";
+import { ContentFilterPanel, activeCount, matches, readFilter, writeFilter, type ContentFilter } from "../components/ContentFilters";
+import { BURN, spiceLabel } from "../lib/labels";
 import { Link } from "../components/Link";
 import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
@@ -23,6 +25,15 @@ export default function Bibliothek() {
   const sort = (params.get("sort") ?? "neu") as Sort;
   const view = (localStorage.getItem("bt-view") ?? "karten") as "karten" | "tabelle";
   const [limit, setLimit] = useState(PAGE);
+  const filter = readFilter(params);
+  const nFilters = activeCount(filter);
+  const [showFilters, setShowFilters] = useState(nFilters > 0);
+  const setFilter = (f: ContentFilter) => {
+    const p = new URLSearchParams(params);
+    writeFilter(p, f);
+    setParams(p, { replace: true });
+    setLimit(PAGE);
+  };
 
   const set = (k: string, v: string) => {
     const p = new URLSearchParams(params);
@@ -43,7 +54,7 @@ export default function Bibliothek() {
 
   const list = useMemo(() => {
     const nq = norm(q.trim());
-    let out = entries.filter((e) => status === "alle" || e.mine.status === status);
+    let out = entries.filter((e) => (status === "alle" || e.mine.status === status) && matches(e, filter));
     if (nq) {
       out = out.filter((e) => {
         const hay = norm([e.book.title, e.book.original_title, authorNames(e), e.series?.name, e.book.genre, e.book.subgenres?.join(" "), e.book.isbn13, e.book.publisher, e.book.tropes?.join(" ")].filter(Boolean).join(" "));
@@ -59,7 +70,7 @@ export default function Bibliothek() {
       bewertung: (a, b) => (b.mine.rating ?? -1) - (a.mine.rating ?? -1)
     };
     return [...out].sort(cmp[sort]);
-  }, [entries, status, q, sort]);
+  }, [entries, status, q, sort, params.toString()]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <p className="muted">Lade…</p>;
 
@@ -91,6 +102,10 @@ export default function Bibliothek() {
             <option value="autor">Autor:in A-Z</option>
             <option value="bewertung">Beste Bewertung</option>
           </select>
+          <button type="button" className={"btn filter-btn" + (nFilters ? " on" : "")} aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+            Filter{nFilters ? <span className="badge">{nFilters}</span> : null}
+          </button>
           <div className="view-switch" role="group" aria-label="Ansicht">
             <button type="button" aria-pressed={view === "karten"} title="Als Karten zeigen" aria-label="Karten" onClick={() => setView("karten")}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><rect x="4" y="4" width="7" height="7" rx="2" /><rect x="13" y="4" width="7" height="7" rx="2" /><rect x="4" y="13" width="7" height="7" rx="2" /><rect x="13" y="13" width="7" height="7" rx="2" /></svg>
@@ -102,6 +117,16 @@ export default function Bibliothek() {
         </div>
       </div>
 
+      {showFilters && <ContentFilterPanel pool={entries.filter((e) => status === "alle" || e.mine.status === status)} value={filter} onChange={setFilter} />}
+      {nFilters > 0 && (
+        <div className="active-filters">
+          {filter.genre && <button className="tchip" aria-pressed="true" onClick={() => setFilter({ ...filter, genre: "" })}>{filter.genre} ✕</button>}
+          {filter.spice.map((v) => <button key={"s" + v} className="tchip" aria-pressed="true" onClick={() => setFilter({ ...filter, spice: filter.spice.filter((x) => x !== v) })}>{v === "?" ? "Spice ohne Angabe" : spiceLabel(Number(v))} ✕</button>)}
+          {filter.burn.map((v) => <button key={"b" + v} className="tchip" aria-pressed="true" onClick={() => setFilter({ ...filter, burn: filter.burn.filter((x) => x !== v) })}>{v === "?" ? "Burn ohne Angabe" : BURN[v as keyof typeof BURN]} ✕</button>)}
+          {filter.tropes.map((v) => <button key={"t" + v} className="tchip" aria-pressed="true" onClick={() => setFilter({ ...filter, tropes: filter.tropes.filter((x) => x !== v) })}>{v} ✕</button>)}
+          {filter.ohne.map((v) => <button key={"o" + v} className="tchip warn" aria-pressed="true" onClick={() => setFilter({ ...filter, ohne: filter.ohne.filter((x) => x !== v) })}>ohne {v} ✕</button>)}
+        </div>
+      )}
       {list.length === 0 ? (
         <div className="grid"><Empty title="Nichts gefunden" text="Probier einen anderen Suchbegriff oder Filter." /></div>
       ) : view === "tabelle" ? (
