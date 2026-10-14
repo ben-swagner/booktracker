@@ -171,12 +171,26 @@ export function Heatmap({ rows, cols, values, unit = "Bücher" }: { rows: string
 
 /** Karte mit großem Wert, z. B. „Seiten: 29.083“. */
 /** Kleines Schild, für welchen Zeitraum eine Zahl gilt (z. B. „2026“ oder „Alle Jahre“). */
-export function Scope({ value }: { value?: string }) {
+export function Scope({ value }: { value?: React.ReactNode }) {
   if (!value) return null;
+  if (typeof value !== "string") return <>{value}</>;
   return <span className={"scope" + (/^\d{4}$/.test(value) ? " year" : "")} title={/^\d{4}$/.test(value) ? `Gilt nur für ${value}` : value === "Alle Jahre" ? "Gilt für alle Jahre zusammen" : "Gilt für alle deine Bücher"}>{value}</span>;
 }
 
-export function Kpi({ icon, label, value, sub, tone = "blue", children, scope }: { icon: IconName; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "blue" | "green" | "pink" | "yellow" | "lilac"; children?: React.ReactNode; scope?: string }) {
+/** Auswahl des Zeitraums für eine einzelne Karte: ein Jahr oder alle Jahre. */
+export function ScopeSelect({ value, years, onChange }: { value: string; years: number[]; onChange: (v: string) => void }) {
+  return (
+    <span className={"scope scope-select" + (value === "alle" ? "" : " year")}>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Zeitraum für diese Karte" title="Zeitraum für diese Karte wählen">
+        {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+        <option value="alle">Alle Jahre</option>
+      </select>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+    </span>
+  );
+}
+
+export function Kpi({ icon, label, value, sub, tone = "blue", children, scope }: { icon: IconName; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "blue" | "green" | "pink" | "yellow" | "lilac"; children?: React.ReactNode; scope?: React.ReactNode }) {
   return (
     <div className={"kpi kpi-" + tone}>
       <span className="kpi-top"><span className="kpi-icon"><Icon name={icon} size={18} /></span><Scope value={scope} /></span>
@@ -202,7 +216,7 @@ export function Fact({ icon, tone, big, children }: { icon: IconName; tone: stri
 }
 
 /** Karte für einen Bereich der Statistik. */
-export function Card({ title, icon, hint, children, wide, scope }: { title: string; icon?: IconName; hint?: React.ReactNode; children: React.ReactNode; wide?: boolean; scope?: string }) {
+export function Card({ title, icon, hint, children, wide, scope }: { title: string; icon?: IconName; hint?: React.ReactNode; children: React.ReactNode; wide?: boolean; scope?: React.ReactNode }) {
   return (
     <section className={"panel scard" + (wide ? " wide" : "")}>
       <header className="scard-head">
