@@ -1,3 +1,4 @@
+import { readEvents } from "../lib/stats";
 import { Link } from "../components/Link";
 import { useEntries, useUser } from "../data/hooks";
 import { BookCard, Empty, Shelf } from "../components/ui";
@@ -13,13 +14,11 @@ export default function Start() {
   const by = (s: string) => entries.filter((e) => e.mine.status === s);
   const reading = by("lese");
   const recent = [...entries].sort((a, b) => (b.mine.created_at ?? "").localeCompare(a.mine.created_at ?? "")).slice(0, 6);
-  const finished = entries
-    .filter((e) => e.readings.some((r) => r.finished_on?.startsWith(String(year))))
-    .sort((a, b) => {
-      const fa = a.readings.map((r) => r.finished_on ?? "").sort().pop() ?? "";
-      const fb = b.readings.map((r) => r.finished_on ?? "").sort().pop() ?? "";
-      return fa.localeCompare(fb);
-    });
+  // Jeder beendete Durchgang dieses Jahres steht einmal auf dem Brett, ein Reread also ein zweites Mal
+  const finished = readEvents(entries)
+    .filter((x) => x.year === year)
+    .sort((a, b) => (a.r.finished_on ?? a.r.finished_text ?? "").localeCompare(b.r.finished_on ?? b.r.finished_text ?? ""))
+    .map((x) => x.e);
 
   return (
     <>

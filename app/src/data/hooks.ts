@@ -17,7 +17,9 @@ async function cacheKey(): Promise<string | null> {
 
 /** Lokale Kopie der Bibliothek: sofort anzeigen, dann frisch laden und die Kopie erneuern. */
 async function loadWithCache(): Promise<Library> {
-  const fresh = await data.loadLibrary();
+  let fresh = await data.loadLibrary();
+  // Demo-Modus ändert die Daten an Ort und Stelle: neue Hülle, damit die Anzeige neu rechnet
+  if (data.mode !== "supabase") fresh = Object.fromEntries(Object.entries(fresh).map(([k, v]) => [k, Array.isArray(v) ? [...v] : v])) as Library;
   const key = await cacheKey();
   if (key) idbSet(key, { at: Date.now(), lib: fresh }).catch(() => {});
   return fresh;

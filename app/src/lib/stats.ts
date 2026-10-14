@@ -1,8 +1,8 @@
 import type { Entry, Reading } from "../data/types";
 
-/** Jahr eines Lesevorgangs (aus Datum oder Jahrestext), sonst null. */
+/** Jahr, in dem ein Lesevorgang beendet wurde (Datum oder Jahrestext). Noch offene Durchgänge zählen nicht. */
 export function readingYear(r: Reading): number | null {
-  const d = r.finished_on ?? r.finished_text ?? r.started_on ?? r.started_text ?? "";
+  const d = r.finished_on ?? r.finished_text ?? "";
   const m = /^(\d{4})/.exec(d);
   return m ? Number(m[1]) : null;
 }

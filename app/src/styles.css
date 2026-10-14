@@ -387,3 +387,15 @@ textarea.input { resize: vertical; min-height: 90px; }
 @keyframes pop-in { from { opacity: 0; transform: translateY(10px) scale(.98); } }
 @media (max-width: 899px) { .bm-backdrop { padding: 0; } .bm { border-radius: 0; min-height: 100%; padding: 56px 16px 24px; } }
 .shelf-rows > .shelf-info { position: sticky; bottom: 16px; z-index: 5; align-self: flex-start; max-width: 100%; background: var(--surface); padding: 8px 16px; border-radius: 999px; box-shadow: var(--shadow), 0 0 0 1px var(--line); }
+
+/* Lesevorgänge auf der Buchseite */
+.readings { display: flex; flex-direction: column; gap: 10px; }
+.reading { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.reading.done { border-color: var(--green-light); background: color-mix(in srgb, var(--green-soft) 45%, var(--surface)); }
+.reading.dnf { border-color: var(--pink-light); }
+.reading-head { display: flex; align-items: center; gap: 10px; }
+.reading-head .meta { flex: 1; margin: 0; }
+.reading-head .btn.danger { padding-inline: 8px; }
+.reading-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.reading-dates .field span:first-child { font-size: 12px; font-weight: 700; color: var(--muted); }
+.reading .input.date { padding: 7px 10px; font-size: 14px; min-width: 0; width: 100%; }

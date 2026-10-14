@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "../components/Link";
 import { useState } from "react";
-import { useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
-import type { Reading, ReadingStatus } from "../data/types";
-import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, fmtDate, spiceLabel, today } from "../lib/labels";
+import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
+import type { Entry, Reading, ReadingStatus } from "../data/types";
+import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
 import { Cover, Stars, StatusPill, authorNames } from "../components/ui";
 import { toast } from "../App";
 import { lookupIsbn } from "../lib/isbn";
@@ -169,37 +169,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             {fact("Hörbuch", m.audio_platforms)}{fact("Sprecher:in", m.narrators)}{fact("Hördauer", m.duration_min ? `${Math.floor(m.duration_min / 60)} h ${m.duration_min % 60} min` : null)}
             {fact("Adaption gesehen", m.adaptation_seen ? "Ja" : null)}
           </dl>
-          {e.readings.length > 0 && (
-            <>
-              <h3>Lesevorgänge</h3>
-              <table className="table">
-                <thead><tr><th>#</th><th>Begonnen</th><th>Beendet</th><th>Tage</th></tr></thead>
-                <tbody>
-                  {e.readings.map((r) => (
-                    <tr key={r.id}>
-                      <td className="mono">{r.read_number}{r.abandoned ? " (abgebrochen)" : ""}</td>
-                      <td className="mono">{fmtDate(r.started_on, r.started_text) || "?"}</td>
-                      <td className="mono">
-                        {r.abandoned ? fmtDate(r.finished_on, r.finished_text) : (
-                          <button
-                            className={`btn small ${r.finished_on || r.finished_text ? "" : "ghost"}`}
-                            title={r.finished_on || r.finished_text ? "Antippen, um es zurückzunehmen" : "Antippen, wenn du fertig bist"}
-                            onClick={() => toggleFinished(r)}
-                          >
-                            {r.finished_on || r.finished_text ? `✓ ${fmtDate(r.finished_on, r.finished_text)}` : "○ noch nicht beendet"}
-                          </button>
-                        )}
-                      </td>
-                      <td className="mono">{r.days ?? ""}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {e.readings.some((r) => r.abandoned && r.abandoned_reasons?.length) && (
-                <p className="meta">Abbruchgrund: {e.readings.filter((r) => r.abandoned).flatMap((r) => r.abandoned_reasons ?? []).join(", ")}</p>
-              )}
-            </>
-          )}
+          <Readings e={e} />
           {m.notes && <><h3>Meine Notiz</h3><p style={{ margin: 0 }}>{m.notes}</p></>}
           {m.review && <><h3>Rezension</h3><p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
         </div>
@@ -207,6 +177,115 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
       <div className="actions">
         <button className="btn danger" onClick={remove}>Aus dem Regal entfernen</button>
       </div>
+    </>
+  );
+}
+
+const daysBetween = (start?: string | null, end?: string | null) =>
+  start && end ? Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / 86400000)) : null;
+
+/**
+ * Lesevorgänge eines Buchs: jede Zeile ist ein Durchgang (1. Lesen, Reread, …).
+ * Daten lassen sich direkt ändern, Rereads hinzufügen und Einträge löschen.
+ * Der Buchstatus folgt dem letzten Durchgang (offen = Lese ich, beendet = Gelesen).
+ */
+function Readings({ e }: { e: Entry }) {
+  const saveReading = useSaveReading();
+  const delReading = useDeleteReading();
+  const saveUB = useSaveUserBook();
+  const m = e.mine;
+  const list = [...e.readings].sort((x, y) => x.read_number - y.read_number);
+  const latest = list[list.length - 1];
+
+  async function syncStatus(r: Reading, finished: boolean) {
+    if (r.id !== latest?.id || r.abandoned) return;
+    if (finished && m.status !== "gelesen") await saveUB.mutateAsync({ id: m.id, book_id: e.book.id, status: "gelesen", current_page: null });
+    if (!finished && m.status === "gelesen") await saveUB.mutateAsync({ id: m.id, book_id: e.book.id, status: "lese" });
+  }
+
+  const valid = (v: string) => !v || Number(v.slice(0, 4)) >= 1900; // halb getippte Jahre nicht speichern
+
+  async function setStart(r: Reading, v: string) {
+    if (!valid(v)) return;
+    const started_on = v || null;
+    await saveReading.mutateAsync({ ...r, started_on, started_text: v ? null : r.started_text, days: daysBetween(started_on, r.finished_on) });
+  }
+
+  async function setEnd(r: Reading, v: string) {
+    if (!valid(v)) return;
+    const finished_on = v || null;
+    await saveReading.mutateAsync({ ...r, finished_on, finished_text: null, days: daysBetween(r.started_on, finished_on) });
+    await syncStatus(r, !!finished_on);
+    toast(finished_on ? "Beendet-Datum gespeichert." : "Noch nicht beendet.");
+  }
+
+  async function addReread() {
+    const n = (latest?.read_number ?? 0) + 1;
+    await saveReading.mutateAsync({ user_book_id: m.id, read_number: n, started_on: today() });
+    await saveUB.mutateAsync({ id: m.id, book_id: e.book.id, status: "lese", current_page: null });
+    toast(n > 1 ? `Reread Nr. ${n - 1} angelegt. Die Daten kannst du in der Tabelle anpassen.` : "Lesevorgang angelegt.");
+  }
+
+  async function remove(r: Reading) {
+    const label = r.read_number === 1 ? "den 1. Lesevorgang" : `den ${r.read_number}. Lesevorgang (Reread)`;
+    if (!confirm(`Willst du ${label} wirklich löschen?`)) return;
+    await delReading.mutateAsync(r.id);
+    // Nummern wieder lückenlos machen
+    const rest = list.filter((x) => x.id !== r.id);
+    for (let i = 0; i < rest.length; i++) {
+      if (rest[i].read_number !== i + 1) await saveReading.mutateAsync({ ...rest[i], read_number: i + 1 });
+    }
+    toast("Lesevorgang gelöscht.");
+  }
+
+  const label = (r: Reading) => (r.read_number === 1 ? "1. Lesen" : `Reread ${r.read_number - 1}`) + (r.abandoned ? " (abgebrochen)" : "");
+  const fuzzy = (iso?: string | null, text?: string | null) => (!iso && text ? <span className="meta">bisher nur ungefähr: {text}</span> : null);
+
+  return (
+    <>
+      <div className="section-head" style={{ marginTop: 6 }}>
+        <h3 style={{ margin: 0 }}>Lesevorgänge{list.length > 1 ? ` · ${list.length}× gelesen` : ""}</h3>
+        <button className="btn small" onClick={addReread}>{list.length ? "+ Reread eintragen" : "+ Lesevorgang eintragen"}</button>
+      </div>
+      {list.length > 0 ? (
+        <div className="readings">
+          {list.map((r) => {
+            const done = !!(r.finished_on || r.finished_text);
+            return (
+              <div key={r.id} className={"reading" + (done ? " done" : "") + (r.abandoned ? " dnf" : "")}>
+                <div className="reading-head">
+                  <strong>{label(r)}</strong>
+                  <span className="meta">{r.days ? `${r.days} Tage` : done || r.abandoned ? "" : "läuft"}</span>
+                  <button className="btn small danger" title="Diesen Lesevorgang löschen" aria-label="Löschen" onClick={() => remove(r)}>Löschen</button>
+                </div>
+                <div className="reading-dates">
+                  <label className="field">
+                    <span>Begonnen</span>
+                    <input className="input date" type="date" value={r.started_on ?? ""} max={r.finished_on ?? undefined} onChange={(ev) => setStart(r, ev.target.value)} />
+                    {fuzzy(r.started_on, r.started_text)}
+                  </label>
+                  <label className="field">
+                    <span>Beendet</span>
+                    <input className="input date" type="date" value={r.finished_on ?? ""} min={r.started_on ?? undefined} onChange={(ev) => setEnd(r, ev.target.value)} />
+                    {fuzzy(r.finished_on, r.finished_text)}
+                  </label>
+                </div>
+                {!r.abandoned && (
+                  <div className="actions" style={{ marginTop: 2 }}>
+                    {!done && <button className="btn small" onClick={() => setEnd(r, today())}>✓ Heute beendet</button>}
+                    {done && <button className="btn small ghost" title="Wieder auf noch nicht beendet setzen" onClick={() => setEnd(r, "")}>↺ Doch noch nicht beendet</button>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="meta" style={{ margin: 0 }}>Noch kein Lesevorgang eingetragen.</p>
+      )}
+      {list.some((r) => r.abandoned && r.abandoned_reasons?.length) && (
+        <p className="meta">Abbruchgrund: {list.filter((r) => r.abandoned).flatMap((r) => r.abandoned_reasons ?? []).join(", ")}</p>
+      )}
     </>
   );
 }

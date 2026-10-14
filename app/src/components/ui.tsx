@@ -222,10 +222,22 @@ function titleFits(title: string, w: number, h: number) {
   return true;
 }
 
-function Spine({ e, compact, color, onHover }: { e: Entry; compact?: boolean; color: { bg: string; fg: string }; onHover: (e: Entry | null) => void }) {
+/** Kurztitel, die auf einem Brett mehrfach vorkämen (z. B. Bände einer Reihe): dort den vollen Titel nehmen. */
+function sharedShortTitles(entries: Entry[]) {
+  const seen = new Map<string, Set<string>>();
+  for (const e of entries) {
+    const k = spineTitle(e.book.title);
+    if (!seen.has(k)) seen.set(k, new Set());
+    seen.get(k)!.add(e.book.title);
+  }
+  return new Set([...seen].filter(([, titles]) => titles.size > 1).map(([k]) => k));
+}
+
+function Spine({ e, compact, color, onHover, shared }: { e: Entry; compact?: boolean; color: { bg: string; fg: string }; onHover: (e: Entry | null) => void; shared?: Set<string> }) {
   const { w, h, bind } = spineSize(e, compact);
   const openBook = useOpenBook();
-  const t = spineTitle(e.book.title);
+  const short = spineTitle(e.book.title);
+  const t = shared?.has(short) ? e.book.title : short;
   const show = titleFits(t, w, h);
   return (
     <Link
@@ -266,6 +278,7 @@ const SHELF_PADDING = 24;
 export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: Entry[]; compact?: boolean; colorFor?: (e: Entry) => { bg: string; fg: string }; maxRows?: number }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<Entry | null>(null);
+  const shared = sharedShortTitles(entries);
   const avail = Math.max(200, (width || 320) - SHELF_PADDING);
   const rows: Entry[][] = [];
   let cur: Entry[] = [], used = 0;
@@ -282,7 +295,7 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
       {shown.map((row, i) => (
         <div key={i} className="shelf-row">
           <div className="shelf shelf-wrap">
-            {row.map((e) => <Spine key={e.mine.id} e={e} compact={compact} color={colorFor ? colorFor(e) : coverColors(e.book.title)} onHover={setHover} />)}
+            {row.map((e, j) => <Spine key={`${e.mine.id}-${j}`} e={e} compact={compact} color={colorFor ? colorFor(e) : coverColors(e.book.title)} onHover={setHover} shared={shared} />)}
           </div>
           <div className="plank" />
         </div>
@@ -295,11 +308,12 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
 /** Startseite: ein einziges langes Brett, das man seitlich rollt. */
 export function Shelf({ entries, note }: { entries: Entry[]; note?: React.ReactNode }) {
   const [hover, setHover] = useState<Entry | null>(null);
+  const shared = sharedShortTitles(entries);
   return (
     <div className="panel shelf-box">
       <div className="shelf-scroll">
         <div className="shelf">
-          {entries.map((e) => <Spine key={e.mine.id} e={e} compact color={coverColors(e.book.title)} onHover={setHover} />)}
+          {entries.map((e, j) => <Spine key={`${e.mine.id}-${j}`} e={e} compact color={coverColors(e.book.title)} onHover={setHover} shared={shared} />)}
         </div>
       </div>
       <div className="plank" />
