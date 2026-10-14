@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "../components/Link";
 import { useState } from "react";
 import { useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
-import type { ReadingStatus } from "../data/types";
+import type { Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, fmtDate, spiceLabel, today } from "../lib/labels";
 import { Cover, Stars, StatusPill, authorNames } from "../components/ui";
 import { toast } from "../App";
@@ -45,6 +45,21 @@ export default function BookDetail() {
     await saveReading.mutateAsync({ ...(open ?? { user_book_id: m.id, read_number: e!.readings.length + 1 }), user_book_id: m.id, finished_on: today(), days });
     await saveUB.mutateAsync({ id: m.id, book_id: b.id, status: "gelesen", current_page: null });
     toast("Geschafft! Buch als gelesen eingetragen.");
+  }
+
+  /** Einen Lesevorgang als beendet markieren oder das wieder zurücknehmen. Hält den Buchstatus passend. */
+  async function toggleFinished(r: Reading) {
+    const isLatest = r.read_number === Math.max(...e!.readings.map((x) => x.read_number));
+    if (r.finished_on || r.finished_text) {
+      await saveReading.mutateAsync({ ...r, finished_on: null, finished_text: null, days: null });
+      if (isLatest && m.status === "gelesen") await saveUB.mutateAsync({ id: m.id, book_id: b.id, status: "lese" });
+      toast("Zurückgenommen: noch nicht beendet.");
+    } else {
+      const days = r.started_on ? Math.max(1, Math.round((Date.parse(today()) - Date.parse(r.started_on)) / 86400000)) : null;
+      await saveReading.mutateAsync({ ...r, finished_on: today(), days });
+      if (isLatest && m.status !== "gelesen") await saveUB.mutateAsync({ id: m.id, book_id: b.id, status: "gelesen", current_page: null });
+      toast("Als beendet eingetragen.");
+    }
   }
 
   async function savePage() {
@@ -99,6 +114,14 @@ export default function BookDetail() {
             {STATUS_ORDER.filter((s) => s !== m.status).map((s) => (
               <button key={s} className="btn small" onClick={() => setStatus(s)}>→ {STATUS[s]}</button>
             ))}
+            {m.status === "gelesen" && (() => {
+              const last = [...e.readings].filter((r) => !r.abandoned).sort((x, y) => x.read_number - y.read_number).pop();
+              return (
+                <button className="btn small" onClick={() => (last && (last.finished_on || last.finished_text) ? toggleFinished(last) : setStatus("lese"))}>
+                  ↺ Doch noch nicht beendet
+                </button>
+              );
+            })()}
             <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}>Bearbeiten</Link>
             {!b.cover_url && <button className="btn small ghost" onClick={findCover}>Cover suchen</button>}
           </div>
@@ -151,7 +174,17 @@ export default function BookDetail() {
                     <tr key={r.id}>
                       <td className="mono">{r.read_number}{r.abandoned ? " (abgebrochen)" : ""}</td>
                       <td className="mono">{fmtDate(r.started_on, r.started_text) || "?"}</td>
-                      <td className="mono">{fmtDate(r.finished_on, r.finished_text) || (r.abandoned ? "" : "läuft")}</td>
+                      <td className="mono">
+                        {r.abandoned ? fmtDate(r.finished_on, r.finished_text) : (
+                          <button
+                            className={`btn small ${r.finished_on || r.finished_text ? "" : "ghost"}`}
+                            title={r.finished_on || r.finished_text ? "Antippen, um es zurückzunehmen" : "Antippen, wenn du fertig bist"}
+                            onClick={() => toggleFinished(r)}
+                          >
+                            {r.finished_on || r.finished_text ? `✓ ${fmtDate(r.finished_on, r.finished_text)}` : "○ noch nicht beendet"}
+                          </button>
+                        )}
+                      </td>
                       <td className="mono">{r.days ?? ""}</td>
                     </tr>
                   ))}
