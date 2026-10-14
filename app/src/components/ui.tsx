@@ -216,10 +216,24 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
   );
 }
 
+/** Startseite: ein einziges langes Brett, das man seitlich rollt. */
 export function Shelf({ entries, note }: { entries: Entry[]; note?: string }) {
   return (
     <div className="panel shelf-box">
-      <ShelfRows entries={entries} compact maxRows={3} />
+      <div className="shelf-scroll">
+        <div className="shelf">
+          {entries.map((e) => {
+            const c = coverColors(e.book.title);
+            const { w, h } = spineSize(e, true);
+            return (
+              <Link key={e.mine.id} to={`/buch/${e.mine.id}`} className="spine" title={e.book.title} style={{ width: w, height: h, background: c.bg, color: c.fg }}>
+                <span>{e.book.title}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+      <div className="plank" />
       {note && <p className="shelf-note">{note}</p>}
     </div>
   );
