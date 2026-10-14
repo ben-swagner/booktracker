@@ -241,6 +241,22 @@ textarea.input { resize: vertical; min-height: 90px; }
 .table th { font-size: 12px; color: var(--muted); font-weight: 700; }
 .table-wrap { overflow-x: auto; }
 
+/* Bücherliste: eigenes Scrollfeld mit fester, eingefärbter Kopfzeile */
+.table-scroll { padding: 0; overflow: auto; max-height: max(360px, calc(100dvh - 400px)); overscroll-behavior: contain; }
+@media (max-width: 760px) { .table-scroll { max-height: max(360px, calc(100dvh - 240px)); } }
+.table-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--accent-soft); color: var(--accent); text-transform: none; font-size: 12.5px; letter-spacing: .01em; padding-block: 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table-scroll thead th:first-child { padding-left: 16px; }
+.book-table td { vertical-align: middle; }
+.book-table td:first-child { padding-left: 16px; }
+.row-link { cursor: pointer; transition: background .12s; }
+.row-link:hover, .row-link:focus-within { background: var(--surface-2); }
+.row-link .title-cell a { color: var(--ink); font-weight: 700; text-decoration: none; }
+.row-link:hover .title-cell a { color: var(--accent); }
+.cover-cell { width: 40px; }
+.cover-cell .cover { width: 36px; height: 53px; padding: 4px 3px; border-radius: 3px 5px 5px 3px; }
+.cover-cell .cover-title { font-size: 6px; -webkit-line-clamp: 4; }
+.cover-cell .cover-author { display: none; }
+
 /* Balken (Statistik) */
 .bars { display: flex; flex-direction: column; gap: 8px; }
 .bar { display: grid; grid-template-columns: 130px 1fr 44px; gap: 10px; align-items: center; font-size: 13.5px; }

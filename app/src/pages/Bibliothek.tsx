@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Link } from "../components/Link";
 import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, STATUS_ORDER, fmtDate } from "../lib/labels";
-import { BookCard, Empty, Stars, StatusPill, authorNames, lastReading } from "../components/ui";
+import { BookCard, Cover, Empty, Stars, StatusPill, authorNames, lastReading } from "../components/ui";
 
 type Sort = "neu" | "beendet" | "titel" | "autor" | "bewertung";
 const PAGE = 60;
@@ -16,6 +16,7 @@ function norm(s: string) {
 export default function Bibliothek() {
   const { entries, isLoading } = useEntries();
   const [params, setParams] = useSearchParams();
+  const nav = useNavigate();
   const status = (params.get("status") ?? "alle") as ReadingStatus | "alle";
   const q = params.get("q") ?? "";
   const sort = (params.get("sort") ?? "neu") as Sort;
@@ -103,15 +104,22 @@ export default function Bibliothek() {
       {list.length === 0 ? (
         <div className="grid"><Empty title="Nichts gefunden" text="Probier einen anderen Suchbegriff oder Filter." /></div>
       ) : view === "tabelle" ? (
-        <div className="panel table-wrap">
-          <table className="table">
-            <thead><tr><th>Titel</th><th>Autor:in</th><th>Reihe</th><th>Status</th><th>Bewertung</th><th>Beendet</th><th>Seiten</th></tr></thead>
+        <div
+          className="panel table-scroll"
+          onScroll={(ev) => {
+            const el = ev.currentTarget;
+            if (limit < list.length && el.scrollTop + el.clientHeight > el.scrollHeight - 400) setLimit(limit + PAGE);
+          }}
+        >
+          <table className="table book-table">
+            <thead><tr><th aria-label="Cover"></th><th>Titel</th><th>Autor:in</th><th>Reihe</th><th>Status</th><th>Bewertung</th><th>Beendet</th><th>Seiten</th></tr></thead>
             <tbody>
               {list.slice(0, limit).map((e) => {
                 const last = lastReading(e);
                 return (
-                  <tr key={e.mine.id}>
-                    <td><Link to={`/buch/${e.mine.id}`}>{e.book.title}</Link></td>
+                  <tr key={e.mine.id} className="row-link" onClick={(ev) => { if (!(ev.target as HTMLElement).closest("a")) nav(`/buch/${e.mine.id}`); }}>
+                    <td className="cover-cell"><Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} /></td>
+                    <td className="title-cell"><Link to={`/buch/${e.mine.id}`}>{e.book.title}</Link></td>
                     <td>{authorNames(e)}</td>
                     <td>{e.series ? `${e.series.name}${e.book.series_number ? ` #${e.book.series_number}` : ""}` : ""}</td>
                     <td><StatusPill status={e.mine.status} /></td>
@@ -127,7 +135,7 @@ export default function Bibliothek() {
       ) : (
         <div className="grid">{list.slice(0, limit).map((e) => <BookCard key={e.mine.id} e={e} />)}</div>
       )}
-      {list.length > limit && (
+      {view === "karten" && list.length > limit && (
         <div className="actions" style={{ justifyContent: "center" }}>
           <button className="btn" onClick={() => setLimit(limit + PAGE)}>Mehr anzeigen ({list.length - limit} weitere)</button>
         </div>
