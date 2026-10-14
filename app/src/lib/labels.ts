@@ -11,11 +11,11 @@ export const STATUS: Record<ReadingStatus, string> = {
 export const STATUS_ORDER: ReadingStatus[] = ["lese", "tbr", "ungelesen", "gelesen", "abgebrochen"];
 
 export const VERDICT: Record<Verdict, string> = {
-  love: "💕 Love", like: "💛 Like", middle: "🤷 Mittel", dislike: "🙄 Dislike", hate: "💥 Hate", idk: "❔ Weiß nicht"
+  love: "Love", like: "Like", middle: "Mittel", dislike: "Dislike", hate: "Hate", idk: "Weiß nicht"
 };
 export const EXPECTATION = { uebertroffen: "Übertroffen", erfuellt: "Erfüllt", untertroffen: "Untertroffen" } as const;
 export const BURN = { no: "No Burn", slow: "Slow Burn", fast: "Fast Burn" } as const;
-export const COMPANY = { solo: "👤 Solo", buddy: "👥 Buddy", group: "👩‍👩‍👧‍👧 Gruppe" } as const;
+export const COMPANY = { solo: "Solo", buddy: "Buddy Read", group: "Gruppe" } as const;
 export const KINDS = ["Buch", "Manga", "Manhwa", "Kurzgeschichte", "Graphic Novel", "Kinderbuch", "Bildband", "Comic", "Magazin", "Sonstiges"];
 export const AUDIENCE = { Child: "Kinder (3-12)", Teen: "Teen (12-17)", YA: "YA (14-20)", NA: "NA (18-30)", Adult: "Adult (25+)" } as const;
 export const PERIODS = ["Gegenwart", "Vergangenheit", "Zukunft", "Unbestimmt"];

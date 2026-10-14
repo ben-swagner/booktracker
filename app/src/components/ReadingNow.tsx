@@ -5,6 +5,7 @@ import { fmtDate, today } from "../lib/labels";
 import { Cover, authorNames } from "./ui";
 import { useOpenBook } from "./openBook";
 import { toast } from "../App";
+import { Icon } from "./Icon";
 
 /** Große Karte für ein Buch, das gerade gelesen wird: Cover, Fortschritt und Seite direkt eintragen. */
 export function ReadingNowCard({ e }: { e: Entry }) {
@@ -54,7 +55,7 @@ export function ReadingNowCard({ e }: { e: Entry }) {
         <form className="now-page" onSubmit={savePage}>
           <input className="input" type="number" min={1} max={b.pages ?? undefined} placeholder="Seite" value={page} onChange={(ev) => setPage(ev.target.value)} aria-label="Aktuelle Seite" />
           <button className="btn small" type="submit" disabled={!page}>Seite merken</button>
-          <button className="btn small primary now-done" type="button" onClick={finish}>✓ Beendet</button>
+          <button className="btn small primary now-done" type="button" onClick={finish}><Icon name="check" size={16} /> Beendet</button>
         </form>
       </div>
     </article>

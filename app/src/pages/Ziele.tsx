@@ -1,24 +1,12 @@
 import { useMemo, useState } from "react";
 import { useDeleteChallenge, useDeleteChallengeEntry, useEntries, useSaveChallenge, useSaveChallengeEntry, useSaveGoal } from "../data/hooks";
 import type { Challenge, ChallengeEntry, Entry } from "../data/types";
-import { readEvents, seriesNo } from "../lib/stats";
 import { Link } from "../components/Link";
 import { Empty } from "../components/ui";
 import { toast } from "../App";
-import { KaufstoppCard, subReadSince } from "../components/Kaufstopp";
+import { KaufstoppCard } from "../components/Kaufstopp";
+import { SeriesGoalCard, SubGoalCard, YearGoalCard, goalStats } from "../components/GoalCards";
 import { today } from "../lib/labels";
-
-function Ring({ value, target, label }: { value: number; target: number | null; label: string }) {
-  const p = target ? Math.min(100, Math.round((value / target) * 100)) : 0;
-  return (
-    <div className="ring" style={{ ["--p" as any]: p }}>
-      <div>
-        <span>{value}{target ? <small style={{ display: "inline", fontSize: 13 }}> / {target}</small> : null}</span>
-        <small>{label}</small>
-      </div>
-    </div>
-  );
-}
 
 function BookPicker({ entries, value, onChange }: { entries: Entry[]; value?: string | null; onChange: (bookId: string | null) => void }) {
   const [q, setQ] = useState("");
@@ -50,34 +38,6 @@ const GOALS: Record<GoalKey, { field: "books_goal" | "sub_goal" | "series_goal";
   series: { field: "series_goal", title: "Reihen beenden", question: "Wie viele Reihen möchtest du dieses Jahr beenden?" }
 };
 
-/** Ein einzelnes Jahresziel als eigene Karte mit Ring, Balken und Knopf zum Ändern. */
-function GoalCard({ title, emoji, value, target, unit, lines, onEdit, color }: {
-  title: string; emoji: string; value: number; target: number | null; unit: string; lines: (string | null)[]; onEdit: () => void; color: "blue" | "lilac" | "green";
-}) {
-  const pct = target ? Math.min(100, Math.round((value / target) * 100)) : 0;
-  const done = !!target && value >= target;
-  return (
-    <div className={`panel goal-card gc-${color}` + (done ? " done" : "")}>
-      <div className="goal-card-head">
-        <h3><span aria-hidden="true">{emoji}</span> {title}</h3>
-        <button type="button" className="btn ghost small" onClick={onEdit}>{target ? "Ziel ändern" : "Ziel setzen"}</button>
-      </div>
-      <div className="goal-card-main">
-        <Ring value={value} target={target} label={unit} />
-        <div className="goal-card-text">
-          {target ? (
-            <p className="goal-big">{done ? "Ziel erreicht! 🎉" : <>Noch <strong>{target - value}</strong> bis {target}</>}</p>
-          ) : (
-            <p className="goal-big muted">Noch kein Ziel gesetzt</p>
-          )}
-          {target ? <div className="goalbar"><div style={{ width: `${pct}%` }} /></div> : null}
-          {lines.filter(Boolean).map((l) => <p key={l!} className="meta" style={{ margin: 0 }}>{l}</p>)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Ziele() {
   const { entries, lib, isLoading } = useEntries();
   const saveGoal = useSaveGoal();
@@ -93,27 +53,7 @@ export default function Ziele() {
   const [newLabel, setNewLabel] = useState<Record<string, string>>({});
 
   const goal = lib?.goals.find((g) => g.year === year);
-  const stats = useMemo(() => {
-    const ev = readEvents(entries).filter((x) => x.year === year);
-    const sub = entries.filter((e) => e.mine.status === "tbr").length;
-    // Vom SuB: erstmals gelesen und schon vorher im Regal (gleiche Regel wie beim Kaufstopp)
-    const subRead = subReadSince(entries, `${year}-01-01`).filter((x) => x.date.startsWith(String(year))).length;
-    // Reihen, die in diesem Jahr abgeschlossen wurden: letzter Band dieses Jahr beendet
-    const bySeries = new Map<string, Entry[]>();
-    for (const e of entries) if (e.series) bySeries.set(e.series.id, [...(bySeries.get(e.series.id) ?? []), e]);
-    let seriesDone = 0;
-    for (const vols of bySeries.values()) {
-      const total = Math.max(vols[0].series?.total_count ?? 0, vols.length);
-      const read = vols.filter((e) => e.mine.status === "gelesen");
-      if (read.length < total || total === 0) continue;
-      const last = [...read].sort((a, b) => seriesNo(b.book.series_number) - seriesNo(a.book.series_number))[0];
-      if (last.readings.some((r) => (r.finished_on ?? r.finished_text ?? "").startsWith(String(year)))) seriesDone++;
-    }
-    const pages = ev.reduce((s, x) => s + (x.e.book.pages ?? 0), 0);
-    const dayOfYear = Math.floor((Date.now() - new Date(year, 0, 1).getTime()) / 86400000) + 1;
-    const pace = goal?.books_goal ? Math.round((goal.books_goal / 365) * dayOfYear) : null;
-    return { read: ev.length, sub, subRead, seriesDone, pages, pace };
-  }, [entries, year, goal]);
+  const stats = useMemo(() => goalStats(entries, year), [entries, year]);
 
   if (isLoading || !lib) return <p className="muted">Lade…</p>;
 
@@ -153,29 +93,16 @@ export default function Ziele() {
       <div className="mast">
         <div>
           <h1>Ziele <em>{year}</em></h1>
-          <p className="lede">{stats.read} Bücher und {stats.pages.toLocaleString("de-DE")} Seiten dieses Jahr{stats.pace != null ? <>. Nach Plan wärst du jetzt bei <strong>{stats.pace}</strong>{stats.read >= stats.pace ? ", du liegst vorn" : ", du holst das auf"}.</> : "."}</p>
+          <p className="lede"><strong>{stats.read}</strong> Bücher und <strong>{stats.pages.toLocaleString("de-DE")}</strong> Seiten dieses Jahr.</p>
         </div>
       </div>
 
-      <section className="goal-cards">
-        <GoalCard
-          title="Bücher lesen" emoji="📚" value={stats.read} target={goal?.books_goal ?? null} unit="Bücher"
-          lines={[
-            `${stats.pages.toLocaleString("de-DE")} Seiten gelesen`,
-            goal?.books_goal && stats.pace != null ? (stats.read >= stats.pace ? `Du liegst vorn: Nach Plan wärst du bei ${stats.pace}.` : `Nach Plan wärst du bei ${stats.pace}, noch ${stats.pace - stats.read} aufholen.`) : null
-          ]}
-          onEdit={() => openEdit("books")} color="blue"
-        />
-        <GoalCard
-          title="Vom SuB lesen" emoji="🗂️" value={stats.subRead} target={goal?.sub_goal ?? null} unit="SuB-Bücher"
-          lines={[`Auf dem SuB liegen gerade ${stats.sub} Bücher.`]}
-          onEdit={() => openEdit("sub")} color="lilac"
-        />
-        <GoalCard
-          title="Reihen beenden" emoji="🔗" value={stats.seriesDone} target={goal?.series_goal ?? null} unit="Reihen"
-          lines={["Zählt Reihen, deren letzter Band dieses Jahr beendet wurde."]}
-          onEdit={() => openEdit("series")} color="green"
-        />
+      <section className="gcards">
+        <YearGoalCard s={stats} goal={goal} year={year} onEdit={() => openEdit("books")} />
+        <div className="gcards-row">
+          <SubGoalCard s={stats} goal={goal} year={year} onEdit={() => openEdit("sub")} />
+          <SeriesGoalCard s={stats} goal={goal} year={year} onEdit={() => openEdit("series")} />
+        </div>
       </section>
 
       {edit && (

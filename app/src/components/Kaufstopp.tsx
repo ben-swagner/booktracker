@@ -3,6 +3,7 @@ import type { Challenge, ChallengeEntry, Entry } from "../data/types";
 import { useDeleteChallengeEntry, useSaveChallenge, useSaveChallengeEntry } from "../data/hooks";
 import { today } from "../lib/labels";
 import { toast } from "../App";
+import { Icon } from "./Icon";
 
 /**
  * Kaufstopp-Challenge: zählt die Tage ohne neuen Buchkauf.
@@ -136,8 +137,8 @@ export function KaufstoppCard({ c, es, entries, onDelete, BookPicker }: {
       {k.every > 0 ? (
         <div className={"ks-reward" + (k.available ? " ready" : "")}>
           <div className="ks-reward-head">
-            <strong>{k.available ? `🎁 ${k.available === 1 ? "1 Belohnung" : `${k.available} Belohnungen`} verfügbar` : "🎁 Belohnung"}</strong>
-            <button type="button" className="btn ghost small" onClick={changeEvery} title="Ändern, nach wie vielen SuB-Büchern es eine Belohnung gibt">alle {k.every} SuB-Bücher ✎</button>
+            <strong className="ks-reward-title"><Icon name="gift" size={18} />{k.available ? `${k.available === 1 ? "1 Belohnung" : `${k.available} Belohnungen`} verfügbar` : "Belohnung"}</strong>
+            <button type="button" className="btn ghost small" onClick={changeEvery} title="Ändern, nach wie vielen SuB-Büchern es eine Belohnung gibt"><Icon name="pencil" size={14} /> alle {k.every} SuB-Bücher</button>
           </div>
           <div className="ks-dots" aria-label={`${k.towardNext} von ${k.every} SuB-Büchern bis zur nächsten Belohnung`}>
             {Array.from({ length: k.every }, (_, i) => <span key={i} className={i < k.towardNext ? "on" : ""} />)}
@@ -160,7 +161,7 @@ export function KaufstoppCard({ c, es, entries, onDelete, BookPicker }: {
           {[...k.purchases].reverse().map((p) => (
             <div key={p.entry.id} className="ks-row">
               <span className="mono">{de(p.date)}</span>
-              <span className="ks-tag">{p.reward ? "🎁 Belohnung" : "Rückfall"}</span>
+              <span className={"ks-tag" + (p.reward ? " reward" : "")}>{p.reward ? <><Icon name="gift" size={13} /> Belohnung</> : "Rückfall"}</span>
               <span style={{ flex: 1 }}>{[bookTitle(p.entry.book_id), p.note].filter(Boolean).join(" · ") || "ohne Angabe"}</span>
               <button type="button" className="btn ghost small" title="Eintrag löschen (zum Beispiel wenn er aus Versehen eingetragen wurde)" onClick={() => { if (confirm("Diesen Kauf wieder aus der Liste löschen? Der Zähler rechnet dann neu.")) delEntry.mutate(p.entry.id); }}>✕</button>
             </div>
@@ -185,7 +186,7 @@ export function KaufstoppCard({ c, es, entries, onDelete, BookPicker }: {
               {k.available > 0 ? (
                 <>
                   <button type="submit" className="btn">Als Rückfall zählen</button>
-                  <button type="button" className="btn primary" onClick={() => savePurchase(true)}>🎁 Belohnung einlösen</button>
+                  <button type="button" className="btn primary" onClick={() => savePurchase(true)}><Icon name="gift" size={16} /> Belohnung einlösen</button>
                 </>
               ) : (
                 <button className="btn primary" type="submit">Eintragen und neu starten</button>

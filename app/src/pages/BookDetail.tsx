@@ -6,6 +6,7 @@ import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
 import { Cover, Stars, StatusPill, authorNames } from "../components/ui";
 import { toast } from "../App";
+import { Icon } from "../components/Icon";
 import { lookupIsbn } from "../lib/isbn";
 import { data } from "../data";
 import { useQueryClient } from "@tanstack/react-query";
@@ -279,7 +280,7 @@ function Readings({ e }: { e: Entry }) {
                 </div>
                 {!r.abandoned && (
                   <div className="actions" style={{ marginTop: 2 }}>
-                    {!done && <button className="btn small" onClick={() => setEnd(r, today())}>✓ Heute beendet</button>}
+                    {!done && <button className="btn small" onClick={() => setEnd(r, today())}><Icon name="check" size={15} /> Heute beendet</button>}
                     {done && <button className="btn small ghost" title="Wieder auf noch nicht beendet setzen" onClick={() => setEnd(r, "")}>↺ Doch noch nicht beendet</button>}
                   </div>
                 )}
