@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry } from "../data/types";
 import { today } from "../lib/labels";
@@ -117,7 +117,6 @@ export default function SuB() {
           <h1>Dein <em>SuB</em></h1>
           <p className="lede"><strong>{tbr.length}</strong> Bücher warten auf dich, zusammen <strong>{tbrPages.toLocaleString("de-DE")}</strong> Seiten.</p>
         </div>
-        <div className="actions"><Link className="btn" to="/bibliothek?status=tbr">Alle anzeigen</Link></div>
       </div>
 
       <section className="picker">
@@ -184,12 +183,68 @@ export default function SuB() {
       )}
       {!candidates.length && <div className="grid"><Empty title="Nichts passt zu den Filtern" text="Lockere einen Filter, dann hat der Zufall wieder Auswahl." /></div>}
 
-      <section className="section">
-        <div className="section-head"><h2>Zuletzt auf den SuB gelegt</h2></div>
-        <div className="grid">
-          {[...tbr].sort((a, b) => (b.mine.updated_at ?? "").localeCompare(a.mine.updated_at ?? "")).slice(0, 6).map((e) => <BookCard key={e.mine.id} e={e} />)}
-        </div>
-      </section>
+      <AllTbr tbr={tbr} />
     </>
+  );
+}
+
+type TbrSort = "neu" | "titel" | "autor" | "kurz" | "lang" | "reihe";
+const STEP = 48;
+
+/** Alle Bücher auf dem SuB: Suche, Sortierung, und beim Runterscrollen werden weitere nachgeladen. */
+function AllTbr({ tbr }: { tbr: Entry[] }) {
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<TbrSort>("neu");
+  const [limit, setLimit] = useState(STEP);
+  const end = useRef<HTMLDivElement>(null);
+
+  const list = useMemo(() => {
+    const nq = q.trim().toLowerCase();
+    const out = tbr.filter((e) => !nq || `${e.book.title} ${authorNames(e)} ${e.series?.name ?? ""} ${e.book.genre ?? ""}`.toLowerCase().includes(nq));
+    const cmp: Record<TbrSort, (a: Entry, b: Entry) => number> = {
+      neu: (a, b) => (b.mine.created_at ?? "").localeCompare(a.mine.created_at ?? ""),
+      titel: (a, b) => a.book.title.localeCompare(b.book.title, "de"),
+      autor: (a, b) => authorNames(a).localeCompare(authorNames(b), "de") || a.book.title.localeCompare(b.book.title, "de"),
+      kurz: (a, b) => (a.book.pages ?? 9999) - (b.book.pages ?? 9999),
+      lang: (a, b) => (b.book.pages ?? 0) - (a.book.pages ?? 0),
+      reihe: (a, b) => (a.series?.name ?? "zzz").localeCompare(b.series?.name ?? "zzz", "de") || seriesNo(a.book.series_number) - seriesNo(b.book.series_number)
+    };
+    return [...out].sort(cmp[sort]);
+  }, [tbr, q, sort]);
+
+  useEffect(() => setLimit(STEP), [q, sort]);
+  // Weitere Bücher laden, sobald das Ende der Liste ins Bild kommt
+  useEffect(() => {
+    const el = end.current;
+    if (!el || limit >= list.length) return;
+    const io = new IntersectionObserver((xs) => { if (xs.some((x) => x.isIntersecting)) setLimit((l) => l + STEP); }, { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [limit, list.length]);
+
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2>Alle Bücher auf deinem SuB</h2>
+        <span className="muted">{q ? `${list.length} von ${tbr.length}` : `${tbr.length} Bücher`}</span>
+      </div>
+      <div className="tools">
+        <input className="input search" type="search" placeholder="Titel, Autor:in, Reihe, Genre…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="input" value={sort} onChange={(e) => setSort(e.target.value as TbrSort)} aria-label="Sortierung">
+          <option value="neu">Zuletzt dazugelegt</option>
+          <option value="titel">Titel A-Z</option>
+          <option value="autor">Autor:in A-Z</option>
+          <option value="reihe">Nach Reihe</option>
+          <option value="kurz">Kürzeste zuerst</option>
+          <option value="lang">Längste zuerst</option>
+        </select>
+      </div>
+      {list.length ? (
+        <div className="grid">{list.slice(0, limit).map((e) => <BookCard key={e.mine.id} e={e} />)}</div>
+      ) : (
+        <div className="grid"><Empty title={tbr.length ? "Nichts gefunden" : "Dein SuB ist leer"} text={tbr.length ? "Probier einen anderen Suchbegriff." : "Lege Bücher mit dem Status SuB an, dann erscheinen sie hier."} /></div>
+      )}
+      <div ref={end} />
+    </section>
   );
 }
