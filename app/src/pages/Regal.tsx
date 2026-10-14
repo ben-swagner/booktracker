@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
-import { STATUS, STATUS_ORDER, coverColors } from "../lib/labels";
+import { GENRE_LEGEND, STATUS, STATUS_ORDER, familySwatch, genreColors } from "../lib/labels";
 import { countBy, lastFinished, readEvents } from "../lib/stats";
 import { CoverShelfRows, Empty, ShelfRows, authorNames } from "../components/ui";
 import { Icon } from "../components/Icon";
 
 type Sort = "titel" | "autor" | "bewertung" | "seiten" | "neu" | "beendet" | "reihe";
-type Color = "einband" | "status" | "bewertung";
+type Color = "genre" | "status" | "bewertung";
 
 const STATUS_COLOR: Record<ReadingStatus, string> = {
   lese: "var(--lese-bg)", gelesen: "var(--gelesen-bg)", tbr: "var(--tbr-bg)", ungelesen: "var(--ungelesen-bg)", abgebrochen: "var(--abg-bg)", wunschliste: "var(--wunsch-bg)"
@@ -24,7 +24,7 @@ function colorFor(color: Color) {
       const r = e.mine.rating;
       return { bg: r == null ? "var(--surface-2)" : r >= 4.5 ? "var(--green-light)" : r >= 3.5 ? "var(--blue-light)" : r >= 2.5 ? "var(--yellow-light)" : "var(--pink-light)", fg: "var(--ink)" };
     }
-    return coverColors(e.book.title);
+    return genreColors(e.book.genre, e.book.title);
   };
 }
 
@@ -38,7 +38,7 @@ export default function Regal() {
   const q = params.get("q") ?? "";
   const sort = (params.get("sort") ?? "titel") as Sort;
   const jahr = params.get("jahr") ?? "";
-  const [color, setColor] = useState<Color>("einband");
+  const [color, setColor] = useState<Color>("genre");
   // Darstellung: Buchrücken oder Cover. Die Wahl merkt sich das Gerät.
   const [look, setLookState] = useState<"ruecken" | "cover">(() => { try { return localStorage.getItem("bt-regal-look") === "cover" ? "cover" : "ruecken"; } catch { return "ruecken"; } });
   const setLook = (v: "ruecken" | "cover") => { setLookState(v); try { localStorage.setItem("bt-regal-look", v); } catch { /* egal */ } };
@@ -115,12 +115,13 @@ export default function Regal() {
               </select>
               {look === "ruecken" && (
                 <select className="input" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe">
-                  <option value="einband">Farbe: Einband</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
+                  <option value="genre">Farbe: Genre</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
                 </select>
               )}
             </div>
           </div>
           {list.length ? <div className="panel shelf-box">{rows(list, colorFor(color))}</div> : <div className="grid"><Empty title="Leeres Brett" text="Zu diesen Filtern steht nichts im Regal." /></div>}
+          {look === "ruecken" && color === "genre" && <p className="meta legend">{GENRE_LEGEND.map(([label, g]) => <span key={label} className="legend-item"><i style={{ background: familySwatch(g) }} />{label}</span>)}</p>}
           {look === "ruecken" && color === "status" && <p className="meta">Farben: {STATUS_ORDER.map((s) => <span key={s} className={"pill st-" + s} style={{ marginRight: 6 }}>{STATUS[s]}</span>)}</p>}
         </>
       ) : (

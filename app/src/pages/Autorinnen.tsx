@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useEntries } from "../data/hooks";
 import { Empty, Stars } from "../components/ui";
-import { AuthorCard, AuthorPhoto, GENDER, authorRows, useOpenAuthor, type AuthorRow } from "../components/Authors";
+import { AuthorCard, AuthorPhoto, GENDER, GENDER_COLOR, authorRows, useOpenAuthor, type AuthorRow } from "../components/Authors";
 import { Icon } from "../components/Icon";
 
 type Row = AuthorRow;
@@ -68,6 +68,10 @@ export default function Autorinnen() {
           </select>
         </div>
       </div>
+      <p className="meta legend">{Object.entries(GENDER_COLOR).map(([k, c]) => {
+        const n = rows.filter((r) => (r.author.gender ?? "unbekannt") === k).length;
+        return n ? <span key={k} className="legend-item"><i style={{ background: c.band }} />{c.label} ({n})</span> : null;
+      })}</p>
       {list.length === 0 ? <div className="panel"><Empty title="Niemand gefunden" /></div> : look === "raster" ? (
         <div className="agrid">
           {list.slice(0, limit).map((r) => <AuthorCard key={r.author.id} r={r} onOpen={() => openAuthor(r.author.slug)} />)}

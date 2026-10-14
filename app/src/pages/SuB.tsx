@@ -101,7 +101,7 @@ export default function SuB() {
 
   const card = (e: Entry | undefined, i: number) => (
     <div key={i} className={"deck-card" + (i === 1 ? " mid" : "") + (e ? " filled" : "")}>
-      {e && <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} large />}
+      {e && <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} large />}
     </div>
   );
   const seriesInfo = (e: Entry) => {

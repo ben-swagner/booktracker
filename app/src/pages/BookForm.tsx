@@ -188,7 +188,7 @@ export default function BookForm() {
             <strong>{sameIsbn ? "Dieses Buch hast du schon." : dupes.length > 1 ? "Diese Bücher hast du vermutlich schon (andere Ausgabe):" : "Das hast du vermutlich schon in einer anderen Ausgabe:"}</strong>
             {dupes.slice(0, 3).map(({ e, kind }) => (
               <div key={e.mine.id} className="dupe-row">
-                <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} />
+                <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
                 <div className="card-body">
                   <div className="card-top"><StatusPill status={e.mine.status} />{kind === "isbn" ? <span className="tag">gleiche ISBN</span> : <span className="tag">gleicher Titel</span>}</div>
                   <div className="book-title">{e.book.title}</div>

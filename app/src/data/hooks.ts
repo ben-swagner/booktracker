@@ -128,6 +128,11 @@ export function useDeleteWishlistItem() {
   return useMutation({ mutationFn: (id: string) => data.deleteWishlistItem(id), onSuccess: inv });
 }
 
+export function useSaveAuthor() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: ({ id, ...fields }: { id: string; gender?: string | null; country?: string | null }) => data.saveAuthor(id, fields), onSuccess: inv });
+}
+
 export function useSaveGoal() {
   const inv = useInvalidate();
   return useMutation({ mutationFn: (g: Goal) => data.saveGoal(g), onSuccess: inv });

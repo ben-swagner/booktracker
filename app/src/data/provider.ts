@@ -44,6 +44,8 @@ export interface DataProvider {
   saveCover(bookId: string, url: string): Promise<void>;
   /** Foto-Adresse an einer Autor:in merken (gemeinsame Buchdaten). */
   saveAuthorPhoto(authorId: string, url: string): Promise<void>;
+  /** Angaben einer Autor:in ändern (z. B. Geschlecht, Land). */
+  saveAuthor(authorId: string, fields: { gender?: string | null; country?: string | null }): Promise<void>;
   /** Übernimmt einen kompletten Datenbestand (z. B. aus dem Sheet) in das Konto der Person. */
   importLibrary(src: ImportBundle, onProgress?: (step: string, done: number, total: number) => void): Promise<ImportSummary>;
 }

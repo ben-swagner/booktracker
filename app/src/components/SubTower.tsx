@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Entry } from "../data/types";
-import { coverColors } from "../lib/labels";
+import { genreColors } from "../lib/labels";
 import { bindingOf, type Binding } from "./ui";
 
 /**
@@ -79,7 +79,7 @@ export function SubTower({ books }: { books: Entry[] }) {
     const dx = wobble(e.mine.id) * 10 + Math.sin(i / 6) * lean;
     const rot = wobble(e.book.id) * (h > 4 ? 5 : 0);
     const w = WIDTH_PX[b];
-    const c = coverColors(e.book.title);
+    const c = genreColors(e.book.genre, e.book.title);
     return (
       <rect key={e.mine.id} x={cx - w / 2 + dx} y={y} width={w} height={h} rx={Math.min(2, h / 3)} fill={c.bg}
         className={digital ? "tower-ebook" : undefined}

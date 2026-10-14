@@ -95,7 +95,7 @@ export default function Tops() {
             return (
               <div key={(f as Favorite).id ?? `${i}-${label(f)}`} className="top-row">
                 <span className="top-rank mono">{i + 1}</span>
-                {e ? <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} /> : <span className="top-dot" />}
+                {e ? <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} /> : <span className="top-dot" />}
                 <div style={{ minWidth: 0 }}>
                   {e ? <Link to={`/buch/${e.mine.id}`} className="book-title" style={{ display: "block" }}>{e.book.title}</Link>
                     : f.author_id ? <Link to={`/autorinnen?autor=${authors.get(f.author_id!)?.slug ?? ""}`} className="book-title" style={{ display: "block" }}>{label(f)}</Link>

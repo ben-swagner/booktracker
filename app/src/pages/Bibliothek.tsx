@@ -144,7 +144,7 @@ export default function Bibliothek() {
                 const last = lastReading(e);
                 return (
                   <tr key={e.mine.id} className="row-link" onClick={(ev) => { if (!(ev.target as HTMLElement).closest("a")) openBook(e.mine.id); }}>
-                    <td className="cover-cell"><Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} /></td>
+                    <td className="cover-cell"><Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} /></td>
                     <td className="title-cell"><Link to={`/buch/${e.mine.id}`} onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}>{e.book.title}</Link></td>
                     <td>{authorNames(e)}</td>
                     <td>{e.series ? `${e.series.name}${e.book.series_number ? ` #${e.book.series_number}` : ""}` : ""}</td>

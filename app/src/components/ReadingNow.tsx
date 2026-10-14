@@ -39,7 +39,7 @@ export function ReadingNowCard({ e }: { e: Entry }) {
 
   return (
     <article className="now-card" onClick={(ev) => { if (!(ev.target as HTMLElement).closest("form,a,button")) openBook(m.id); }}>
-      <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} large />
+      <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} genre={b.genre} large />
       <div className="now-body">
         <div className="card-top">
           <span className="pill st-lese">Am Lesen</span>

@@ -114,7 +114,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
         </div>
       )}
       <div className="panel detail">
-        <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} large />
+        <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} genre={b.genre} large />
         <div className="section">
           <div className="card-top">
             <StatusPill status={m.status} />

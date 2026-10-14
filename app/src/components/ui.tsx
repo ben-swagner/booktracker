@@ -4,7 +4,7 @@ import { isDesktop, useOpenBook } from "./openBook";
 import { data } from "../data";
 import { findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
-import { STATUS, coverColors, fmtDate } from "../lib/labels";
+import { STATUS, fmtDate, genreColors } from "../lib/labels";
 
 /** Merkt sich pro Sitzung, welche ISBNs bei Open Library kein Bild haben, damit nichts doppelt versucht wird. */
 const noCover = new Set<string>();
@@ -24,8 +24,8 @@ export function olCoverUrl(isbn: string, size: "S" | "M" | "L" = "M") {
  * Buchcover: echtes Bild, wenn eine Adresse bekannt ist; sonst Versuch über die ISBN bei Open Library;
  * sonst ein farbiger Stoffeinband mit Titel. Ein gefundenes Bild wird am Buch gespeichert.
  */
-export function Cover({ title, author, url, isbn, bookId, large }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean }) {
-  const c = coverColors(title);
+export function Cover({ title, author, url, isbn, bookId, large, genre }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean; genre?: string | null }) {
+  const c = genreColors(genre, title);
   const olTry = !url && isbn && !noCover.has(isbn) ? isbn : null;
   const [src, setSrc] = useState<string | null>(url ?? (olTry ? olCoverUrl(olTry, large ? "L" : "M") : null));
   const [stage, setStage] = useState<"url" | "ol" | "google" | "none">(url ? "url" : olTry ? "ol" : "google");
@@ -120,7 +120,7 @@ export function BookCard({ e }: { e: Entry }) {
       ev.preventDefault();
       openBook(m.id);
     }}>
-      <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} />
+      <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} genre={b.genre} />
       <div className="card-body">
         <div className="card-top">
           <StatusPill status={m.status} />
@@ -295,7 +295,7 @@ export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: En
       {shown.map((row, i) => (
         <div key={i} className="shelf-row">
           <div className="shelf shelf-wrap">
-            {row.map((e, j) => <Spine key={`${e.mine.id}-${j}`} e={e} compact={compact} color={colorFor ? colorFor(e) : coverColors(e.book.title)} onHover={setHover} shared={shared} />)}
+            {row.map((e, j) => <Spine key={`${e.mine.id}-${j}`} e={e} compact={compact} color={colorFor ? colorFor(e) : genreColors(e.book.genre, e.book.title)} onHover={setHover} shared={shared} />)}
           </div>
           <div className="plank" />
         </div>
@@ -348,7 +348,7 @@ export function CoverShelfRows({ entries }: { entries: Entry[] }) {
                   onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}
                 >
                   <span className="cbook-in" onMouseEnter={() => setHover(e)} onMouseLeave={() => setHover(null)}>
-                    <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} />
+                    <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
                   </span>
                 </Link>
               );
@@ -370,7 +370,7 @@ export function Shelf({ entries, note }: { entries: Entry[]; note?: React.ReactN
     <div className="panel shelf-box">
       <div className="shelf-scroll">
         <div className="shelf">
-          {entries.map((e, j) => <Spine key={`${e.mine.id}-${j}`} e={e} compact color={coverColors(e.book.title)} onHover={setHover} shared={shared} />)}
+          {entries.map((e, j) => <Spine key={`${e.mine.id}-${j}`} e={e} compact color={genreColors(e.book.genre, e.book.title)} onHover={setHover} shared={shared} />)}
         </div>
       </div>
       <div className="plank" />

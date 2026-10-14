@@ -237,6 +237,11 @@ export class SupabaseProvider implements DataProvider {
     await this.sb.from("books").update({ cover_url: url }).eq("id", bookId);
   }
 
+  async saveAuthor(authorId: string, fields: { gender?: string | null; country?: string | null }) {
+    const { error } = await this.sb.from("authors").update(fields).eq("id", authorId);
+    if (error) throw error;
+  }
+
   async saveAuthorPhoto(authorId: string, url: string) {
     await this.sb.from("authors").update({ photo_url: url }).eq("id", authorId);
   }

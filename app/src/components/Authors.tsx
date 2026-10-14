@@ -2,14 +2,23 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Author, Entry } from "../data/types";
 import { data } from "../data";
-import { useEntries } from "../data/hooks";
+import { useEntries, useSaveAuthor } from "../data/hooks";
 import { cachedAuthorPhoto, findAuthorPhoto } from "../lib/authorPhotos";
-import { coverColors } from "../lib/labels";
 import { Cover, Stars, StatusPill } from "./ui";
 import { isDesktop, useOpenBook } from "./openBook";
 import { Icon } from "./Icon";
 
 export type AuthorRow = { author: Author; books: Entry[]; read: number; avg: number | null; pagesRead: number; tbr: number; series: { name: string; n: number }[] };
+
+/** Farben der Autor:innen-Karten nach Geschlecht: kräftig für Kopfband, hell für Initialen. */
+export const GENDER_COLOR: Record<string, { band: string; soft: string; fg: string; label: string }> = {
+  weiblich: { band: "#C2A7F1", soft: "#EEE5FD", fg: "#2A1A52", label: "Weiblich" },
+  maennlich: { band: "#8ACBF1", soft: "#DDEFFA", fg: "#15303C", label: "Männlich" },
+  divers: { band: "#F5D266", soft: "#FFF4CC", fg: "#5A4200", label: "Divers" },
+  mehrere: { band: "#8FDCB4", soft: "#DAF2E4", fg: "#0F3D28", label: "Duo oder Team" },
+  unbekannt: { band: "#C9D3D9", soft: "#EEF2F4", fg: "#34434C", label: "Noch nicht eingetragen" }
+};
+export const genderColor = (g?: string | null) => GENDER_COLOR[g ?? "unbekannt"] ?? GENDER_COLOR.unbekannt;
 
 export const GENDER: Record<string, string> = { weiblich: "weiblich", maennlich: "männlich", divers: "divers", mehrere: "Duo oder Team", unbekannt: "" };
 
@@ -42,7 +51,8 @@ const initials = (name: string) => name.split(/\s+/).filter((w) => /^[A-Za-zÀ-�
 export function AuthorPhoto({ author, size = 64 }: { author: Author; size?: number }) {
   const [src, setSrc] = useState<string | null>(author.photo_url ?? cachedAuthorPhoto(author.name) ?? null);
   const ref = useRef<HTMLDivElement>(null);
-  const c = coverColors(author.name);
+  const gc = genderColor(author.gender);
+  const c = { bg: gc.soft, fg: gc.fg };
 
   useEffect(() => {
     if (src || author.photo_url || cachedAuthorPhoto(author.name) !== undefined) return;
@@ -82,7 +92,7 @@ export function useOpenAuthor() {
 
 /** Karte für die Rasteransicht. */
 export function AuthorCard({ r, onOpen }: { r: AuthorRow; onOpen: () => void }) {
-  const c = coverColors(r.author.name);
+  const c = { bg: genderColor(r.author.gender).band };
   const pct = r.books.length ? Math.round((r.read / r.books.length) * 100) : 0;
   const meta = [r.author.country, GENDER[r.author.gender ?? ""] || null].filter(Boolean).join(" · ");
   const shown = r.books.slice(0, 4);
@@ -98,7 +108,7 @@ export function AuthorCard({ r, onOpen }: { r: AuthorRow; onOpen: () => void }) 
       </div>
       <div className="acard-covers">
         {shown.map((e) => (
-          <span key={e.mine.id} className="acard-cover"><Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} /></span>
+          <span key={e.mine.id} className="acard-cover"><Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} /></span>
         ))}
         {r.books.length > shown.length && <span className="acard-more">+{r.books.length - shown.length}</span>}
       </div>
@@ -119,6 +129,7 @@ export function AuthorModal() {
   const bookOpen = !!params.get("buch");
   const { entries } = useEntries();
   const openBook = useOpenBook();
+  const saveAuthor = useSaveAuthor();
   const r = useMemo(() => (slug ? authorRows(entries.filter((e) => e.authors.some((a) => a.slug === slug))).find((x) => x.author.slug === slug) : undefined), [entries, slug]);
 
   const close = () => {
@@ -139,18 +150,23 @@ export function AuthorModal() {
   }, [slug]);
 
   if (!slug) return null;
-  const meta = r ? [r.author.country, GENDER[r.author.gender ?? ""] || null].filter(Boolean).join(" · ") : "";
   return (
     <div className="bm-backdrop" style={bookOpen ? { visibility: "hidden" } : undefined} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div className="bm am" role="dialog" aria-modal="true" aria-label="Autor:in">
         <button className="bm-close" onClick={close} aria-label="Schließen" title="Schließen (Esc)">×</button>
         {!r ? <p className="muted">Diese Autor:in steht nicht in deinem Regal.</p> : (
           <>
-            <header className="am-head" style={{ ["--ac" as any]: coverColors(r.author.name).bg }}>
+            <header className="am-head" style={{ ["--ac" as any]: genderColor(r.author.gender).band }}>
               <AuthorPhoto author={r.author} size={120} />
               <div className="am-id">
                 <h2>{r.author.name}</h2>
-                {meta && <p className="muted" style={{ margin: 0 }}>{meta}</p>}
+                <div className="am-meta">
+                  {r.author.country && <span className="muted">{r.author.country}</span>}
+                  <select className="input am-gender" value={r.author.gender ?? "unbekannt"} aria-label="Geschlecht"
+                    onChange={(ev) => saveAuthor.mutate({ id: r.author.id, gender: ev.target.value })}>
+                    {Object.entries(GENDER_COLOR).map(([k, c]) => <option key={k} value={k}>{k === "unbekannt" ? "Geschlecht eintragen" : c.label}</option>)}
+                  </select>
+                </div>
                 <div className="gchips">
                   <span className="gchip"><Icon name="book" size={16} />Im Regal <strong>{r.books.length}</strong></span>
                   <span className="gchip"><Icon name="check" size={16} />Gelesen <strong>{r.read}</strong></span>
@@ -169,7 +185,7 @@ export function AuthorModal() {
             <div className="am-books">
               {r.books.map((e) => (
                 <button key={e.mine.id} type="button" className="am-book" onClick={() => (isDesktop() ? openBook(e.mine.id) : nav(`/buch/${e.mine.id}`))}>
-                  <Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} />
+                  <Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
                   <span className="am-book-title">{e.book.title}</span>
                   <span className="am-book-meta">{e.series ? `${e.series.name}${e.book.series_number ? ` #${e.book.series_number}` : ""}` : e.book.pages ? `${e.book.pages} Seiten` : ""}</span>
                   <span className="am-book-foot"><StatusPill status={e.mine.status} />{e.mine.rating != null && <Stars value={e.mine.rating} />}</span>
