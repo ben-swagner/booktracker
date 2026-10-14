@@ -21,7 +21,7 @@ export function Columns({ data, color = "var(--c3)", height = 160, unit = "", gh
         {data.map((d, i) => (
           <div key={d.label} className={"ch-col" + (hi === i ? " hi" : "")} onMouseEnter={() => setHi(i)} onClick={() => setHi(i)}
             title={d.title ?? `${d.label}: ${fmtN(d.value)}${unit}${d.ghost != null && ghostLabel ? ` (${ghostLabel}: ${fmtN(d.ghost)})` : ""}`}>
-            {d.ghost != null && <div className="ch-ghost" style={{ height: `${(d.ghost / max) * 100}%` }} />}
+            {d.ghost != null && <div className="ch-ghost" style={{ height: `${(d.ghost / max) * 100}%`, background: color }} />}
             <div className="ch-bar" style={{ height: `${(d.value / max) * 100}%`, background: color }} />
             {hi === i && <span className="ch-tip">{fmtN(d.value)}{unit}</span>}
           </div>
@@ -34,16 +34,22 @@ export function Columns({ data, color = "var(--c3)", height = 160, unit = "", gh
 
 /** Waagrechte Balken mit Beschriftung, z. B. Genres. */
 export function BarList({ items, color = "var(--c3)", unit = "", max: maxIn, onClick }: {
-  items: { label: React.ReactNode; key?: string; value: number; color?: string; sub?: string }[]; color?: string; unit?: string; max?: number; onClick?: (i: number) => void;
+  items: { label: React.ReactNode; key?: string; value: number; color?: string; sub?: string; cmp?: number }[]; color?: string; unit?: string; max?: number; onClick?: (i: number) => void;
 }) {
-  const max = maxIn ?? Math.max(1, ...items.map((d) => d.value));
+  const max = maxIn ?? Math.max(1, ...items.map((d) => Math.max(d.value, d.cmp ?? 0)));
+  const hasCmp = items.some((d) => d.cmp != null);
   return (
     <div className="ch-bars">
       {items.map((d, i) => (
         <div key={d.key ?? String(d.label)} className={"ch-barrow" + (onClick ? " click" : "")} onClick={onClick ? () => onClick(i) : undefined} title={`${typeof d.label === "string" ? d.label : ""}: ${fmtN(d.value, 1)}${unit}`}>
           <span className="ch-barlabel">{d.label}</span>
-          <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: d.color ?? color }} /></div>
-          <span className="ch-barval">{fmtN(d.value, 1)}{unit}{d.sub ? <small> {d.sub}</small> : null}</span>
+          {hasCmp ? (
+            <div className="ch-track2">
+              <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: d.color ?? color }} /></div>
+              <div className="ch-track cmp"><div style={{ width: `${Math.max(d.cmp ? 2 : 0, ((d.cmp ?? 0) / max) * 100)}%`, background: d.color ?? color }} /></div>
+            </div>
+          ) : <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: d.color ?? color }} /></div>}
+          <span className="ch-barval">{fmtN(d.value, 1)}{unit}{hasCmp ? <small className="ch-cmpval"> · {fmtN(d.cmp ?? 0, 1)}</small> : d.sub ? <small> {d.sub}</small> : null}</span>
         </div>
       ))}
     </div>
@@ -51,7 +57,7 @@ export function BarList({ items, color = "var(--c3)", unit = "", max: maxIn, onC
 }
 
 /** Ring-Diagramm mit Legende. Kleine Anteile werden zu „Andere“ zusammengefasst. */
-export function Donut({ items, center, sub, max = 7 }: { items: { label: string; value: number; color: string }[]; center?: React.ReactNode; sub?: string; max?: number }) {
+export function Donut({ items, center, sub, max = 7, compare }: { items: { label: string; value: number; color: string }[]; center?: React.ReactNode; sub?: string; max?: number; compare?: { label: string; value: number }[] }) {
   const [hi, setHi] = useState<number | null>(null);
   let list = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
   if (list.length > max) {
@@ -60,11 +66,22 @@ export function Donut({ items, center, sub, max = 7 }: { items: { label: string;
   }
   const total = list.reduce((n, x) => n + x.value, 0) || 1;
   const R = 42, C = 2 * Math.PI * R, GAP = list.length > 1 ? 1.2 : 0;
+  // Vergleich: gleiche Gruppen wie oben, Rest als „Andere“
+  const cmpTotal = compare ? compare.reduce((n, x) => n + x.value, 0) || 1 : 1;
+  const cmpOf = (label: string) => !compare ? 0 : label === "Andere" ? compare.filter((c) => !list.some((x) => x.label === c.label)).reduce((n, c) => n + c.value, 0) : compare.find((c) => c.label === label)?.value ?? 0;
+  const R2 = 31, C2 = 2 * Math.PI * R2;
+  let acc2 = 0;
   let acc = 0;
   return (
     <div className="ch-donut">
       <svg viewBox="0 0 100 100" className="ch-donut-svg" role="img" aria-label={list.map((x) => `${x.label} ${Math.round((x.value / total) * 100)} %`).join(", ")}>
         <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="12" />
+        {compare && list.map((x) => {
+          const len = (cmpOf(x.label) / cmpTotal) * C2;
+          const el = len > 0 ? <circle key={"c" + x.label} cx="50" cy="50" r={R2} fill="none" stroke={x.color} strokeOpacity=".45" strokeWidth="5" strokeDasharray={`${Math.max(0.3, len - 0.8)} ${C2}`} strokeDashoffset={-acc2} transform="rotate(-90 50 50)"><title>{`Vergleich ${x.label}: ${fmtN(cmpOf(x.label))}`}</title></circle> : null;
+          acc2 += len;
+          return el;
+        })}
         {list.map((x, i) => {
           const len = (x.value / total) * C;
           const el = (
@@ -84,7 +101,7 @@ export function Donut({ items, center, sub, max = 7 }: { items: { label: string;
       <ul className="ch-legend">
         {list.map((x, i) => (
           <li key={x.label} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} className={hi === i ? "hi" : ""}>
-            <i style={{ background: x.color }} /><span>{x.label}</span><b>{Math.round((x.value / total) * 100)} %</b>
+            <i style={{ background: x.color }} /><span>{x.label}</span><b>{Math.round((x.value / total) * 100)} %{compare ? <small className="ch-cmpval"> · {Math.round((cmpOf(x.label) / cmpTotal) * 100)} %</small> : null}</b>
           </li>
         ))}
       </ul>
@@ -93,16 +110,19 @@ export function Donut({ items, center, sub, max = 7 }: { items: { label: string;
 }
 
 /** Ein waagrechter, gestapelter Balken mit Legende (z. B. Print / Digital / Hörbuch). */
-export function StackBar({ items }: { items: { label: string; value: number; color: string }[] }) {
-  const list = items.filter((x) => x.value > 0);
+export function StackBar({ items }: { items: { label: string; value: number; color: string; cmp?: number }[] }) {
+  const list = items.filter((x) => x.value > 0 || (x.cmp ?? 0) > 0);
   const total = list.reduce((n, x) => n + x.value, 0) || 1;
+  const hasCmp = list.some((x) => x.cmp != null);
+  const cmpTotal = list.reduce((n, x) => n + (x.cmp ?? 0), 0) || 1;
   return (
     <div className="ch-stack">
       <div className="ch-stack-bar">
         {list.map((x) => <div key={x.label} style={{ flex: x.value, background: x.color }} title={`${x.label}: ${fmtN(x.value)} (${Math.round((x.value / total) * 100)} %)`} />)}
       </div>
+      {hasCmp && <div className="ch-stack-bar cmp">{list.map((x) => <div key={x.label} style={{ flex: x.cmp ?? 0, background: x.color }} title={`Vergleich ${x.label}: ${fmtN(x.cmp ?? 0)}`} />)}</div>}
       <ul className="ch-legend row">
-        {list.map((x) => <li key={x.label}><i style={{ background: x.color }} /><span>{x.label}</span><b>{Math.round((x.value / total) * 100)} %</b></li>)}
+        {list.map((x) => <li key={x.label}><i style={{ background: x.color }} /><span>{x.label}</span><b>{Math.round((x.value / total) * 100)} %{hasCmp ? <small className="ch-cmpval"> · {Math.round(((x.cmp ?? 0) / cmpTotal) * 100)} %</small> : null}</b></li>)}
       </ul>
     </div>
   );
@@ -178,8 +198,11 @@ export function Scope({ value }: { value?: React.ReactNode }) {
 }
 
 /** Auswahl des Zeitraums für eine einzelne Karte: ein Jahr oder alle Jahre. */
-export function ScopeSelect({ value, years, onChange }: { value: string; years: number[]; onChange: (v: string) => void }) {
-  return (
+export function ScopeSelect({ value, years, onChange, compare, cmpYears, onCompare }: {
+  value: string; years: number[]; onChange: (v: string) => void;
+  compare?: string | null; cmpYears?: number[]; onCompare?: (v: string | null) => void;
+}) {
+  const main = (
     <span className={"scope scope-select" + (value === "alle" ? "" : " year")}>
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Zeitraum für diese Karte" title="Zeitraum für diese Karte wählen">
         {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
@@ -188,15 +211,42 @@ export function ScopeSelect({ value, years, onChange }: { value: string; years: 
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
     </span>
   );
+  if (!onCompare) return main;
+  const opts = (cmpYears ?? years).filter((y) => String(y) !== value);
+  return (
+    <span className="scope-group">
+      {main}
+      {compare ? (
+        <span className="scope scope-select scope-cmp">
+          <span className="scope-vs">vs</span>
+          <select value={compare} onChange={(e) => onCompare(e.target.value)} aria-label="Vergleichsjahr" title="Vergleichsjahr wählen">
+            {!opts.some((y) => String(y) === compare) && <option value={compare}>{compare}</option>}
+            {opts.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+          </select>
+          <button type="button" className="scope-x" onClick={() => onCompare(null)} aria-label="Vergleich beenden" title="Vergleich beenden">×</button>
+        </span>
+      ) : opts.length > 0 && value !== "alle" ? (
+        <button type="button" className="scope scope-add" onClick={() => onCompare(String(opts.find((y) => y < Number(value)) ?? opts[0]))} title="Mit einem anderen Jahr vergleichen" aria-label="Mit einem anderen Jahr vergleichen">+ Vergleich</button>
+      ) : null}
+    </span>
+  );
 }
 
-export function Kpi({ icon, label, value, sub, tone = "blue", children, scope }: { icon: IconName; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "blue" | "green" | "pink" | "yellow" | "lilac"; children?: React.ReactNode; scope?: React.ReactNode }) {
+/** Unterschied zum Vergleichsjahr, z. B. „+5 gegenüber 2025“. */
+export function Delta({ a, b, label, digits = 0, unit = "", lowerIsBetter }: { a: number | null; b: number | null; label: string; digits?: number; unit?: string; lowerIsBetter?: boolean }) {
+  if (a == null || b == null) return <span className="kpi-delta">{label}: –</span>;
+  const d = a - b;
+  const good = lowerIsBetter ? d < 0 : d > 0;
+  return <span className={"kpi-delta" + (d === 0 ? "" : good ? " up" : " down")}>{d > 0 ? "+" : d < 0 ? "−" : "±"}{fmtN(Math.abs(d), digits)}{unit} gegenüber {label}</span>;
+}
+
+export function Kpi({ icon, label, value, sub, tone = "blue", children, scope, delta }: { icon: IconName; label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: "blue" | "green" | "pink" | "yellow" | "lilac"; children?: React.ReactNode; scope?: React.ReactNode; delta?: React.ReactNode }) {
   return (
     <div className={"kpi kpi-" + tone}>
       <span className="kpi-top"><span className="kpi-icon"><Icon name={icon} size={18} /></span><Scope value={scope} /></span>
       <span className="kpi-label">{label}</span>
       <span className="kpi-value">{value}</span>
-      {sub && <span className="kpi-sub">{sub}</span>}
+      {delta ?? (sub && <span className="kpi-sub">{sub}</span>)}
       {children}
     </div>
   );

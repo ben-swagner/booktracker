@@ -8,7 +8,7 @@ import { Link } from "../components/Link";
 import { Cover } from "../components/ui";
 import { useOpenBook } from "../components/openBook";
 import { AuthorPhoto, GENDER_COLOR, useOpenAuthor } from "../components/Authors";
-import { BarList, Card, Columns, Donut, Fact, Heatmap, Kpi, Lines, ScopeSelect, StackBar, fmtN } from "../components/Charts";
+import { BarList, Card, Columns, Delta, Donut, Fact, Heatmap, Kpi, Lines, ScopeSelect, StackBar, fmtN } from "../components/Charts";
 import { Icon } from "../components/Icon";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
@@ -165,13 +165,23 @@ export default function Statistik() {
   const s = getS(year);
   // Jede Karte kann einen eigenen Zeitraum haben; ändert sich die Auswahl oben, gilt wieder sie für alle
   const [ov, setOv] = useState<Record<string, string>>({});
-  useEffect(() => setOv({}), [year]);
+  // Vergleich: oben für alle Karten (?vgl=Jahr) oder je Karte
+  const cmpGlobal = params.get("vgl");
+  const [cov, setCov] = useState<Record<string, string | null>>({});
+  useEffect(() => { setOv({}); setCov({}); }, [year, cmpGlobal]);
   const S = (id: string) => getS(ov[id] ?? year);
+  // Kennzahlen folgen nur dem Vergleich oben (weniger Schilder), Listen ohne sinnvollen Vergleich haben keinen
+  const KPI_IDS = new Set(["c1", "c2", "c3", "c4", "c5", "c8", "c9", "c10", "c11", "c25", "c26", "c27"]);
+  const NO_CMP = new Set(["c7", "c10", "c16", "c26", "c28"]);
+  const cmpOf = (id: string) => { if (NO_CMP.has(id)) return null; const v = ov[id] ?? year; const c = id in cov && !KPI_IDS.has(id) ? cov[id] : cmpGlobal; return c && c !== v && v !== "alle" ? c : null; };
+  const K = (id: string) => { const c = cmpOf(id); return c ? getS(c) : null; };
+  const cm = (id: string, list: [string, number][] | undefined, key: string) => { const k = K(id); if (!k || !list) return undefined; return new Map(list).get(key) ?? 0; };
   const pick = (id: string) => {
     const has = HAS[id] ?? ((x: Stats) => x.ev.length > 0);
     const value = ov[id] ?? year;
     const ys = years.filter((y) => has(getS(String(y))) || String(y) === value);
-    return <ScopeSelect value={value} years={ys} onChange={(v) => setOv((o) => ({ ...o, [id]: v }))} />;
+    const cy = years.filter((y) => has(getS(String(y))));
+    return <ScopeSelect value={value} years={ys} onChange={(v) => setOv((o) => ({ ...o, [id]: v }))} compare={cmpOf(id)} cmpYears={cy} onCompare={KPI_IDS.has(id) || NO_CMP.has(id) ? undefined : (v) => setCov((o) => ({ ...o, [id]: v }))} />;
   };
 
   // Unabhängig vom Jahr: Geld, SuB, Tendenzen
@@ -268,10 +278,18 @@ export default function Statistik() {
           <h1>Statis<em>tik</em></h1>
           <p className="lede">{entries.length.toLocaleString("de-DE")} Bücher im Regal, {s.ev.length} {all ? "Lesevorgänge insgesamt" : `davon ${year} gelesen`}.</p>
         </div>
+        <div className="mast-tools">
         <select className="input year-select" value={year} onChange={(e) => set("jahr", e.target.value, defYear)} aria-label="Zeitraum">
           {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
           <option value="alle">Alle Jahre</option>
         </select>
+        {!all && (
+          <select className="input year-select cmp-select" value={cmpGlobal ?? ""} onChange={(e) => set("vgl", e.target.value, "")} aria-label="Vergleichen mit">
+            <option value="">Kein Vergleich</option>
+            {years.filter((y) => String(y) !== year).map((y) => <option key={y} value={String(y)}>vs {y}</option>)}
+          </select>
+        )}
+        </div>
       </div>
 
       <nav className="stat-tabs" role="tablist" aria-label="Bereiche der Statistik">
@@ -284,13 +302,13 @@ export default function Statistik() {
       {tab === "ueberblick" && (
         <div className="scards">
           <div className="kpis">
-            <Kpi scope={pick("c1")} icon="book" tone="blue" label="Gelesen" value={<>{S("c1").ev.length}{goalFor("c1") ? <small> / {goalFor("c1")}</small> : null}</>} sub={S("c1").rereads ? `davon ${S("c1").rereads} Rereads` : undefined}>
+            <Kpi scope={pick("c1")} delta={K("c1") ? <Delta a={S("c1").ev.length} b={K("c1")!.ev.length} label={cmpOf("c1")!} /> : undefined} icon="book" tone="blue" label="Gelesen" value={<>{S("c1").ev.length}{goalFor("c1") ? <small> / {goalFor("c1")}</small> : null}</>} sub={S("c1").rereads ? `davon ${S("c1").rereads} Rereads` : undefined}>
               {goalFor("c1") ? <div className="kpi-bar"><div style={{ width: `${Math.min(100, (S("c1").ev.length / goalFor("c1")!) * 100)}%` }} /></div> : null}
             </Kpi>
-            <Kpi scope={pick("c2")} icon="stack" tone="yellow" label="Seiten" value={fmtN(S("c2").pages)} sub={S("c2").ev.length ? `Ø ${fmtN(S("c2").pages / S("c2").ev.length)} pro Buch` : undefined} />
-            <Kpi scope={pick("c3")} icon="clock" tone="green" label="Lesezeit, geschätzt" value={<>{fmtN(S("c3").hours)}<small> Std.</small></>} sub={`etwa ${fmtN(S("c3").hours / 24, 1)} Tage am Stück`} />
-            <Kpi scope={pick("c4")} icon="star" tone="pink" label="Ø Bewertung" value={S("c4").rated.length ? fmtN(avg(S("c4").rated.map((e) => e.mine.rating!))!, 2) : "–"} sub={`${S("c4").rated.length} bewertet`} />
-            <Kpi scope={pick("c5")} icon="pause" tone="lilac" label="Abgebrochen" value={S("c5").dnf.length} />
+            <Kpi scope={pick("c2")} delta={K("c2") ? <Delta a={S("c2").pages} b={K("c2")!.pages} label={cmpOf("c2")!} /> : undefined} icon="stack" tone="yellow" label="Seiten" value={fmtN(S("c2").pages)} sub={S("c2").ev.length ? `Ø ${fmtN(S("c2").pages / S("c2").ev.length)} pro Buch` : undefined} />
+            <Kpi scope={pick("c3")} delta={K("c3") ? <Delta a={S("c3").hours} b={K("c3")!.hours} label={cmpOf("c3")!} /> : undefined} icon="clock" tone="green" label="Lesezeit, geschätzt" value={<>{fmtN(S("c3").hours)}<small> Std.</small></>} sub={`etwa ${fmtN(S("c3").hours / 24, 1)} Tage am Stück`} />
+            <Kpi scope={pick("c4")} delta={K("c4") ? <Delta a={S("c4").rated.length ? avg(S("c4").rated.map((e) => e.mine.rating!)) : null} b={K("c4")!.rated.length ? avg(K("c4")!.rated.map((e) => e.mine.rating!)) : null} label={cmpOf("c4")!} digits={2} /> : undefined} icon="star" tone="pink" label="Ø Bewertung" value={S("c4").rated.length ? fmtN(avg(S("c4").rated.map((e) => e.mine.rating!))!, 2) : "–"} sub={`${S("c4").rated.length} bewertet`} />
+            <Kpi scope={pick("c5")} delta={K("c5") ? <Delta a={S("c5").dnf.length} b={K("c5")!.dnf.length} label={cmpOf("c5")!} lowerIsBetter /> : undefined} icon="pause" tone="lilac" label="Abgebrochen" value={S("c5").dnf.length} />
           </div>
 
           {s.ev.length > 0 && (
@@ -314,8 +332,8 @@ export default function Statistik() {
 
             {!all ? (
               <Card scope={pick("c6")} title="Bücher pro Monat" icon="calendar" wide hint={S("c6").ev.length > S("c6").dated.length ? `${S("c6").ev.length - S("c6").dated.length} Bücher ohne genaues Datum fehlen hier.` : undefined}>
-                <Columns data={MONTHS.map((m, i) => ({ label: m, value: S("c6").mBooks[i], ghost: S("c6").prev.length ? S("c6").pBooks[i] : undefined }))} ghostLabel={String(Number(year) - 1)} unit=" Bücher" />
-                {S("c6").prev.length > 0 && <ul className="ch-legend row"><li><i style={{ background: "var(--c3)" }} /><span>{year}</span></li><li><i className="ghost" /><span>{Number(year) - 1} zum Vergleich</span></li></ul>}
+                <Columns data={MONTHS.map((m, i) => ({ label: m, value: S("c6").mBooks[i], ghost: K("c6") ? K("c6")!.mBooks[i] : S("c6").prev.length ? S("c6").pBooks[i] : undefined }))} ghostLabel={cmpOf("c6") ?? String(Number(ov["c6"] ?? year) - 1)} unit=" Bücher" />
+                {(K("c6") || S("c6").prev.length > 0) && <ul className="ch-legend row"><li><i style={{ background: "var(--c3)" }} /><span>{ov["c6"] ?? year}</span></li><li><i className="ghost" /><span>{cmpOf("c6") ?? Number(ov["c6"] ?? year) - 1} zum Vergleich</span></li></ul>}
               </Card>
             ) : (
               <Card scope="Alle Jahre" title="Bücher pro Jahr" icon="calendar" wide>
@@ -361,10 +379,10 @@ export default function Statistik() {
       {tab === "lesen" && (
         <div className="scards">
           <div className="kpis">
-            <Kpi scope={pick("c8")} icon="clock" tone="blue" label="Ø Tage pro Buch" value={S("c8").daysList.length ? fmtN(avg(S("c8").daysList)!, 1) : "–"} sub={S("c8").daysList.length ? `aus ${S("c8").daysList.length} Büchern mit Datum` : "Start- und Enddatum fehlen"} />
-            <Kpi scope={pick("c9")} icon="repeat" tone="lilac" label="Rereads" value={S("c9").rereads} />
+            <Kpi scope={pick("c8")} delta={K("c8") ? <Delta a={S("c8").daysList.length ? avg(S("c8").daysList) : null} b={K("c8")!.daysList.length ? avg(K("c8")!.daysList) : null} label={cmpOf("c8")!} digits={1} lowerIsBetter /> : undefined} icon="clock" tone="blue" label="Ø Tage pro Buch" value={S("c8").daysList.length ? fmtN(avg(S("c8").daysList)!, 1) : "–"} sub={S("c8").daysList.length ? `aus ${S("c8").daysList.length} Büchern mit Datum` : "Start- und Enddatum fehlen"} />
+            <Kpi scope={pick("c9")} delta={K("c9") ? <Delta a={S("c9").rereads} b={K("c9")!.rereads} label={cmpOf("c9")!} /> : undefined} icon="repeat" tone="lilac" label="Rereads" value={S("c9").rereads} />
             <Kpi scope={pick("c10")} icon="pause" tone="pink" label="Längste Lesepause" value={S("c10").pause ? <>{S("c10").pause!.days}<small> Tage</small></> : "–"} sub={S("c10").pause ? `${fmtD(S("c10").pause!.from)} bis ${fmtD(S("c10").pause!.to)}` : undefined} />
-            <Kpi scope={pick("c11")} icon="bolt" tone="green" label="Seiten pro Lesetag" value={(() => { const l = S("c11").ev.filter((x) => x.r.days && x.e.book.pages); return l.length ? fmtN(avg(l.map((x) => x.e.book.pages! / x.r.days!))!) : "–"; })()} />
+            <Kpi scope={pick("c11")} delta={K("c11") ? <Delta a={(() => { const l = S("c11").ev.filter((x) => x.r.days && x.e.book.pages); return l.length ? avg(l.map((x) => x.e.book.pages! / x.r.days!)) : null; })()} b={(() => { const l = K("c11")!.ev.filter((x) => x.r.days && x.e.book.pages); return l.length ? avg(l.map((x) => x.e.book.pages! / x.r.days!)) : null; })()} label={cmpOf("c11")!} /> : undefined} icon="bolt" tone="green" label="Seiten pro Lesetag" value={(() => { const l = S("c11").ev.filter((x) => x.r.days && x.e.book.pages); return l.length ? fmtN(avg(l.map((x) => x.e.book.pages! / x.r.days!))!) : "–"; })()} />
           </div>
           <div className="srow">
           <Card scope="Alle Jahre" title="Bücher pro Jahr" icon="book"><Columns data={s.yearRows.map((r) => ({ label: r.label, value: r.books }))} unit=" Bücher" /></Card>
@@ -378,7 +396,7 @@ export default function Statistik() {
           })()}
           <div className="srow">
           <Card scope={pick("c12")} title="An welchem Tag du Bücher beendest" icon="calendar" hint={S("c12").dated.length ? undefined : "Dafür braucht es Bücher mit genauem Beendet-Datum."}>
-            <BarList items={WEEKDAYS.map((d, i) => ({ label: d, value: S("c12").wd[i] }))} color="var(--c4)" />
+            <BarList items={WEEKDAYS.map((d, i) => ({ label: d, value: S("c12").wd[i], cmp: K("c12")?.wd[i] }))} color="var(--c4)" />
           </Card>
           {s.tempo.length > 1 && (
             <Card scope="Alle Jahre" title="Wirst du schneller?" icon="bolt" hint="Seiten pro Lesetag, im Schnitt je Jahr.">
@@ -387,10 +405,10 @@ export default function Statistik() {
           )}
           {s.media.length > 0 && (
             <Card scope={pick("c13")} title="Wie du liest" icon="book">
-              <StackBar items={S("c13").media.map(([k, n], i) => ({ label: k === "Audiobook" ? "Hörbuch" : k, value: n, color: ["var(--c3)", "var(--c1)", "var(--c5)", "var(--c4)"][i] ?? "var(--c0)" }))} />
+              <StackBar items={S("c13").media.map(([k, n], i) => ({ label: k === "Audiobook" ? "Hörbuch" : k, value: n, cmp: cm("c13", K("c13")?.media, k), color: ["var(--c3)", "var(--c1)", "var(--c5)", "var(--c4)"][i] ?? "var(--c0)" }))} />
               {S("c13").company.length > 0 && <>
                 <p className="scard-sub">Mit wem</p>
-                <StackBar items={S("c13").company.map(([k, n], i) => ({ label: k === "solo" ? "Allein" : k === "buddy" ? "Buddy Read" : k === "group" ? "Leserunde" : k, value: n, color: ["var(--c4)", "var(--c2)", "var(--c6)"][i] ?? "var(--c0)" }))} />
+                <StackBar items={S("c13").company.map(([k, n], i) => ({ label: k === "solo" ? "Allein" : k === "buddy" ? "Buddy Read" : k === "group" ? "Leserunde" : k, value: n, cmp: cm("c13", K("c13")?.company, k), color: ["var(--c4)", "var(--c2)", "var(--c6)"][i] ?? "var(--c0)" }))} />
               </>}
             </Card>
           )}
@@ -401,8 +419,8 @@ export default function Statistik() {
       {tab === "inhalte" && (
         <div className="scards">
           <div className="srow">
-          <Card scope={pick("c14")} title="Genres" icon="layers"><Donut items={S("c14").genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} center={<strong>{S("c14").books.length}</strong>} sub="Bücher" /></Card>
-          <Card scope={pick("c15")} title="Untergenres" icon="layers"><BarList items={S("c15").subgenres.map(([k, n]) => ({ label: k, value: n }))} color="var(--c1)" /></Card>
+          <Card scope={pick("c14")} title="Genres" icon="layers"><Donut items={S("c14").genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} compare={K("c14")?.genres.map(([label, value]) => ({ label, value }))} center={<strong>{S("c14").books.length}</strong>} sub="Bücher" /></Card>
+          <Card scope={pick("c15")} title="Untergenres" icon="layers"><BarList items={S("c15").subgenres.map(([k, n]) => ({ label: k, value: n, cmp: cm("c15", K("c15")?.subgenres, k) }))} color="var(--c1)" /></Card>
           </div>
           {s.tropes.length > 0 && (
             <Card scope={pick("c16")} title="Lieblingstropes" icon="heart" wide>
@@ -410,21 +428,21 @@ export default function Statistik() {
             </Card>
           )}
           <div className="srow">
-            <Card scope={pick("c17")} title="Wie dick sind deine Bücher?" icon="book" hint="Anzahl Bücher je Seitenzahl."><Columns data={S("c17").pageHist} color="var(--c5)" unit=" Bücher" /></Card>
-            {S("c18").decades.length > 0 && <Card scope={pick("c18")} title="Aus welcher Zeit" icon="clock" hint="Erstveröffentlichung, nach Jahrzehnt."><Columns data={S("c18").decades.map(([d, n]) => ({ label: `${d}er`, value: n, title: `${d}er Jahre: ${n} Bücher` }))} color="var(--c6)" unit=" Bücher" /></Card>}
-            {S("c19").spice.some((x) => x.value) && <Card scope={pick("c19")} title="Spice" icon="heart" hint="0 = keine Szenen, 5 = sehr explizit."><Columns data={S("c19").spice} color="var(--c7)" unit=" Bücher" /></Card>}
+            <Card scope={pick("c17")} title="Seitenumfang" icon="book" hint="Anzahl Bücher je Seitenzahl."><Columns data={S("c17").pageHist.map((x, i) => ({ ...x, ghost: K("c17")?.pageHist[i].value }))} ghostLabel={cmpOf("c17") ?? undefined} color="var(--c5)" unit=" Bücher" /></Card>
+            {S("c18").decades.length > 0 && <Card scope={pick("c18")} title="Erscheinungszeit" icon="clock" hint="Erstveröffentlichung, nach Jahrzehnt."><Columns data={S("c18").decades.map(([d, n]) => ({ label: `${d}er`, value: n, ghost: K("c18") ? new Map(K("c18")!.decades).get(d) ?? 0 : undefined }))} ghostLabel={cmpOf("c18") ?? undefined} color="var(--c6)" unit=" Bücher" /></Card>}
+            {S("c19").spice.some((x) => x.value) && <Card scope={pick("c19")} title="Spice" icon="heart" hint="0 = keine Szenen, 5 = sehr explizit."><Columns data={S("c19").spice.map((x, i) => ({ ...x, ghost: K("c19")?.spice[i].value }))} ghostLabel={cmpOf("c19") ?? undefined} color="var(--c7)" unit=" Bücher" /></Card>}
           </div>
           <div className="srow">
-            <Card scope={pick("c20")} title="Zielgruppe" icon="user"><BarList items={S("c20").audience.map(([k, n]) => ({ label: k, value: n }))} color="var(--c6)" /></Card>
-            <Card scope={pick("c21")} title="Sprache" icon="globe"><BarList items={S("c21").languages.map(([k, n]) => ({ label: k, value: n }))} color="var(--c3)" /></Card>
-            {S("c22").genreStars.length > 0 && <Card scope={pick("c22")} title="Ø Sterne pro Genre" icon="star" hint="Nur Genres mit mindestens 3 bewerteten Büchern."><BarList items={S("c22").genreStars.map((x) => ({ label: x.g, value: x.a!, color: genreColor(x.g), sub: `(${x.n})` }))} max={5} /></Card>}
+            <Card scope={pick("c20")} title="Zielgruppe" icon="user"><BarList items={S("c20").audience.map(([k, n]) => ({ label: k, value: n, cmp: cm("c20", K("c20")?.audience, k) }))} color="var(--c6)" /></Card>
+            <Card scope={pick("c21")} title="Sprache" icon="globe"><BarList items={S("c21").languages.map(([k, n]) => ({ label: k, value: n, cmp: cm("c21", K("c21")?.languages, k) }))} color="var(--c3)" /></Card>
+            {S("c22").genreStars.length > 0 && <Card scope={pick("c22")} title="Sterne je Genre" icon="star" hint="Nur Genres mit mindestens 3 bewerteten Büchern."><BarList items={S("c22").genreStars.map((x) => ({ label: x.g, value: x.a!, color: genreColor(x.g), sub: `(${x.n})`, cmp: K("c22") ? K("c22")!.genreStars.find((y) => y.g === x.g)?.a ?? 0 : undefined }))} max={5} /></Card>}
           </div>
           <div className="srow">
-            {S("c23").rated.length > 0 && <Card scope={pick("c23")} title="Deine Sterne" icon="star" hint={`${S("c23").rated.length} bewertete Bücher.`}><Columns data={S("c23").stars} color="var(--star)" unit=" Bücher" /></Card>}
+            {S("c23").rated.length > 0 && <Card scope={pick("c23")} title="Deine Sterne" icon="star" hint={`${S("c23").rated.length} bewertete Bücher.`}><Columns data={S("c23").stars.map((x, i) => ({ ...x, ghost: K("c23")?.stars[i].value }))} ghostLabel={cmpOf("c23") ?? undefined} color="var(--star)" unit=" Bücher" /></Card>}
             {s.expect.length > 0 && (
               <Card scope={pick("c24")} title="Erwartungen" icon="target">
-                <StackBar items={[["uebertroffen", "Übertroffen", "var(--c4)"], ["erfuellt", "Erfüllt", "var(--c3)"], ["untertroffen", "Enttäuscht", "var(--c2)"]].map(([k, l, c]) => ({ label: l, value: S("c24").expect.find(([x]) => x === k)?.[1] ?? 0, color: c }))} />
-                {S("c24").verdicts.length > 0 && <><p className="scard-sub">Kurzbewertung</p><BarList items={S("c24").verdicts.map(([k, n]) => ({ label: k, value: n }))} color="var(--c2)" /></>}
+                <StackBar items={[["uebertroffen", "Übertroffen", "var(--c4)"], ["erfuellt", "Erfüllt", "var(--c3)"], ["untertroffen", "Enttäuscht", "var(--c2)"]].map(([k, l, c]) => ({ label: l, value: S("c24").expect.find(([x]) => x === k)?.[1] ?? 0, cmp: cm("c24", K("c24")?.expect, k), color: c }))} />
+                {S("c24").verdicts.length > 0 && <><p className="scard-sub">Kurzbewertung</p><BarList items={S("c24").verdicts.map(([k, n]) => ({ label: k, value: n, cmp: cm("c24", K("c24")?.verdicts, k) }))} color="var(--c2)" /></>}
               </Card>
             )}
           </div>
@@ -434,9 +452,9 @@ export default function Statistik() {
       {tab === "autoren" && (
         <div className="scards">
           <div className="kpis">
-            <Kpi scope={pick("c25")} icon="user" tone="blue" label="Autor:innen gelesen" value={S("c25").authorsRead.length} />
+            <Kpi scope={pick("c25")} delta={K("c25") ? <Delta a={S("c25").authorsRead.length} b={K("c25")!.authorsRead.length} label={cmpOf("c25")!} /> : undefined} icon="user" tone="blue" label="Autor:innen gelesen" value={S("c25").authorsRead.length} />
             <Kpi scope={pick("c26")} icon="sparkle" tone="green" label="Neu entdeckt" value={S("c26").newAuthors ?? "–"} sub={S("c26").newAuthors != null ? "zum ersten Mal gelesen" : "Wähl ein Jahr aus"} />
-            <Kpi scope={pick("c27")} icon="globe" tone="yellow" label="Länder" value={S("c27").nCountries} />
+            <Kpi scope={pick("c27")} delta={K("c27") ? <Delta a={S("c27").nCountries} b={K("c27")!.nCountries} label={cmpOf("c27")!} /> : undefined} icon="globe" tone="yellow" label="Länder" value={S("c27").nCountries} />
           </div>
           <Card scope={pick("c28")} title="Meistgelesen" icon="heart" wide>
             <div className="top-authors">
@@ -451,9 +469,9 @@ export default function Statistik() {
           </Card>
           <div className="srow">
           <Card scope={pick("c29")} title="Geschlecht" icon="user" hint={S("c29").genderCounts.some(([k]) => k === "unbekannt") ? "Fehlt eine Angabe, kannst du sie im Pop-up der Autor:in eintragen." : undefined}>
-            <Donut items={S("c29").genderCounts.map(([k, n]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : GENDER_COLOR[k]?.label ?? k, value: n, color: GENDER_COLOR[k]?.band ?? "var(--c0)" }))} center={<strong>{S("c29").authorsRead.length}</strong>} sub="Personen" />
+            <Donut items={S("c29").genderCounts.map(([k, n]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : GENDER_COLOR[k]?.label ?? k, value: n, color: GENDER_COLOR[k]?.band ?? "var(--c0)" }))} compare={K("c29")?.genderCounts.map(([k, value]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : GENDER_COLOR[k]?.label ?? k, value }))} center={<strong>{S("c29").authorsRead.length}</strong>} sub="Personen" />
           </Card>
-          <Card scope={pick("c30")} title="Herkunft" icon="globe"><BarList items={S("c30").countries.map(([k, n]) => ({ label: k, value: n }))} color="var(--c6)" /></Card>
+          <Card scope={pick("c30")} title="Herkunft" icon="globe"><BarList items={S("c30").countries.map(([k, n]) => ({ label: k, value: n, cmp: cm("c30", K("c30")?.countries, k) }))} color="var(--c6)" /></Card>
           </div>
         </div>
       )}
@@ -499,7 +517,7 @@ export default function Statistik() {
             <Card scope="Gesamt" title="Ausgabe" icon="book"><BarList items={own.editions.map(([k, n]) => ({ label: k === "Normal" ? "Normale Ausgabe" : k === "Other" ? "Andere" : k, value: n }))} color="var(--c2)" /></Card>
           </div>
           <div className="srow">
-            <Card scope="Gesamt" title="Wie dick sind deine Bücher?" icon="book" hint="Anzahl Bücher je Seitenzahl."><Columns data={own.pagesHist} color="var(--c5)" unit=" Bücher" /></Card>
+            <Card scope="Gesamt" title="Seitenumfang" icon="book" hint="Anzahl Bücher je Seitenzahl."><Columns data={own.pagesHist} color="var(--c5)" unit=" Bücher" /></Card>
             <Card scope="Gesamt" title="Reihe oder Einzelband" icon="layers">
               <StackBar items={[{ label: "Teil einer Reihe", value: own.seriesSplit[0], color: "var(--c1)" }, { label: "Einzelband", value: own.seriesSplit[1], color: "var(--c5)" }]} />
               {own.categories.length > 0 && <><p className="scard-sub">Kategorie</p><StackBar items={own.categories.map(([k, n], i) => ({ label: k, value: n, color: ["var(--c3)", "var(--c4)", "var(--c2)"][i] ?? "var(--c0)" }))} /></>}
