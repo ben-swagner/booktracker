@@ -709,3 +709,7 @@ select.input.how-mitgenommen { background-color: var(--blue-soft); color: var(--
 .tag .sno { font-size: .9em; }
 .sno-total { margin-left: .35em; font-size: .85em; color: var(--muted); font-weight: 600; }
 .vol-row .n .sno { margin-left: 0; }
+select.input.format-select { width: auto; max-width: 190px; height: 34px; padding: 0 30px 0 12px; border-radius: 999px; font-size: 13.5px; background-color: var(--surface-2); border-color: transparent; }
+.rel-done { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.rel-future { display: inline-flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.rel-soon { font-size: 11.5px; font-weight: 700; color: var(--yellow); background: var(--yellow-soft); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }

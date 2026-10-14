@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useDeleteWishlistItem, useLibrary, useSaveWishlistItem } from "../data/hooks";
 import type { WishlistItem } from "../data/types";
-import { euro, fmtDate } from "../lib/labels";
+import { euro, fmtDate, today } from "../lib/labels";
 import { Empty, SeriesNo } from "../components/ui";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
@@ -18,6 +18,29 @@ type How = "Gekauft" | "Geschenkt" | "Mitgenommen";
 const HOWS: How[] = ["Gekauft", "Geschenkt", "Mitgenommen"];
 const howOf = (w: WishlistItem): How => (w.purchase_condition === "Geschenkt" || w.purchase_condition === "Mitgenommen" ? w.purchase_condition : "Gekauft");
 const parseEuro = (v: string) => { const n = Number(v.replace(/[^\d,.-]/g, "").replace(",", ".")); return v.trim() === "" || isNaN(n) ? null : Math.round(n * 100); };
+
+/** Formate, die man sich wünschen kann. Alte Werte aus dem Sheet bleiben gültig. */
+const FORMATS: [string, string][] = [
+  ["Egal", "Egal"], ["Taschenbuch", "Taschenbuch"], ["Paperback", "Paperback"], ["Paperback/Taschenbuch", "Paperback/TB"],
+  ["Hardcover", "Hardcover"], ["Special Edition", "Special Edition"], ["eBook", "eBook"], ["Hörbuch", "Hörbuch"], ["Set", "Set oder Schuber"]
+];
+
+/** Erscheinungstermin: nach dem Erscheinungstag ein Haken, kurz davor ein Countdown. */
+function Release({ w }: { w: WishlistItem }) {
+  const t = today();
+  const textDone = !!w.release_text && /✔|✓|erschienen|ja/i.test(w.release_text);
+  if ((w.release_date && w.release_date <= t) || (!w.release_date && textDone)) {
+    return <span className="rel-done" title={w.release_date ? `Erschienen am ${fmtDate(w.release_date)}` : "Erschienen"}><Icon name="check" size={15} />Erschienen</span>;
+  }
+  if (!w.release_date) return <span className="muted">{w.release_text ?? ""}</span>;
+  const days = Math.round((Date.parse(w.release_date) - Date.parse(t)) / 86400000);
+  return (
+    <span className="rel-future">
+      <span className="mono">{fmtDate(w.release_date)}</span>
+      {days <= 30 && <span className="rel-soon">{days === 1 ? "morgen" : `in ${days} Tagen`}</span>}
+    </span>
+  );
+}
 
 /** Preisfeld, das erst beim Verlassen speichert. */
 function PriceInput({ w, onSave }: { w: WishlistItem; onSave: (cents: number | null) => void }) {
@@ -37,7 +60,7 @@ export default function Wunschliste() {
   const del = useDeleteWishlistItem();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"offen" | "gekauft">("offen");
-  const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"] });
+  const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "" });
 
   const all = lib?.wishlist_items ?? [];
   const counts = { offen: all.filter((w) => !isBought(w)).length, gekauft: all.filter(isBought).length };
@@ -71,9 +94,10 @@ export default function Wunschliste() {
     if (!draft.title.trim()) return;
     await save.mutateAsync({
       title: draft.title.trim(), author: draft.author || null, isbn: draft.isbn || null,
-      price_cents: draft.price ? Math.round(Number(draft.price.replace(",", ".")) * 100) : null, priority: draft.priority
+      price_cents: draft.price ? Math.round(Number(draft.price.replace(",", ".")) * 100) : null, priority: draft.priority,
+      wanted_format: draft.format, release_date: draft.release || null
     });
-    setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel" });
+    setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel", format: "Egal", release: "" });
     toast("Auf die Wunschliste gesetzt.");
   }
 
@@ -104,6 +128,12 @@ export default function Wunschliste() {
         <div className="field"><label htmlFor="wa">Autor:in</label><input id="wa" className="input" value={draft.author} onChange={(e) => setDraft({ ...draft, author: e.target.value })} /></div>
         <div className="field"><label htmlFor="wi">ISBN</label><input id="wi" className="input" value={draft.isbn} onChange={(e) => setDraft({ ...draft, isbn: e.target.value })} /></div>
         <div className="field"><label htmlFor="wp">Preis in €</label><input id="wp" className="input" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></div>
+        <div className="field"><label htmlFor="wf">Format</label>
+          <select id="wf" className="input" value={draft.format} onChange={(e) => setDraft({ ...draft, format: e.target.value })}>
+            {FORMATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+        <div className="field"><label htmlFor="wr">Erscheint am</label><input id="wr" className="input" type="date" value={draft.release} onChange={(e) => setDraft({ ...draft, release: e.target.value })} /></div>
         <div className="field"><label htmlFor="wprio">Priorität</label>
           <select id="wprio" className="input" value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value as any })}>
             {(["hoch", "mittel", "niedrig"] as const).map((p) => <option key={p} value={p}>{PRIO[p]}</option>)}
@@ -138,8 +168,16 @@ export default function Wunschliste() {
                   <td><strong>{w.title}</strong>{w.recommended_by ? <div className="meta">Empfohlen von {w.recommended_by}</div> : null}</td>
                   <td>{w.author}</td>
                   <td>{w.series_name ? <>{w.series_name}<SeriesNo n={w.series_number} total={w.series_total} /></> : ""}</td>
-                  <td>{w.wanted_format}</td>
-                  <td className="mono">{fmtDate(w.release_date, w.release_text)}</td>
+                  <td>
+                    {filter === "offen" ? (
+                      <select className="input format-select" value={w.wanted_format ?? "Egal"} aria-label="Gewünschtes Format"
+                        onChange={(e) => save.mutate({ id: w.id, title: w.title, wanted_format: e.target.value })}>
+                        {FORMATS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        {w.wanted_format && !FORMATS.some(([v]) => v === w.wanted_format) && <option value={w.wanted_format}>{w.wanted_format}</option>}
+                      </select>
+                    ) : w.wanted_format}
+                  </td>
+                  <td><Release w={w} /></td>
                   {filter === "offen" ? <td className="mono">{euro(w.price_cents)}</td> : (
                     <>
                       <td>
