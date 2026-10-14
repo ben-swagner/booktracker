@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { data } from "../data";
 import { toast } from "../App";
-import { useEntries, useUser } from "../data/hooks";
+import { clearLibraryCache, useEntries, useUser } from "../data/hooks";
 import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
@@ -97,7 +97,7 @@ export default function Einstellungen() {
       <div className="panel section">
         <h3>Konto</h3>
         <p style={{ margin: 0 }}>Angemeldet als <strong>{user?.display_name}</strong>{data.mode === "demo" ? " (Demo, ohne Konto)" : ""}.</p>
-        {data.mode === "supabase" && <div className="actions"><button className="btn" onClick={() => data.signOut()}>Abmelden</button></div>}
+        {data.mode === "supabase" && <div className="actions"><button className="btn" onClick={async () => { await clearLibraryCache(); await data.signOut(); }}>Abmelden</button></div>}
       </div>
       {data.mode === "supabase" && (
         <form className="panel section" onSubmit={savePassword}>

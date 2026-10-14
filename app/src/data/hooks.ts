@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 import { data } from "./index";
 import type { Book, Challenge, ChallengeEntry, Entry, Favorite, Goal, Library, Reading, UserBook, WishlistItem } from "./types";
 
@@ -7,8 +8,44 @@ export function useUser() {
   return useQuery({ queryKey: ["user"], queryFn: () => data.currentUser(), staleTime: Infinity });
 }
 
+// Die lokale Kopie ist pro Konto abgelegt, damit nie das Regal einer anderen Person auftaucht.
+async function cacheKey(): Promise<string | null> {
+  if (data.mode !== "supabase") return null;
+  const u = await data.currentUser();
+  return u ? `bt-library-v1:${u.id}` : null;
+}
+
+/** Lokale Kopie der Bibliothek: sofort anzeigen, dann frisch laden und die Kopie erneuern. */
+async function loadWithCache(): Promise<Library> {
+  const fresh = await data.loadLibrary();
+  const key = await cacheKey();
+  if (key) idbSet(key, { at: Date.now(), lib: fresh }).catch(() => {});
+  return fresh;
+}
+
+export async function readLibraryCache(): Promise<Library | undefined> {
+  try {
+    const key = await cacheKey();
+    if (!key) return undefined;
+    const c = await idbGet<{ at: number; lib: Library }>(key);
+    return c?.lib;
+  } catch { return undefined; }
+}
+
+export async function clearLibraryCache() {
+  try { const key = await cacheKey(); if (key) await idbDel(key); } catch { /* egal */ }
+}
+
 export function useLibrary() {
-  return useQuery({ queryKey: ["library"], queryFn: () => data.loadLibrary(), staleTime: 5 * 60 * 1000 });
+  const qc = useQueryClient();
+  // Beim ersten Aufruf die lokale Kopie in den Speicher legen, falls noch nichts da ist
+  useEffect(() => {
+    if (qc.getQueryData(["library"])) return;
+    readLibraryCache().then((lib) => {
+      if (lib && !qc.getQueryData(["library"])) qc.setQueryData(["library"], lib, { updatedAt: 0 });
+    });
+  }, [qc]);
+  return useQuery({ queryKey: ["library"], queryFn: loadWithCache, staleTime: 5 * 60 * 1000 });
 }
 
 /** Alle Bücher der Person, fertig zusammengebaut für die Anzeige. */

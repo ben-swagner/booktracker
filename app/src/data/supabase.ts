@@ -75,12 +75,12 @@ export class SupabaseProvider implements DataProvider {
 
   /** Holt Zeilen nach Kennung in kleinen Häppchen, damit die Anfrage-Adresse nicht zu lang wird. */
   private async fetchIn(table: string, select: string, ids: string[], column = "id"): Promise<any[]> {
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 120) chunks.push(ids.slice(i, i + 120));
+    // alle Häppchen gleichzeitig anfordern statt nacheinander
+    const results = await Promise.all(chunks.map((c) => this.sb.from(table).select(select).in(column, c)));
     const out: any[] = [];
-    for (let i = 0; i < ids.length; i += 120) {
-      const { data, error } = await this.sb.from(table).select(select).in(column, ids.slice(i, i + 120));
-      if (error) throw error;
-      out.push(...(data as any[]));
-    }
+    for (const r of results) { if (r.error) throw r.error; out.push(...(r.data as any[])); }
     return out;
   }
 
