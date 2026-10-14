@@ -31,7 +31,6 @@ export default function Start() {
           </p>
         </div>
         <div className="actions">
-          <Link to="/neu" className="btn primary">+ Buch eintragen</Link>
           <Link to="/bibliothek" className="btn">Bibliothek</Link>
         </div>
       </div>

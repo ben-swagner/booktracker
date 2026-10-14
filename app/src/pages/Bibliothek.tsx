@@ -81,7 +81,7 @@ export default function Bibliothek() {
           <h1>Biblio<em>thek</em></h1>
           <p className="lede">{list.length} von {entries.length} Büchern</p>
         </div>
-        <div className="actions"><Link to="/neu" className="btn primary">+ Buch eintragen</Link></div>
+        <div className="actions"><Link to="/neu" className="btn primary">+ Buch hinzufügen</Link></div>
       </div>
 
       <div className="toolbar">

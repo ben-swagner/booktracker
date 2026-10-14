@@ -113,7 +113,7 @@ export default function App() {
           <NavLink to="/" className="brand"><span className="brand-dot" />Booktracker</NavLink>
           <DesktopNav />
           <span className="nav-spacer" />
-          <NavLink to="/neu" className="btn primary small">+ Buch</NavLink>
+          <NavLink to="/neu" className="btn small nav-add">+ Buch</NavLink>
         </div>
       </header>
       <main className="wrap">
