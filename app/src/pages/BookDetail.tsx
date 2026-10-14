@@ -42,15 +42,6 @@ function Fact({ icon, label, value }: { icon: IconName; label: string; value: an
   );
 }
 
-function SecHead({ icon, title, hint, tone }: { icon: IconName; title: string; hint?: string; tone: "book" | "me" }) {
-  return (
-    <header className={"bd-sec-head tone-" + tone}>
-      <span className="bd-sec-ico"><Icon name={icon} size={20} /></span>
-      <div><h2>{title}</h2>{hint && <p>{hint}</p>}</div>
-    </header>
-  );
-}
-
 function Sub({ icon, children, right }: { icon: IconName; children: React.ReactNode; right?: React.ReactNode }) {
   return (
     <div className="bd-sub">
@@ -76,6 +67,8 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const [quote, setQuote] = useState("");
   const [moodText, setMoodText] = useState("");
   const [moreMoods, setMoreMoods] = useState(false);
+  const [tab, setTab] = useState<"book" | "me">(() => (localStorage.getItem("bt-book-tab") === "me" ? "me" : "book"));
+  const pickTab = (t: "book" | "me") => { setTab(t); try { localStorage.setItem("bt-book-tab", t); } catch { /* egal */ } };
   const qc = useQueryClient();
 
   if (isLoading) return <p className="muted">Lade…</p>;
@@ -229,10 +222,17 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
         </div>
       </div>
 
-      <div className="bd-cols">
-        {/* ---------- Bereich 1: das Buch ---------- */}
+      <div className="bd-tabs" role="tablist" aria-label="Bereich">
+        <button role="tab" className={"bd-tab tone-book" + (tab === "book" ? " on" : "")} aria-selected={tab === "book"} onClick={() => pickTab("book")}>
+          <span className="bd-sec-ico"><Icon name="book" size={18} /></span><span><strong>Das Buch</strong><small>Angaben, die für alle gleich sind</small></span>
+        </button>
+        <button role="tab" className={"bd-tab tone-me" + (tab === "me" ? " on" : "")} aria-selected={tab === "me"} onClick={() => pickTab("me")}>
+          <span className="bd-sec-ico"><Icon name="heart" size={18} /></span><span><strong>Mein Lesen</strong><small>Status, Stimmung, Zitate, Bewertung</small></span>
+        </button>
+      </div>
+
+      {tab === "book" && (
         <section className="panel bd-sec tone-book">
-          <SecHead tone="book" icon="book" title="Das Buch" hint="Angaben, die für alle gleich sind" />
           {b.blurb && <p className="prose bd-blurb">{b.blurb}</p>}
           <ul className="bd-facts">
             <Fact icon="book" label="Art" value={b.kind} />
@@ -255,10 +255,10 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           {b.tropes?.length ? <><Sub icon="sparkle">Tropes</Sub><Chips items={b.tropes} param="trope" /></> : null}
           {b.trigger_warnings?.length ? <><Sub icon="warning">Triggerwarnungen</Sub><Chips items={b.trigger_warnings} /></> : null}
         </section>
+      )}
 
-        {/* ---------- Bereich 2: mein Lesen ---------- */}
+      {tab === "me" && (
         <section className="panel bd-sec tone-me">
-          <SecHead tone="me" icon="heart" title="Mein Lesen" hint="Das ist nur deins: Status, Stimmung, Zitate, Bewertung" />
 
           {m.status === "lese" && (
             <div className="bd-progress">
@@ -275,6 +275,8 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             </div>
           )}
 
+          <div className="bd-me-grid">
+            <div className="section">
           <Sub icon="star" right={<Link className="btn small ghost" to={`/buch/${m.id}/bearbeiten`}>{hasRating ? "Ändern" : "Bewerten"}</Link>}>Bewertung</Sub>
           {hasRating ? (
             <div className="bd-verdict">
@@ -319,6 +321,8 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             <button className="btn small" type="submit" disabled={!quote.trim()}>Zitat speichern</button>
           </form>
 
+            </div>
+            <div className="section">
           <Readings e={e} />
 
           {hasEdition && (
@@ -341,8 +345,10 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
 
           {m.notes && <><Sub icon="note">Meine Notiz</Sub><p className="prose" style={{ margin: 0 }}>{m.notes}</p></>}
           {m.review && <><Sub icon="pencil">Rezension</Sub><p className="prose" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
+            </div>
+          </div>
         </section>
-      </div>
+      )}
 
       <div className="actions">
         <button className="btn danger" onClick={remove}>Aus dem Regal entfernen</button>
