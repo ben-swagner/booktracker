@@ -157,7 +157,7 @@ export default function BookForm() {
   if (id && isLoading) return <p className="muted">Lade…</p>;
 
   return (
-    <form onSubmit={submit} className="section">
+    <form onSubmit={submit} className="section form-page">
       {scanning && <Suspense fallback={<div className="scanner"><p className="scanner-status">Scanner wird geladen…</p></div>}><Scanner onResult={onScanned} onClose={() => setScanning(false)} /></Suspense>}
       <div className="mast">
         <h1>{existing ? "Buch bearbeiten" : "Neues Buch"}</h1>

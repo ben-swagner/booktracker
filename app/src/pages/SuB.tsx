@@ -174,7 +174,7 @@ export default function SuB() {
             {[pick.book.genre, pick.book.subgenres?.[0], pick.book.kind, pick.book.pages ? `${pick.book.pages} Seiten` : null].filter(Boolean).map((x) => <span key={x!} className="chip">{x}</span>)}
           </div>
           {seriesInfo(pick) && <p className="meta" style={{ margin: 0 }}>{seriesInfo(pick)}</p>}
-          {pick.book.blurb && <p style={{ margin: 0 }}>{pick.book.blurb.length > 360 ? pick.book.blurb.slice(0, 360) + "…" : pick.book.blurb}</p>}
+          {pick.book.blurb && <p className="prose" style={{ margin: 0 }}>{pick.book.blurb.length > 360 ? pick.book.blurb.slice(0, 360) + "…" : pick.book.blurb}</p>}
           <div className="actions">
             <button className="btn primary" onClick={() => startReading(pick)}>Lese ich jetzt</button>
             <Link className="btn" to={`/buch/${pick.mine.id}`}>Details</Link>

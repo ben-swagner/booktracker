@@ -151,7 +151,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
               </div>
             </div>
           )}
-          {b.blurb && <p style={{ margin: 0 }}>{b.blurb}</p>}
+          {b.blurb && <p className="prose" style={{ margin: 0 }}>{b.blurb}</p>}
         </div>
       </div>
 
@@ -177,8 +177,8 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             {fact("Adaption gesehen", m.adaptation_seen ? "Ja" : null)}
           </dl>
           <Readings e={e} />
-          {m.notes && <><h3>Meine Notiz</h3><p style={{ margin: 0 }}>{m.notes}</p></>}
-          {m.review && <><h3>Rezension</h3><p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
+          {m.notes && <><h3>Meine Notiz</h3><p className="prose" style={{ margin: 0 }}>{m.notes}</p></>}
+          {m.review && <><h3>Rezension</h3><p className="prose" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
         </div>
       </div>
       <div className="actions">
