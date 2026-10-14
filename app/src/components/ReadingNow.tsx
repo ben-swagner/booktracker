@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Entry } from "../data/types";
-import { useSaveUserBook } from "../data/hooks";
+import { useSaveReading, useSaveUserBook } from "../data/hooks";
 import { fmtDate, today } from "../lib/labels";
 import { Cover, authorNames } from "./ui";
 import { useOpenBook } from "./openBook";
@@ -11,6 +11,7 @@ export function ReadingNowCard({ e }: { e: Entry }) {
   const b = e.book, m = e.mine;
   const openBook = useOpenBook();
   const saveUB = useSaveUserBook();
+  const saveReading = useSaveReading();
   const [page, setPage] = useState("");
   const open = e.readings.filter((r) => !r.abandoned && !r.finished_on && !r.finished_text).pop();
   const pct = b.pages && m.current_page ? Math.min(100, Math.round((m.current_page / b.pages) * 100)) : null;
@@ -24,6 +25,15 @@ export function ReadingNowCard({ e }: { e: Entry }) {
     await saveUB.mutateAsync({ id: m.id, book_id: b.id, current_page: n });
     setPage("");
     toast(`Seite ${n} gemerkt.`);
+  }
+
+  /** Buch als beendet eintragen: offener Durchgang bekommt heutiges Datum, Status wird „Gelesen“. */
+  async function finish() {
+    const d = today();
+    const daysRead = open?.started_on ? Math.max(1, Math.round((Date.parse(d) - Date.parse(open.started_on)) / 86400000)) : null;
+    await saveReading.mutateAsync({ ...(open ?? { user_book_id: m.id, read_number: e.readings.length + 1 }), user_book_id: m.id, finished_on: d, days: daysRead });
+    await saveUB.mutateAsync({ id: m.id, book_id: b.id, status: "gelesen", current_page: null });
+    toast(`Geschafft! „${b.title}“ ist als gelesen eingetragen. Zurücknehmen geht auf der Buchseite.`);
   }
 
   return (
@@ -44,6 +54,7 @@ export function ReadingNowCard({ e }: { e: Entry }) {
         <form className="now-page" onSubmit={savePage}>
           <input className="input" type="number" min={1} max={b.pages ?? undefined} placeholder="Seite" value={page} onChange={(ev) => setPage(ev.target.value)} aria-label="Aktuelle Seite" />
           <button className="btn small" type="submit" disabled={!page}>Seite merken</button>
+          <button className="btn small primary now-done" type="button" onClick={finish}>✓ Beendet</button>
         </form>
       </div>
     </article>

@@ -539,3 +539,4 @@ textarea.input { resize: vertical; min-height: 90px; }
 /* „+ Buch“ oben im Menü: dezent statt kräftig */
 .btn.nav-add { background: var(--accent-soft); color: var(--accent); border-color: transparent; box-shadow: none; font-weight: 700; }
 .btn.nav-add:hover, .btn.nav-add.active { background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent) 12%); }
+.now-page { flex-wrap: wrap; } .btn.now-done { margin-left: auto; }
