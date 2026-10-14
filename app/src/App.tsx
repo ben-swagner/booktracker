@@ -17,6 +17,7 @@ import Reihen from "./pages/Reihen";
 import Autorinnen from "./pages/Autorinnen";
 import Ziele from "./pages/Ziele";
 import Mehr from "./pages/Mehr";
+import Tops from "./pages/Tops";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Untere Leiste auf dem Handy (fünf Plätze), oben am Computer stehen alle Seiten
@@ -34,18 +35,46 @@ const TABS = [
   { to: "/sub", label: "SuB", icon: ICONS.dice },
   { to: "/mehr", label: "Mehr", icon: ICONS.more }
 ];
-const LINKS = [
-  { to: "/", label: "Start" },
-  { to: "/bibliothek", label: "Bibliothek" },
-  { to: "/regal", label: "Regal" },
-  { to: "/sub", label: "SuB" },
-  { to: "/reihen", label: "Reihen" },
-  { to: "/autorinnen", label: "Autor:innen" },
-  { to: "/ziele", label: "Ziele" },
-  { to: "/wunschliste", label: "Wunschliste" },
-  { to: "/statistik", label: "Statistik" },
-  { to: "/einstellungen", label: "Mehr" }
+// Oben am Computer: Gruppen mit Aufklappmenü
+type NavItem = { to: string; label: string; hint?: string };
+const GROUPS: { label: string; to?: string; items?: NavItem[] }[] = [
+  { label: "Start", to: "/" },
+  { label: "Bücher", items: [
+    { to: "/bibliothek", label: "Bibliothek", hint: "Alle Bücher als Karten oder Tabelle" },
+    { to: "/regal", label: "Regal", hint: "Buchrücken, gesamt oder nach Jahr" },
+    { to: "/reihen", label: "Reihen", hint: "Fortschritt und Lücken" },
+    { to: "/autorinnen", label: "Autor:innen", hint: "Wer steht in deinem Regal" },
+    { to: "/tops", label: "Tops", hint: "Deine Favoriten" }
+  ] },
+  { label: "SuB", to: "/sub" },
+  { label: "Ziele", to: "/ziele" },
+  { label: "Wunschliste", to: "/wunschliste" },
+  { label: "Statistik", to: "/statistik" },
+  { label: "Mehr", to: "/einstellungen" }
 ];
+
+function DesktopNav() {
+  const loc = useLocation();
+  const [open, setOpen] = useState<string | null>(null);
+  return (
+    <nav className="nav-links" onMouseLeave={() => setOpen(null)}>
+      {GROUPS.map((g) => g.items ? (
+        <div key={g.label} className={"nav-group" + (open === g.label ? " open" : "")} onMouseEnter={() => setOpen(g.label)}>
+          <button type="button" className={"nav-btn" + (g.items.some((i) => loc.pathname.startsWith(i.to)) ? " active" : "")} aria-haspopup="true" aria-expanded={open === g.label} onClick={() => setOpen(open === g.label ? null : g.label)}>
+            {g.label} <span aria-hidden="true">▾</span>
+          </button>
+          <div className="nav-menu" role="menu" onClick={() => setOpen(null)}>
+            {g.items.map((i) => (
+              <NavLink key={i.to} to={i.to} className="nav-menu-item"><strong>{i.label}</strong>{i.hint && <span>{i.hint}</span>}</NavLink>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <NavLink key={g.to} to={g.to!} end={g.to === "/"}>{g.label}</NavLink>
+      ))}
+    </nav>
+  );
+}
 
 function Icon({ d }: { d: string }) {
   return (
@@ -81,11 +110,7 @@ export default function App() {
       <header className="nav">
         <div className="nav-inner">
           <NavLink to="/" className="brand"><span className="brand-dot" />Booktracker</NavLink>
-          <nav className="nav-links">
-            {LINKS.map((l) => (
-              <NavLink key={l.to} to={l.to} end={l.to === "/"}>{l.label}</NavLink>
-            ))}
-          </nav>
+          <DesktopNav />
           <span className="nav-spacer" />
           <NavLink to="/neu" className="btn primary small">+ Buch</NavLink>
         </div>
@@ -111,6 +136,7 @@ export default function App() {
           <Route path="/autorinnen/:slug" element={<Autorinnen />} />
           <Route path="/ziele" element={<Ziele />} />
           <Route path="/mehr" element={<Mehr />} />
+          <Route path="/tops" element={<Tops />} />
           <Route path="*" element={<Start />} />
         </Routes>
         </ErrorBoundary>

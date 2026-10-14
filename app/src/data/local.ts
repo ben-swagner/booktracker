@@ -1,6 +1,6 @@
 import type { DataProvider, ImportBundle } from "./provider";
 import { newId, slugify } from "./provider";
-import type { Book, Challenge, ChallengeEntry, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 const KEY = "booktracker-demo-v2";
 const DEMO_USER: Profile = { id: "demo", display_name: "Larissa" };
@@ -39,6 +39,7 @@ export class LocalProvider implements DataProvider {
     if (saved) {
       saved.challenges ??= [];
       saved.challenge_entries ??= [];
+      saved.favorites ??= [];
       this.lib = saved;
       return saved;
     }
@@ -53,7 +54,8 @@ export class LocalProvider implements DataProvider {
       wishlist_items: d.wishlist_items ?? [],
       goals: d.goals ?? [{ user_id: "demo", year: new Date().getFullYear(), books_goal: 52 }],
       challenges: d.challenges ?? [],
-      challenge_entries: d.challenge_entries ?? []
+      challenge_entries: d.challenge_entries ?? [],
+      favorites: d.favorites ?? []
     };
     return this.lib;
   }
@@ -185,6 +187,11 @@ export class LocalProvider implements DataProvider {
     lib.challenge_entries = lib.challenge_entries.filter((x) => x.id !== id);
     this.persist();
   }
+  async saveFavorites(kind: Favorite["kind"], items: Partial<Favorite>[]) {
+    const lib = await this.loadLibrary();
+    lib.favorites = lib.favorites.filter((f) => f.kind !== kind).concat(items.map((f, i) => ({ id: newId(), user_id: "demo", kind, rank: i + 1, ...f } as Favorite)));
+    this.persist();
+  }
   async saveCover(bookId: string, url: string) {
     const lib = await this.loadLibrary();
     const b = lib.books.find((x) => x.id === bookId);
@@ -193,7 +200,7 @@ export class LocalProvider implements DataProvider {
 
   async importLibrary(src: ImportBundle) {
     const lib = await this.loadLibrary();
-    for (const k of ["authors", "series", "books", "user_books", "readings", "wishlist_items", "goals", "challenges", "challenge_entries"] as const) {
+    for (const k of ["authors", "series", "books", "user_books", "readings", "wishlist_items", "goals", "challenges", "challenge_entries", "favorites"] as const) {
       const incoming = (src[k] ?? []) as any[];
       const have = new Set((lib[k] as any[]).map((x) => x.id ?? `${x.user_id}-${x.year}`));
       for (const row of incoming) if (!have.has(row.id ?? `${row.user_id}-${row.year}`)) (lib[k] as any[]).push(row);

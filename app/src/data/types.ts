@@ -166,6 +166,16 @@ export interface ChallengeEntry {
   position?: number | null;
 }
 
+export interface Favorite {
+  id: string;
+  user_id: string;
+  kind: "book" | "graphic" | "author" | "series";
+  rank: number;
+  book_id?: string | null;
+  author_id?: string | null;
+  series_id?: string | null;
+}
+
 /** Alles, was die App für eine Person braucht, in einem Rutsch. */
 export interface Library {
   authors: Author[];
@@ -177,6 +187,7 @@ export interface Library {
   goals: Goal[];
   challenges: Challenge[];
   challenge_entries: ChallengeEntry[];
+  favorites: Favorite[];
 }
 
 /** Ein Buch zusammen mit allem, was dazugehört (für die Anzeige). */

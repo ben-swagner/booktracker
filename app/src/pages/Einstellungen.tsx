@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { data } from "../data";
 import { toast } from "../App";
@@ -6,6 +6,7 @@ import { useEntries, useUser } from "../data/hooks";
 import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
+import { coverRun } from "../lib/covers";
 
 // Der Sheet-Import gehört nur zum Konto, aus dem das Sheet stammt.
 const OWNER_ID = "12804274-56db-41a9-a074-6318d4a7f463";
@@ -26,6 +27,20 @@ export default function Einstellungen() {
   const [pw2, setPw2] = useState("");
   const [progress, setProgress] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [coverMsg, setCoverMsg] = useState<string | null>(null);
+  const [coverRunning, setCoverRunning] = useState(false);
+  const stopRef = useRef(false);
+
+  async function runCovers() {
+    const missing = entries.filter((e) => !e.book.cover_url).map((e) => ({ id: e.book.id, isbn13: e.book.isbn13, title: e.book.title, author: authorNames(e) }));
+    if (!missing.length) { setCoverMsg("Alle Bücher haben schon ein Cover."); return; }
+    setCoverRunning(true); stopRef.current = false;
+    setCoverMsg(`Starte: ${missing.length} Bücher ohne Cover…`);
+    const res = await coverRun(missing, (id, url) => data.saveCover(id, url), (d, t, f) => setCoverMsg(`${d} von ${t} geprüft, ${f} Cover gefunden…`), () => stopRef.current);
+    setCoverMsg(`Fertig: ${res.found} neue Cover bei ${res.done} geprüften Büchern. Der Rest hat bei keiner Quelle ein Bild; dort hilft „Cover suchen“ im Buch oder ein eigener Bild-Link.`);
+    setCoverRunning(false);
+    await qc.invalidateQueries({ queryKey: ["library"] });
+  }
 
   async function savePassword(ev: React.FormEvent) {
     ev.preventDefault();
@@ -95,7 +110,7 @@ export default function Einstellungen() {
           <div className="actions"><button className="btn primary" type="submit">Passwort speichern</button></div>
         </form>
       )}
-      {data.mode === "supabase" && user?.id === OWNER_ID && (
+      {data.mode === "supabase" && user?.id === OWNER_ID && new URLSearchParams(location.search).get("import") === "1" && (
         <div className="panel section">
           <h3>Bücher aus dem Sheet übernehmen</h3>
           <p className="muted" style={{ margin: 0 }}>Holt alle 1.551 Bücher samt Wunschliste, Reihen, Rereads, Verkäufen und Tops aus dem Google Sheet (Stand 13.10.2026) in dein Konto. Dauert etwa eine Minute. Mehrfach ausführen ist ungefährlich, es wird nichts doppelt angelegt.</p>
@@ -103,6 +118,15 @@ export default function Einstellungen() {
           <div className="actions"><button className="btn primary" onClick={importSheet} disabled={importing}>{importing ? "Läuft…" : entries.length ? "Noch einmal abgleichen" : "Jetzt übernehmen"}</button></div>
         </div>
       )}
+      <div className="panel section">
+        <h3>Cover nachladen</h3>
+        <p className="muted" style={{ margin: 0 }}>Sucht für alle Bücher ohne Bild bei Open Library und Google Books nach einem Cover und speichert die Treffer. Dauert je nach Anzahl einige Minuten, die Seite dabei offen lassen. Bisher ohne Cover: <strong>{entries.filter((e) => !e.book.cover_url).length}</strong> von {entries.length}.</p>
+        {coverMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{coverMsg}</p>}
+        <div className="actions">
+          <button className="btn primary" onClick={runCovers} disabled={coverRunning}>{coverRunning ? "Läuft…" : "Cover suchen"}</button>
+          {coverRunning && <button className="btn" onClick={() => { stopRef.current = true; }}>Anhalten</button>}
+        </div>
+      </div>
       <div className="panel section">
         <h3>Darstellung</h3>
         <div className="actions">

@@ -1,4 +1,4 @@
-import type { Book, Challenge, ChallengeEntry, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 export interface ImportBundle extends Partial<Library> {
   sales?: any[];
@@ -38,6 +38,8 @@ export interface DataProvider {
   deleteChallenge(id: string): Promise<void>;
   saveChallengeEntry(e: Partial<ChallengeEntry> & { challenge_id: string }): Promise<ChallengeEntry>;
   deleteChallengeEntry(id: string): Promise<void>;
+  /** Favoritenliste einer Art komplett ersetzen (Reihenfolge = Rang). */
+  saveFavorites(kind: Favorite["kind"], items: Partial<Favorite>[]): Promise<void>;
   /** Cover-Adresse an einem Buch merken (gemeinsame Buchdaten). */
   saveCover(bookId: string, url: string): Promise<void>;
   /** Übernimmt einen kompletten Datenbestand (z. B. aus dem Sheet) in das Konto der Person. */

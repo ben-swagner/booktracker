@@ -46,9 +46,12 @@ async function openLibrarySearch(title: string, author?: string): Promise<string
   return doc ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : null;
 }
 
+const GOOGLE_KEY = (import.meta.env.VITE_GOOGLE_BOOKS_KEY as string | undefined) || "";
+
 async function googleBooks(isbn: string): Promise<string | null> {
   if (googlePaused) return null;
-  const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&fields=items(volumeInfo/imageLinks)&maxResults=1`);
+  const key = GOOGLE_KEY ? `&key=${GOOGLE_KEY}` : "";
+  const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&fields=items(volumeInfo/imageLinks)&maxResults=1${key}`);
   if (r.status === 429) { googlePaused = true; return null; }
   if (!r.ok) return null;
   const d = await r.json();
@@ -71,4 +74,35 @@ export async function findCover(book: { isbn?: string | null; title: string; aut
   } finally {
     release();
   }
+}
+
+/** Prüft, ob Open Library ein Bild zur ISBN hat (ohne es anzuzeigen). */
+async function openLibraryIsbn(isbn: string): Promise<string | null> {
+  try {
+    const r = await fetch(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false`, { method: "HEAD" });
+    return r.ok ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg` : null;
+  } catch { return null; }
+}
+
+/**
+ * Cover-Lauf: geht alle Bücher ohne Bild durch, versucht alle Quellen und speichert Treffer.
+ * Läuft so lange, bis die Liste durch ist oder abgebrochen wird.
+ */
+export async function coverRun(
+  books: { id: string; isbn13?: string | null; title: string; author?: string }[],
+  save: (bookId: string, url: string) => Promise<void>,
+  onProgress: (done: number, total: number, found: number) => void,
+  shouldStop: () => boolean
+) {
+  let done = 0, found = 0;
+  for (const b of books) {
+    if (shouldStop()) break;
+    let url: string | null = null;
+    if (b.isbn13) url = await openLibraryIsbn(b.isbn13);
+    if (!url) url = await findCover({ isbn: b.isbn13, title: b.title, author: b.author });
+    if (url) { found++; await save(b.id, url).catch(() => {}); }
+    done++;
+    onProgress(done, books.length, found);
+  }
+  return { done, found };
 }

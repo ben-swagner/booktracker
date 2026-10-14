@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { DataProvider, ImportBundle, ImportSummary } from "./provider";
 import { slugify } from "./provider";
-import type { Book, Challenge, ChallengeEntry, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 /** Echte Datenbank mit Konten (Supabase). */
 export class SupabaseProvider implements DataProvider {
@@ -87,12 +87,13 @@ export class SupabaseProvider implements DataProvider {
   async loadLibrary(): Promise<Library> {
     const uid = await this.uid();
     // Nur die Bücher laden, die die Person im Regal hat
-    const [ubRows, rdRows, wlRows, glRows, chRows] = await Promise.all([
+    const [ubRows, rdRows, wlRows, glRows, chRows, favRows] = await Promise.all([
       this.fetchMine("user_books", uid),
       this.fetchMine("readings", uid),
       this.fetchMine("wishlist_items", uid),
       this.fetchMine("goals", uid, "year"),
-      this.fetchMine("challenges", uid)
+      this.fetchMine("challenges", uid),
+      this.fetchMine("favorites", uid)
     ]);
     const ceRows = chRows.length ? await this.fetchIn("challenge_entries", "*", chRows.map((c: any) => c.id), "challenge_id") : [];
     const ub = { data: ubRows }, rd = { data: rdRows }, wl = { data: wlRows }, gl = { data: glRows };
@@ -117,7 +118,8 @@ export class SupabaseProvider implements DataProvider {
       wishlist_items: wl.data as WishlistItem[],
       goals: gl.data as Goal[],
       challenges: chRows as Challenge[],
-      challenge_entries: ceRows as ChallengeEntry[]
+      challenge_entries: ceRows as ChallengeEntry[],
+      favorites: favRows as Favorite[]
     };
   }
 
@@ -221,6 +223,15 @@ export class SupabaseProvider implements DataProvider {
   async deleteChallengeEntry(id: string) {
     const { error } = await this.sb.from("challenge_entries").delete().eq("id", id);
     if (error) throw error;
+  }
+  async saveFavorites(kind: Favorite["kind"], items: Partial<Favorite>[]) {
+    const uid = await this.uid();
+    const { error: e1 } = await this.sb.from("favorites").delete().eq("user_id", uid).eq("kind", kind);
+    if (e1) throw e1;
+    if (items.length) {
+      const { error } = await this.sb.from("favorites").insert(items.map((f, i) => ({ user_id: uid, kind, rank: i + 1, book_id: f.book_id ?? null, author_id: f.author_id ?? null, series_id: f.series_id ?? null })));
+      if (error) throw error;
+    }
   }
   async saveCover(bookId: string, url: string) {
     await this.sb.from("books").update({ cover_url: url }).eq("id", bookId);

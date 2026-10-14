@@ -20,7 +20,9 @@ const STATUS_INK: Record<ReadingStatus, string> = {
 function Spine({ e, color }: { e: Entry; color: Color }) {
   const pages = e.book.pages ?? 250;
   const w = Math.max(14, Math.min(44, Math.round(pages / 20)));
-  const h = 78 + ((e.book.title.length * 7) % 44);
+  // Höhe: Mangas und Kurzgeschichten kleiner, dicke Bücher etwas höher, dazu ein kleiner Wackler pro Titel
+  const base = /Manga|Manhwa|Comic|Kurzgeschichte|Kinderbuch/.test(e.book.kind ?? "") ? 82 : 98;
+  const h = base + Math.min(22, Math.round(pages / 40)) + ((e.book.title.length * 7) % 9);
   let bg: string, fg: string;
   if (color === "status") { bg = STATUS_COLOR[e.mine.status]; fg = STATUS_INK[e.mine.status]; }
   else if (color === "bewertung") {

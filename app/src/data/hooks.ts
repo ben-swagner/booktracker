@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { data } from "./index";
-import type { Book, Challenge, ChallengeEntry, Entry, Goal, Library, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Entry, Favorite, Goal, Library, Reading, UserBook, WishlistItem } from "./types";
 
 export function useUser() {
   return useQuery({ queryKey: ["user"], queryFn: () => data.currentUser(), staleTime: Infinity });
@@ -109,4 +109,8 @@ export function useSaveChallengeEntry() {
 export function useDeleteChallengeEntry() {
   const inv = useInvalidate();
   return useMutation({ mutationFn: (id: string) => data.deleteChallengeEntry(id), onSuccess: inv });
+}
+export function useSaveFavorites() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (p: { kind: Favorite["kind"]; items: Partial<Favorite>[] }) => data.saveFavorites(p.kind, p.items), onSuccess: inv });
 }
