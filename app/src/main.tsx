@@ -12,7 +12,29 @@ try { sessionStorage.removeItem("bt-heal"); } catch { /* egal */ }
 
 // In der Artifact-Vorschau (eingebettete Seite) darf die Adresse nicht verändert werden, deshalb MemoryRouter.
 const Router = import.meta.env.VITE_ROUTER === "hash" ? MemoryRouter : BrowserRouter;
-if (import.meta.env.VITE_ROUTER !== "hash") registerSW({ immediate: true });
+if (import.meta.env.VITE_ROUTER !== "hash") {
+  // Nach neuer Version schauen: beim Start, wenn die App wieder in den Vordergrund kommt, und jede halbe Stunde.
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_url, reg) {
+      if (!reg) return;
+      const check = () => { if (navigator.onLine) reg.update().catch(() => {}); };
+      check();
+      setInterval(check, 30 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+    }
+  });
+  // Sobald die neue Version übernimmt: Seite einmal neu laden, damit sie auch angezeigt wird.
+  if ("serviceWorker" in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+  }
+}
 
 // gespeicherte Darstellung (hell/dunkel) wiederherstellen
 const theme = localStorage.getItem("bt-theme");

@@ -26,6 +26,10 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // neue Version sofort übernehmen und alte Zwischenspeicher wegräumen
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
