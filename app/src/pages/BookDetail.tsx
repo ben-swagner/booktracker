@@ -5,9 +5,9 @@ import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSav
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
 import { Cover, SeriesNo, Stars, StatusPill, authorNames } from "../components/ui";
-import { useOpenAuthor } from "../components/Authors";
+import { AuthorPhoto, useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
-import { Icon } from "../components/Icon";
+import { Icon, type IconName } from "../components/Icon";
 import { CoverPicker } from "../components/CoverPicker";
 import { NO_COVER } from "../lib/covers";
 import { data } from "../data";
@@ -25,6 +25,41 @@ function Chips({ items, param }: { items?: string[]; param?: "trope" | "ohne" })
   );
 }
 
+const STATUS_ICON: Record<ReadingStatus, IconName> = { lese: "book", tbr: "stack", ungelesen: "bookmark", gelesen: "check", abgebrochen: "pause", wunschliste: "heart" };
+
+/** Vorschläge für die Stimmung eines Buchs; eigene Wörter gehen auch. */
+const MOODS = ["gemütlich", "spannend", "romantisch", "lustig", "herzzerreißend", "düster", "nachdenklich", "hoffnungsvoll", "nervenaufreibend", "wohlig", "verstörend", "leicht"];
+
+/** Eine Zeile mit Symbol, Bezeichnung und Wert. Bleibt leer, wenn es nichts zu zeigen gibt. */
+function Fact({ icon, label, value }: { icon: IconName; label: string; value: any }) {
+  if (value == null || value === "" || (Array.isArray(value) && !value.length)) return null;
+  return (
+    <li className="bdf">
+      <span className="bdf-ico"><Icon name={icon} size={17} /></span>
+      <span className="bdf-label">{label}</span>
+      <span className="bdf-value">{Array.isArray(value) ? value.join(", ") : String(value)}</span>
+    </li>
+  );
+}
+
+function SecHead({ icon, title, hint, tone }: { icon: IconName; title: string; hint?: string; tone: "book" | "me" }) {
+  return (
+    <header className={"bd-sec-head tone-" + tone}>
+      <span className="bd-sec-ico"><Icon name={icon} size={20} /></span>
+      <div><h2>{title}</h2>{hint && <p>{hint}</p>}</div>
+    </header>
+  );
+}
+
+function Sub({ icon, children, right }: { icon: IconName; children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div className="bd-sub">
+      <h3><Icon name={icon} size={16} /> {children}</h3>
+      {right}
+    </div>
+  );
+}
+
 /** Buchseite. Mit `id` und `onClose` läuft sie als Fenster über einer anderen Seite (am Computer). */
 export default function BookDetail(props: { id?: string; onClose?: () => void } = {}) {
   const params = useParams();
@@ -38,6 +73,9 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const del = useDeleteUserBook();
   const [page, setPage] = useState<string>("");
   const [pickCover, setPickCover] = useState(false);
+  const [quote, setQuote] = useState("");
+  const [moodText, setMoodText] = useState("");
+  const [moreMoods, setMoreMoods] = useState(false);
   const qc = useQueryClient();
 
   if (isLoading) return <p className="muted">Lade…</p>;
@@ -85,7 +123,38 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
     toast(`Seite ${n} gemerkt.`);
   }
 
+  /** Stimmung und Zitate liegen in zwei neuen Spalten; fehlen sie noch in der Datenbank, sagt die App das. */
+  async function savePersonal(fields: { moods?: string[]; quotes?: string[] }) {
+    try {
+      await saveUB.mutateAsync({ id: m.id, book_id: b.id, ...fields });
+    } catch (x: any) {
+      const msg = String(x?.message ?? "");
+      toast(/column|moods|quotes/i.test(msg) ? "Dafür fehlt noch eine kleine Ergänzung in der Datenbank (Datei 0002 im SQL-Editor einspielen)." : msg || "Das hat nicht geklappt.");
+      throw x;
+    }
+  }
 
+  async function toggleMood(w: string) {
+    const cur = m.moods ?? [];
+    const next = cur.includes(w) ? cur.filter((x) => x !== w) : [...cur, w];
+    await savePersonal({ moods: next });
+  }
+  async function addMood() {
+    const w = moodText.trim();
+    if (!w) return;
+    await toggleMood(w);
+    setMoodText("");
+  }
+  async function addQuote() {
+    const q = quote.trim();
+    if (!q) return;
+    await savePersonal({ quotes: [...(m.quotes ?? []), q] });
+    setQuote("");
+    toast("Zitat gespeichert.");
+  }
+  async function removeQuote(i: number) {
+    await savePersonal({ quotes: (m.quotes ?? []).filter((_, k) => k !== i) });
+  }
 
   async function remove() {
     if (!confirm(`„${b.title}“ wirklich aus deinem Regal entfernen?`)) return;
@@ -93,9 +162,11 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
     if (props.onClose) props.onClose(); else nav("/bibliothek");
   }
 
-  const fact = (label: string, v: any) => (v == null || v === "" || (Array.isArray(v) && !v.length) ? null : (
-    <><dt>{label}</dt><dd>{Array.isArray(v) ? v.join(", ") : String(v)}</dd></>
-  ));
+  const year = /^\d{4}/.test(String(b.first_published ?? "")) ? String(b.first_published).slice(0, 4) : null;
+  const hasRating = m.rating != null || m.verdict || m.expectation;
+  const hasEdition = [m.medium, m.format, m.edition, m.specials, m.price_cents, m.bought, m.audio_platforms, m.narrators, m.duration_min].some((v) => v != null && v !== "" && !(Array.isArray(v) && !v.length));
+  const moodChoices = [...new Set([...(m.moods ?? []), ...MOODS])];
+  const shownMoods = moreMoods ? moodChoices : moodChoices.slice(0, Math.max(6, (m.moods ?? []).length));
 
   return (
     <>
@@ -104,77 +175,175 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           <button className="btn ghost" onClick={() => nav(-1)}>← Zurück</button>
         </div>
       )}
-      <div className="panel detail">
-        <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} genre={b.genre} large />
-        <div className="section">
+
+      <div className="panel detail bd-hero">
+        <div className="bd-cover">
+          <Cover title={b.title} author={authorNames(e)} url={b.cover_url} isbn={b.isbn13} bookId={b.id} genre={b.genre} large />
+          <button className="btn small ghost bd-coverbtn" onClick={() => setPickCover(true)}><Icon name="cover" size={15} /> {b.cover_url && b.cover_url !== NO_COVER ? "Cover ändern" : "Cover suchen"}</button>
+        </div>
+        <div className="section bd-head">
           <div className="card-top">
             <StatusPill status={m.status} />
             {e.series && <span className="tag">{e.series.name}<SeriesNo n={b.series_number} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}</span>}
             {b.series_roles?.map((r) => <span key={r} className="tag">{r}</span>)}
           </div>
-          <h1 style={{ fontSize: "clamp(24px,4vw,36px)" }}>{b.title}</h1>
-          {b.subtitle && <p className="lede" style={{ marginTop: 0 }}>{b.subtitle}</p>}
-          <p className="book-author" style={{ fontSize: 16 }}>{e.authors.map((a, i) => <span key={a.id}>{i > 0 ? ", " : ""}<button type="button" className="linklike" onClick={() => openAuthor(a.slug)} title="Mehr über diese Autor:in">{a.name}</button></span>)}{b.original_title ? ` · Original: ${b.original_title}` : ""}</p>
-          {m.rating != null && <p><Stars value={m.rating} /> <span className="mono">{m.rating}</span>{m.verdict ? ` · ${VERDICT[m.verdict]}` : ""}{m.expectation ? ` · ${EXPECTATION[m.expectation]}` : ""}</p>}
+          <h1 className="bd-title">{b.title}</h1>
+          {b.subtitle && <p className="lede bd-subtitle">{b.subtitle}</p>}
+          <div className="bd-authors">
+            {e.authors.map((a) => (
+              <button key={a.id} type="button" className="bd-author" onClick={() => openAuthor(a.slug)} title="Mehr über diese Autor:in">
+                <AuthorPhoto author={a} size={40} />
+                <span>{a.name}</span>
+              </button>
+            ))}
+            {b.original_title && <span className="meta">Original: {b.original_title}</span>}
+          </div>
+          <ul className="bd-quick">
+            {b.pages ? <li><Icon name="pages" size={16} /> {b.pages} Seiten</li> : null}
+            {b.kind ? <li><Icon name="book" size={16} /> {b.kind}</li> : null}
+            {b.genre ? <li><Icon name="tag" size={16} /> {b.genre}</li> : null}
+            {year ? <li><Icon name="calendar" size={16} /> {year}</li> : null}
+            {b.language?.length ? <li><Icon name="globe" size={16} /> {b.language.join(", ")}</li> : null}
+          </ul>
+          {hasRating && (
+            <p className="bd-rating">
+              {m.rating != null && <><Stars value={m.rating} /> <strong className="mono">{m.rating}</strong></>}
+              {m.verdict ? <span className="chip">{VERDICT[m.verdict]}</span> : null}
+              {m.expectation ? <span className="chip">{EXPECTATION[m.expectation]}</span> : null}
+            </p>
+          )}
           <div className="actions">
             {STATUS_ORDER.filter((s) => s !== m.status).map((s) => (
-              <button key={s} className="btn small" onClick={() => setStatus(s)}>→ {STATUS[s]}</button>
+              <button key={s} className="btn small" onClick={() => setStatus(s)}><Icon name={STATUS_ICON[s]} size={15} /> {STATUS[s]}</button>
             ))}
             {m.status === "gelesen" && (() => {
               const last = [...e.readings].filter((r) => !r.abandoned).sort((x, y) => x.read_number - y.read_number).pop();
               return (
                 <button className="btn small" onClick={() => (last && (last.finished_on || last.finished_text) ? toggleFinished(last) : setStatus("lese"))}>
-                  ↺ Doch noch nicht beendet
+                  <Icon name="history" size={15} /> Doch noch nicht beendet
                 </button>
               );
             })()}
-            <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}>Bearbeiten</Link>
-            <button className="btn small ghost" onClick={() => setPickCover(true)}>{b.cover_url && b.cover_url !== NO_COVER ? "Cover ändern" : "Cover suchen"}</button>
+            <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}><Icon name="pencil" size={15} /> Bearbeiten</Link>
           </div>
-          {m.status === "lese" && (
-            <div className="panel" style={{ background: "var(--lese-bg)", boxShadow: "none" }}>
-              <div className="section-head">
-                <strong>Wo bist du gerade?</strong>
-                <span className="muted">{m.current_page ? `Seite ${m.current_page}${b.pages ? ` von ${b.pages}` : ""}` : "Noch keine Seite eingetragen"}</span>
-              </div>
-              {b.pages && m.current_page ? <div className="progress"><div style={{ width: `${Math.min(100, (m.current_page / b.pages) * 100)}%` }} /></div> : null}
-              <div className="actions" style={{ marginTop: 10 }}>
-                <input className="input" style={{ width: 120 }} type="number" min={1} max={b.pages ?? undefined} placeholder="Seite" value={page} onChange={(ev) => setPage(ev.target.value)} />
-                <button className="btn small" onClick={savePage}>Seite merken</button>
-                <button className="btn small primary" onClick={finish}>Fertig gelesen</button>
-              </div>
-            </div>
-          )}
-          {b.blurb && <p className="prose" style={{ margin: 0 }}>{b.blurb}</p>}
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
-        <div className="panel section">
-          <h3>Das Buch</h3>
-          <dl className="kv">
-            {fact("Art", b.kind)}{fact("Kategorie", b.category)}{fact("Genre", b.genre)}{fact("Untergenre", b.subgenres)}
-            {fact("Zielgruppe", b.audience)}{fact("Sprache", b.language)}{fact("Verlag", b.publisher)}{fact("Erschienen", b.first_published)}
-            {fact("Seiten", b.pages)}{fact("Kapitel", b.chapters)}{fact("ISBN", b.isbn13)}{fact("Zeit", b.period)}{fact("Schauplatz", b.setting)}
-            {fact("Erzählperspektive", b.pov)}{fact("Hauptfiguren", b.main_characters)}{fact("Adaption", b.adaptations)}
-          </dl>
-          {b.tropes?.length ? <><h3>Tropes</h3><Chips items={b.tropes} param="trope" /></> : null}
-          {b.trigger_warnings?.length ? <><h3>Triggerwarnungen</h3><Chips items={b.trigger_warnings} /></> : null}
-        </div>
-        <div className="panel section">
-          <h3>Meine Ausgabe und mein Lesen</h3>
-          <dl className="kv">
-            {fact("Medium", m.medium)}{fact("Format", m.format)}{fact("Edition", m.edition)}{fact("Extras", m.specials)}
-            {fact("Preis", euro(m.price_cents))}{fact("Gekauft", m.bought == null ? null : m.bought ? "Ja" : "Nein")}
-            {fact("Spice", spiceLabel(m.spice))}{fact("Burn", m.burn ? BURN[m.burn] : null)}{fact("Gelesen mit", m.company ? COMPANY[m.company] : null)}
-            {fact("Hörbuch", m.audio_platforms)}{fact("Sprecher:in", m.narrators)}{fact("Hördauer", m.duration_min ? `${Math.floor(m.duration_min / 60)} h ${m.duration_min % 60} min` : null)}
-            {fact("Adaption gesehen", m.adaptation_seen ? "Ja" : null)}
-          </dl>
+      <div className="bd-cols">
+        {/* ---------- Bereich 1: das Buch ---------- */}
+        <section className="panel bd-sec tone-book">
+          <SecHead tone="book" icon="book" title="Das Buch" hint="Angaben, die für alle gleich sind" />
+          {b.blurb && <p className="prose bd-blurb">{b.blurb}</p>}
+          <ul className="bd-facts">
+            <Fact icon="book" label="Art" value={b.kind} />
+            <Fact icon="layers" label="Kategorie" value={b.category} />
+            <Fact icon="tag" label="Genre" value={b.genre} />
+            <Fact icon="tag" label="Untergenre" value={b.subgenres} />
+            <Fact icon="people" label="Zielgruppe" value={b.audience} />
+            <Fact icon="globe" label="Sprache" value={b.language} />
+            <Fact icon="building" label="Verlag" value={b.publisher} />
+            <Fact icon="calendar" label="Erschienen" value={year ?? b.first_published} />
+            <Fact icon="pages" label="Seiten" value={b.pages} />
+            <Fact icon="list" label="Kapitel" value={b.chapters} />
+            <Fact icon="barcode" label="ISBN" value={b.isbn13} />
+            <Fact icon="clock" label="Zeit" value={b.period} />
+            <Fact icon="pin" label="Schauplatz" value={b.setting} />
+            <Fact icon="eye" label="Erzählperspektive" value={b.pov} />
+            <Fact icon="users" label="Hauptfiguren" value={b.main_characters} />
+            <Fact icon="film" label="Adaption" value={b.adaptations} />
+          </ul>
+          {b.tropes?.length ? <><Sub icon="sparkle">Tropes</Sub><Chips items={b.tropes} param="trope" /></> : null}
+          {b.trigger_warnings?.length ? <><Sub icon="warning">Triggerwarnungen</Sub><Chips items={b.trigger_warnings} /></> : null}
+        </section>
+
+        {/* ---------- Bereich 2: mein Lesen ---------- */}
+        <section className="panel bd-sec tone-me">
+          <SecHead tone="me" icon="heart" title="Mein Lesen" hint="Das ist nur deins: Status, Stimmung, Zitate, Bewertung" />
+
+          {m.status === "lese" && (
+            <div className="bd-progress">
+              <div className="section-head">
+                <strong><Icon name="book" size={16} /> Wo bist du gerade?</strong>
+                <span className="muted">{m.current_page ? `Seite ${m.current_page}${b.pages ? ` von ${b.pages}` : ""}` : "Noch keine Seite eingetragen"}</span>
+              </div>
+              {b.pages && m.current_page ? <div className="progress big"><div style={{ width: `${Math.min(100, (m.current_page / b.pages) * 100)}%` }} /></div> : null}
+              <div className="actions" style={{ marginTop: 10 }}>
+                <input className="input" style={{ width: 120 }} type="number" min={1} max={b.pages ?? undefined} placeholder="Seite" value={page} onChange={(ev) => setPage(ev.target.value)} />
+                <button className="btn small" onClick={savePage}>Seite merken</button>
+                <button className="btn small primary" onClick={finish}><Icon name="check" size={15} /> Fertig gelesen</button>
+              </div>
+            </div>
+          )}
+
+          <Sub icon="star" right={<Link className="btn small ghost" to={`/buch/${m.id}/bearbeiten`}>{hasRating ? "Ändern" : "Bewerten"}</Link>}>Bewertung</Sub>
+          {hasRating ? (
+            <div className="bd-verdict">
+              {m.rating != null && <div className="bd-stars"><Stars value={m.rating} /><strong className="mono">{m.rating}</strong><span className="muted">von 5</span></div>}
+              <ul className="bd-facts compact">
+                <Fact icon="heart" label="Urteil" value={m.verdict ? VERDICT[m.verdict] : null} />
+                <Fact icon="target" label="Erwartung" value={m.expectation ? EXPECTATION[m.expectation] : null} />
+                <Fact icon="flame" label="Spice" value={spiceLabel(m.spice)} />
+                <Fact icon="bolt" label="Burn" value={m.burn ? BURN[m.burn] : null} />
+                <Fact icon="people" label="Gelesen mit" value={m.company ? COMPANY[m.company] : null} />
+              </ul>
+            </div>
+          ) : <p className="meta" style={{ margin: 0 }}>Noch keine Bewertung. Sterne, Urteil und Spice trägst du unter „Bewerten“ ein.</p>}
+
+          <Sub icon="smile">Stimmung</Sub>
+          <div className="chips">
+            {shownMoods.map((w) => {
+              const on = (m.moods ?? []).includes(w);
+              return <button key={w} type="button" className={"chip chip-toggle" + (on ? " on" : "")} onClick={() => toggleMood(w)}>{on && <Icon name="check" size={12} />}{w}</button>;
+            })}
+            {moodChoices.length > shownMoods.length && <button type="button" className="chip chip-toggle" onClick={() => setMoreMoods(true)}>mehr…</button>}
+          </div>
+          <form className="bd-inline" onSubmit={(ev) => { ev.preventDefault(); addMood(); }}>
+            <input className="input" placeholder="Eigenes Wort, z. B. „regnerischer Sonntag“" value={moodText} onChange={(ev) => setMoodText(ev.target.value)} />
+            <button className="btn small" type="submit" disabled={!moodText.trim()}>Hinzufügen</button>
+          </form>
+
+          <Sub icon="quote">Lieblingszitate{m.quotes?.length ? ` · ${m.quotes.length}` : ""}</Sub>
+          {m.quotes?.length ? (
+            <ul className="quotes">
+              {m.quotes.map((q, i) => (
+                <li key={i} className="quote">
+                  <Icon name="quote" size={18} className="quote-mark" />
+                  <p>{q}</p>
+                  <button type="button" className="btn small ghost" aria-label="Zitat löschen" title="Zitat löschen" onClick={() => removeQuote(i)}>×</button>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="meta" style={{ margin: 0 }}>Noch kein Zitat. Sätze, die du behalten willst, kommen hier hin.</p>}
+          <form className="bd-inline" onSubmit={(ev) => { ev.preventDefault(); addQuote(); }}>
+            <textarea className="input" rows={2} placeholder="Zitat eintippen…" value={quote} onChange={(ev) => setQuote(ev.target.value)} />
+            <button className="btn small" type="submit" disabled={!quote.trim()}>Zitat speichern</button>
+          </form>
+
           <Readings e={e} />
-          {m.notes && <><h3>Meine Notiz</h3><p className="prose" style={{ margin: 0 }}>{m.notes}</p></>}
-          {m.review && <><h3>Rezension</h3><p className="prose" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
-        </div>
+
+          {hasEdition && (
+            <>
+              <Sub icon="bookmark">Meine Ausgabe</Sub>
+              <ul className="bd-facts compact">
+                <Fact icon="book" label="Medium" value={m.medium} />
+                <Fact icon="layers" label="Format" value={m.format} />
+                <Fact icon="sparkle" label="Edition" value={m.edition} />
+                <Fact icon="gift" label="Extras" value={m.specials} />
+                <Fact icon="coin" label="Preis" value={euro(m.price_cents)} />
+                <Fact icon="check" label="Gekauft" value={m.bought == null ? null : m.bought ? "Ja" : "Nein"} />
+                <Fact icon="headphones" label="Hörbuch" value={m.audio_platforms} />
+                <Fact icon="speech" label="Sprecher:in" value={m.narrators} />
+                <Fact icon="clock" label="Hördauer" value={m.duration_min ? `${Math.floor(m.duration_min / 60)} h ${m.duration_min % 60} min` : null} />
+                <Fact icon="film" label="Adaption gesehen" value={m.adaptation_seen ? "Ja" : null} />
+              </ul>
+            </>
+          )}
+
+          {m.notes && <><Sub icon="note">Meine Notiz</Sub><p className="prose" style={{ margin: 0 }}>{m.notes}</p></>}
+          {m.review && <><Sub icon="pencil">Rezension</Sub><p className="prose" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
+        </section>
       </div>
+
       <div className="actions">
         <button className="btn danger" onClick={remove}>Aus dem Regal entfernen</button>
       </div>
@@ -193,6 +362,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
     </>
   );
 }
+
 
 const daysBetween = (start?: string | null, end?: string | null) =>
   start && end ? Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / 86400000)) : null;

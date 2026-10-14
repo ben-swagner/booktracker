@@ -86,3 +86,10 @@ Eine eigene Adresse (zum Beispiel `buecher.deine-domain.de`) lässt sich später
 
 Danach öffnet sich der Booktracker mit eigenem Icon und ohne Browserleiste, auch offline für das, was
 schon einmal geladen wurde.
+
+### Spätere Ergänzungen der Datenbank
+
+Neue Felder kommen als nummerierte Dateien in `supabase/migrations/`. Jede Datei einmal im **SQL Editor**
+einfügen und auf **Run** klicken, in der Reihenfolge der Nummern:
+
+- `0002_zitate_stimmung.sql`: Lieblingszitate und Stimmung je Buch (Buchseite, Bereich „Mein Lesen“).

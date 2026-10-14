@@ -86,6 +86,8 @@ export interface UserBook {
   burn?: Burn | null;
   notes?: string | null;
   review?: string | null;
+  quotes?: string[];
+  moods?: string[];
   created_at?: string;
   updated_at?: string;
 }
