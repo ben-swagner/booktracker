@@ -1,10 +1,26 @@
-import { useMemo, useState } from "react";
-import { useDeleteWishlistItem, useLibrary, useSaveWishlistItem } from "../data/hooks";
+import { Suspense, lazy, useMemo, useState } from "react";
+import { useDeleteWishlistItem, useEntries, useSaveWishlistItem } from "../data/hooks";
+import { cleanIsbn, lookupIsbn } from "../lib/isbn";
+import { findDuplicates, normIsbn } from "../lib/duplicates";
+import { Barcode } from "../components/Barcode";
+import { STATUS } from "../lib/labels";
 import type { WishlistItem } from "../data/types";
 import { euro, fmtDate, today } from "../lib/labels";
 import { Empty, SeriesNo } from "../components/ui";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
+
+// Der Scanner wird erst geladen, wenn er gebraucht wird
+const Scanner = lazy(() => import("../components/Scanner").then((m) => ({ default: m.Scanner })));
+
+/** Erscheinungsdatum aus der Buchsuche, nur wenn es ein genauer Tag ist. */
+function parseRelease(v?: string): string {
+  if (!v) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const t = Date.parse(v);
+  if (!isNaN(t) && /\d{1,2}/.test(v.replace(/\d{4}/, ""))) { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+  return "";
+}
 
 const PRIO: Record<WishlistItem["priority"], string> = { hoch: "Hoch", mittel: "Mittel", niedrig: "Niedrig", gekauft: "Gekauft" };
 const PRIO_ORDER = ["hoch", "mittel", "niedrig"] as const;
@@ -55,7 +71,11 @@ function PriceInput({ w, onSave }: { w: WishlistItem; onSave: (cents: number | n
 }
 
 export default function Wunschliste() {
-  const { data: lib, isLoading } = useLibrary();
+  const { entries, lib, isLoading } = useEntries();
+  const [scanning, setScanning] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [hint, setHint] = useState<React.ReactNode>(null);
+  const [showCode, setShowCode] = useState<WishlistItem | null>(null);
   const save = useSaveWishlistItem();
   const del = useDeleteWishlistItem();
   const [q, setQ] = useState("");
@@ -89,6 +109,30 @@ export default function Wunschliste() {
   if (isLoading || !lib) return <p className="muted">Lade…</p>;
   const total = items.reduce((s, w) => s + (w.price_cents ?? 0), 0);
 
+  /** ISBN nachschlagen: Titel, Autor:in und ggf. Erscheinungstag eintragen und prüfen, ob es das Buch schon gibt. */
+  async function fillFromIsbn(raw: string) {
+    const isbn = cleanIsbn(raw);
+    if (!isbn) { toast("Das ist keine gültige ISBN."); return; }
+    setDraft((d) => ({ ...d, isbn }));
+    const dupLib = findDuplicates(entries, { isbn });
+    const dupWish = all.find((w) => normIsbn(w.isbn) === isbn);
+    setHint(dupLib.length
+      ? <><Icon name="books" size={16} /> Steht schon in deiner Bibliothek: <b>{dupLib[0].e.book.title}</b> ({STATUS[dupLib[0].e.mine.status]})</>
+      : dupWish ? <><Icon name="heart" size={16} /> Ist schon auf deiner Wunschliste{isBought(dupWish) ? " und als gekauft markiert" : ""}: <b>{dupWish.title}</b></> : null);
+    setBusy(true);
+    try {
+      const r = await lookupIsbn(isbn);
+      if (!r) { toast("Keine Buchdaten gefunden. Trag Titel und Autor:in bitte selbst ein."); return; }
+      const rel = parseRelease(r.first_published);
+      setDraft((d) => ({ ...d, isbn, title: r.title ? `${r.title}${r.subtitle ? `: ${r.subtitle}` : ""}` : d.title, author: (r.authors ?? []).join(", ") || d.author, release: rel && rel > today() ? rel : d.release }));
+      toast("Buch gefunden. Prüf kurz die Angaben und tipp auf Hinzufügen.");
+    } catch {
+      toast("Die Buchsuche hat gerade nicht geklappt.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function add(ev: React.FormEvent) {
     ev.preventDefault();
     if (!draft.title.trim()) return;
@@ -98,6 +142,7 @@ export default function Wunschliste() {
       wanted_format: draft.format, release_date: draft.release || null
     });
     setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel", format: "Egal", release: "" });
+    setHint(null);
     toast("Auf die Wunschliste gesetzt.");
   }
 
@@ -123,10 +168,21 @@ export default function Wunschliste() {
         </div>
       </section>
 
+      {scanning && <Suspense fallback={<div className="scanner"><p className="scanner-status">Scanner wird geladen…</p></div>}><Scanner onResult={(isbn) => { setScanning(false); fillFromIsbn(isbn); }} onClose={() => setScanning(false)} /></Suspense>}
       <form className="panel form-grid" onSubmit={add}>
+        <div className="span2 wish-form-head">
+          <button type="button" className="btn primary wish-scan" onClick={() => setScanning(true)}><Icon name="camera" size={18} /> Buch scannen</button>
+          <span className="meta">Im Buchladen den Strichcode auf der Rückseite scannen, die App füllt den Rest aus.</span>
+        </div>
+        {hint && <p className="span2 wish-hint">{hint}</p>}
         <div className="field span2"><label htmlFor="wt">Neuer Wunsch</label><input id="wt" className="input" placeholder="Titel" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></div>
         <div className="field"><label htmlFor="wa">Autor:in</label><input id="wa" className="input" value={draft.author} onChange={(e) => setDraft({ ...draft, author: e.target.value })} /></div>
-        <div className="field"><label htmlFor="wi">ISBN</label><input id="wi" className="input" value={draft.isbn} onChange={(e) => setDraft({ ...draft, isbn: e.target.value })} /></div>
+        <div className="field"><label htmlFor="wi">ISBN</label>
+          <div className="isbn-row">
+            <input id="wi" className="input" inputMode="numeric" value={draft.isbn} onChange={(e) => setDraft({ ...draft, isbn: e.target.value })} />
+            <button type="button" className="btn small" disabled={!draft.isbn || busy} onClick={() => fillFromIsbn(draft.isbn)}>{busy ? "Suche…" : "Suchen"}</button>
+          </div>
+        </div>
         <div className="field"><label htmlFor="wp">Preis in €</label><input id="wp" className="input" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} /></div>
         <div className="field"><label htmlFor="wf">Format</label>
           <select id="wf" className="input" value={draft.format} onChange={(e) => setDraft({ ...draft, format: e.target.value })}>
@@ -199,6 +255,7 @@ export default function Wunschliste() {
                   )}
                   <td>
                     <div className="wish-actions">
+                      {w.isbn && cleanIsbn(w.isbn) && <button className="btn ghost small" aria-label="Barcode zeigen" title="Barcode zum Vorzeigen im Laden" onClick={() => setShowCode(w)}><Icon name="barcode" size={18} /></button>}
                       <button className="btn ghost small" aria-label="Von der Wunschliste streichen" title="Von der Wunschliste streichen" onClick={() => confirm(`„${w.title}“ von der Wunschliste streichen?`) && del.mutate(w.id)}>✕</button>
                     </div>
                   </td>
@@ -206,6 +263,18 @@ export default function Wunschliste() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {showCode && (
+        <div className="bm-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowCode(null); }}>
+          <div className="code-modal" role="dialog" aria-modal="true" aria-label="Barcode">
+            <button className="bm-close" onClick={() => setShowCode(null)} aria-label="Schließen">×</button>
+            <p className="code-kicker">Zum Vorzeigen im Buchladen</p>
+            <h2>{showCode.title}</h2>
+            {showCode.author && <p className="muted" style={{ margin: 0 }}>{showCode.author}</p>}
+            <div className="code-box"><Barcode isbn={cleanIsbn(showCode.isbn!) ?? ""} /></div>
+            <p className="code-meta">ISBN {cleanIsbn(showCode.isbn!)}{showCode.wanted_format && showCode.wanted_format !== "Egal" ? ` · gewünscht: ${showCode.wanted_format}` : ""}{showCode.price_cents ? ` · ${euro(showCode.price_cents)}` : ""}</p>
+          </div>
         </div>
       )}
     </>

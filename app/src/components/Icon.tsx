@@ -36,6 +36,8 @@ const PATHS = {
   heart: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z",
   repeat: "M4 12V9a3 3 0 0 1 3-3h12M16 3l3 3-3 3M20 12v3a3 3 0 0 1-3 3H5M8 21l-3-3 3-3",
   pause: "M8 5v14M16 5v14",
+  camera: "M4 8h3l2-3h6l2 3h3v11H4V8ZM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
+  barcode: "M4 5v14M7 5v14M10 5v14M14 5v14M16 5v14M20 5v14M12 5v10M18 5v10",
   moon: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"
 } as const;
 
