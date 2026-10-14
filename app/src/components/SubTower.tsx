@@ -39,14 +39,18 @@ function wobble(seed: string) {
 
 export function SubTower({ books }: { books: Entry[] }) {
   const t = useMemo(() => {
-    const print = books.filter((e) => bindingOf(e) !== "ebook");
-    const items = print.map((e) => {
+    // eBooks gehören zum SuB dazu: Sie zählen so dick wie ein Taschenbuch gleicher Seitenzahl
+    // und liegen gestrichelt oben auf dem Stapel.
+    const items = books.map((e) => {
       const b = bindingOf(e);
-      const mm = (e.book.pages ?? 300) * MM_PER_PAGE + COVER_MM[b];
-      return { e, b, m: mm / 1000 };
-    });
+      const digital = b === "ebook";
+      const shape: Binding = digital ? "taschenbuch" : b;
+      const mm = (e.book.pages ?? 300) * MM_PER_PAGE + COVER_MM[shape];
+      return { e, b: shape, digital, m: mm / 1000 };
+    }).sort((a, b) => Number(a.digital) - Number(b.digital));
     const height = items.reduce((s, x) => s + x.m, 0);
-    return { items, height, ebooks: books.length - print.length, guessed: print.filter((e) => !e.book.pages).length };
+    const ebooks = items.filter((x) => x.digital);
+    return { items, height, ebooks: ebooks.length, ebookHeight: ebooks.reduce((s, x) => s + x.m, 0), guessed: books.filter((e) => !e.book.pages).length };
   }, [books]);
 
   if (!t.items.length) return null;
@@ -68,7 +72,7 @@ export function SubTower({ books }: { books: Entry[] }) {
   const cx = 170;
   let y = GROUND;
   const n = t.items.length;
-  const rects = t.items.map(({ e, b, m }, i) => {
+  const rects = t.items.map(({ e, b, m, digital }, i) => {
     const h = Math.max(m * scale, 0.6);
     y -= h;
     const lean = (i / n) * 14; // je höher, desto mehr kippt der Stapel
@@ -78,7 +82,8 @@ export function SubTower({ books }: { books: Entry[] }) {
     const c = coverColors(e.book.title);
     return (
       <rect key={e.mine.id} x={cx - w / 2 + dx} y={y} width={w} height={h} rx={Math.min(2, h / 3)} fill={c.bg}
-        stroke="rgba(0,0,0,.14)" strokeWidth={h > 2 ? 0.6 : 0.3}
+        className={digital ? "tower-ebook" : undefined}
+        stroke={digital ? c.fg : "rgba(0,0,0,.14)"} strokeWidth={h > 2 ? 0.6 : 0.3}
         transform={rot ? `rotate(${rot.toFixed(2)} ${cx + dx} ${y + h / 2})` : undefined}>
         <title>{e.book.title}</title>
       </rect>
@@ -94,7 +99,7 @@ export function SubTower({ books }: { books: Entry[] }) {
         <p className="pick-kicker">Dein SuB als Stapel</p>
         <div className="tower-height">{fmtM(t.height)}</div>
         <p className="lede" style={{ marginTop: 0 }}>
-          So hoch wären deine <strong>{t.items.length}</strong> gedruckten SuB-Bücher, wenn du sie aufeinanderlegst.
+          So hoch wären deine <strong>{t.items.length}</strong> SuB-Bücher, wenn du sie aufeinanderlegst.
         </p>
         <ul className="tower-facts">
           {below && <li>Höher als {below.name} ({fmtM(below.m)})</li>}
@@ -104,8 +109,8 @@ export function SubTower({ books }: { books: Entry[] }) {
         </ul>
         <p className="meta" style={{ margin: 0 }}>
           Geschätzt mit etwa 0,06 mm pro Seite plus Einband (Hardcover dicker als Taschenbuch).
-          {t.guessed ? ` Bei ${t.guessed} Büchern ohne Seitenzahl habe ich 300 Seiten angenommen.` : ""}
-          {t.ebooks ? ` ${t.ebooks} eBooks stapeln sich nur digital und zählen nicht mit.` : ""}
+          {t.guessed ? (t.guessed === 1 ? " Bei einem Buch ohne Seitenzahl habe ich 300 Seiten angenommen." : ` Bei ${t.guessed} Büchern ohne Seitenzahl habe ich 300 Seiten angenommen.`) : ""}
+          {t.ebooks ? ` Die ${t.ebooks} eBooks (zusammen ${fmtM(t.ebookHeight)}) zähle ich so dick wie ein Taschenbuch, sie liegen blass oben auf dem Stapel.` : ""}
         </p>
       </div>
       <svg className="tower-svg" viewBox={`0 0 ${W} 420`} role="img" aria-label={`Bücherstapel, etwa ${fmtM(t.height)} hoch`}>
