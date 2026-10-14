@@ -132,19 +132,30 @@ function computeStats(allEv: Ev[], entries: Entry[], year: string) {
 }
 type Stats = ReturnType<typeof computeStats>;
 
+/** Wann eine Karte für ein Jahr überhaupt Daten hat. Nur solche Jahre stehen in ihrer Auswahl. */
+const HAS: Record<string, (s: Stats) => boolean> = {
+  c4: (s) => s.rated.length > 0, c23: (s) => s.rated.length > 0, c22: (s) => s.genreStars.length > 0,
+  c5: (s) => s.dnf.length > 0, c6: (s) => s.dated.length > 0, c12: (s) => s.dated.length > 0, c10: (s) => !!s.pause,
+  c8: (s) => s.daysList.length > 0, c11: (s) => s.daysList.length > 0, c9: (s) => s.rereads > 0, c13: (s) => s.media.length > 0,
+  c14: (s) => s.genres.length > 0, c15: (s) => s.subgenres.length > 0, c16: (s) => s.tropes.length > 0, c17: (s) => s.pageHist.some((x) => x.value > 0),
+  c18: (s) => s.decades.length > 0, c19: (s) => s.spice.some((x) => x.value > 0), c20: (s) => s.audience.length > 0, c21: (s) => s.languages.length > 0,
+  c24: (s) => s.expect.length > 0, c26: (s) => (s.newAuthors ?? 0) > 0, c27: (s) => s.nCountries > 0, c30: (s) => s.countries.length > 0
+};
+
 export default function Statistik() {
   const { entries, lib, isLoading } = useEntries();
   const [params, setParams] = useSearchParams();
   const openBook = useOpenBook();
   const openAuthor = useOpenAuthor();
   const thisYear = new Date().getFullYear();
-  const year = params.get("jahr") ?? String(thisYear);
+  const allEv: Ev[] = useMemo(() => readEvents(entries).map((x) => ({ ...x, date: x.r.finished_on ?? null })), [entries]);
+  // nur Jahre, in denen wirklich Bücher beendet wurden
+  const years = useMemo(() => [...new Set(allEv.map((x) => x.year))].sort((a, b) => b - a), [allEv]);
+  const defYear = years.includes(thisYear) ? String(thisYear) : years.length ? String(years[0]) : "alle";
+  const year = params.get("jahr") ?? defYear;
   const tab = (params.get("t") ?? "ueberblick") as Tab;
   const set = (k: string, v: string, def: string) => { const p = new URLSearchParams(params); if (v === def) p.delete(k); else p.set(k, v); setParams(p, { replace: true }); };
   const all = year === "alle";
-
-  const allEv: Ev[] = useMemo(() => readEvents(entries).map((x) => ({ ...x, date: x.r.finished_on ?? null })), [entries]);
-  const years = useMemo(() => [...new Set(allEv.map((x) => x.year))].sort((a, b) => b - a), [allEv]);
 
   // Kennzahlen je Zeitraum, einmal berechnet und gemerkt
   const getS = useMemo(() => {
@@ -156,7 +167,12 @@ export default function Statistik() {
   const [ov, setOv] = useState<Record<string, string>>({});
   useEffect(() => setOv({}), [year]);
   const S = (id: string) => getS(ov[id] ?? year);
-  const pick = (id: string) => <ScopeSelect value={ov[id] ?? year} years={years} onChange={(v) => setOv((o) => ({ ...o, [id]: v }))} />;
+  const pick = (id: string) => {
+    const has = HAS[id] ?? ((x: Stats) => x.ev.length > 0);
+    const value = ov[id] ?? year;
+    const ys = years.filter((y) => has(getS(String(y))) || String(y) === value);
+    return <ScopeSelect value={value} years={ys} onChange={(v) => setOv((o) => ({ ...o, [id]: v }))} />;
+  };
 
   // Unabhängig vom Jahr: Geld, SuB, Tendenzen
   const g = useMemo(() => {
@@ -223,8 +239,7 @@ export default function Statistik() {
           <h1>Statis<em>tik</em></h1>
           <p className="lede">{entries.length.toLocaleString("de-DE")} Bücher im Regal, {s.ev.length} {all ? "Lesevorgänge insgesamt" : `davon ${year} gelesen`}.</p>
         </div>
-        <select className="input year-select" value={year} onChange={(e) => set("jahr", e.target.value, String(thisYear))} aria-label="Zeitraum">
-          {!years.includes(thisYear) && <option value={String(thisYear)}>{thisYear}</option>}
+        <select className="input year-select" value={year} onChange={(e) => set("jahr", e.target.value, defYear)} aria-label="Zeitraum">
           {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
           <option value="alle">Alle Jahre</option>
         </select>
