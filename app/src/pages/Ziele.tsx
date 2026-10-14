@@ -31,12 +31,9 @@ function BookPicker({ entries, value, onChange }: { entries: Entry[]; value?: st
   );
 }
 
-type GoalKey = "books" | "sub" | "series";
-const GOALS: Record<GoalKey, { field: "books_goal" | "sub_goal" | "series_goal"; title: string; question: string }> = {
-  books: { field: "books_goal", title: "Bücher lesen", question: "Wie viele Bücher möchtest du dieses Jahr lesen?" },
-  sub: { field: "sub_goal", title: "Vom SuB lesen", question: "Wie viele Bücher von deinem SuB möchtest du dieses Jahr lesen?" },
-  series: { field: "series_goal", title: "Reihen beenden", question: "Wie viele Reihen möchtest du dieses Jahr beenden?" }
-};
+type GoalKey = "books" | "sub";
+/** Jahr 0 steht für die dauerhaften Ziele ohne Jahresbezug (SuB abbauen). */
+const LASTING = 0;
 
 export default function Ziele() {
   const { entries, lib, isLoading } = useEntries();
@@ -53,6 +50,7 @@ export default function Ziele() {
   const [newLabel, setNewLabel] = useState<Record<string, string>>({});
 
   const goal = lib?.goals.find((g) => g.year === year);
+  const lasting = lib?.goals.find((g) => g.year === LASTING);
   const stats = useMemo(() => goalStats(entries, year), [entries, year]);
 
   if (isLoading || !lib) return <p className="muted">Lade…</p>;
@@ -61,12 +59,17 @@ export default function Ziele() {
     ev.preventDefault();
     if (!edit) return;
     const v = draft.trim() === "" ? null : Math.max(0, Number(draft));
-    const next = { books_goal: goal?.books_goal ?? null, sub_goal: goal?.sub_goal ?? null, series_goal: goal?.series_goal ?? null, [GOALS[edit].field]: v };
-    await saveGoal.mutateAsync({ user_id: "", year, ...next });
+    if (edit === "books") {
+      await saveGoal.mutateAsync({ user_id: "", year, books_goal: v, sub_goal: goal?.sub_goal ?? null, series_goal: goal?.series_goal ?? null });
+    } else {
+      // Startpunkt merken, damit sich der Fortschritt berechnen lässt; beim Ändern des Ziels bleibt er erhalten.
+      const start = v == null ? null : lasting?.books_goal ?? stats.tbr;
+      await saveGoal.mutateAsync({ user_id: "", year: LASTING, sub_goal: v, books_goal: start, series_goal: null });
+    }
     setEdit(null);
     toast(v ? "Ziel gespeichert." : "Ziel entfernt.");
   }
-  const openEdit = (k: GoalKey) => { setDraft(goal?.[GOALS[k].field]?.toString() ?? ""); setEdit(k); };
+  const openEdit = (k: GoalKey) => { setDraft((k === "books" ? goal?.books_goal : lasting?.sub_goal)?.toString() ?? ""); setEdit(k); };
   async function createChallenge(ev: React.FormEvent) {
     ev.preventDefault();
     if (!newCh?.name.trim()) return;
@@ -99,17 +102,20 @@ export default function Ziele() {
 
       <section className="gcards">
         <YearGoalCard s={stats} goal={goal} year={year} onEdit={() => openEdit("books")} />
-        <div className="gcards-row">
-          <SubGoalCard s={stats} goal={goal} year={year} onEdit={() => openEdit("sub")} />
-          <SeriesGoalCard s={stats} goal={goal} year={year} onEdit={() => openEdit("series")} />
-        </div>
+        <h2 className="gcards-title">Dauerhafte Ziele</h2>
+        <SubGoalCard s={stats} goal={lasting} onEdit={() => openEdit("sub")} />
+        <SeriesGoalCard s={stats} />
       </section>
 
       {edit && (
         <div className="modal-bg" onClick={() => setEdit(null)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submitGoal}>
-            <h2>{GOALS[edit].title} {year}</h2>
-            <div className="field"><label htmlFor="g1">{GOALS[edit].question}</label><input id="g1" className="input" type="number" min={0} autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="leer lassen = kein Ziel" /></div>
+            <h2>{edit === "books" ? `Jahresziel ${year}` : "SuB abbauen"}</h2>
+            <div className="field">
+              <label htmlFor="g1">{edit === "books" ? "Wie viele Bücher möchtest du dieses Jahr lesen?" : `Auf wie viele Bücher soll dein SuB schrumpfen? Gerade sind es ${stats.tbr}.`}</label>
+              <input id="g1" className="input" type="number" min={0} autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={edit === "books" ? "leer lassen = kein Ziel" : "0 = ganz leer, leer lassen = kein Ziel"} />
+              {edit === "sub" && <p className="meta" style={{ margin: "6px 0 0" }}>Dieses Ziel gilt ohne Enddatum. Der Fortschritt zählt ab dem Tag, an dem du es zum ersten Mal festlegst.</p>}
+            </div>
             <div className="actions" style={{ justifyContent: "flex-end" }}><button type="button" className="btn" onClick={() => setEdit(null)}>Abbrechen</button><button className="btn primary" type="submit">Speichern</button></div>
           </form>
         </div>
