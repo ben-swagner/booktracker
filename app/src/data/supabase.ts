@@ -237,6 +237,10 @@ export class SupabaseProvider implements DataProvider {
     await this.sb.from("books").update({ cover_url: url }).eq("id", bookId);
   }
 
+  async saveAuthorPhoto(authorId: string, url: string) {
+    await this.sb.from("authors").update({ photo_url: url }).eq("id", authorId);
+  }
+
   /**
    * Übernimmt die Daten aus dem Sheet (public/demo/data.json) in dieses Konto.
    * Gemeinsame Buchdaten werden eingefügt, falls noch nicht vorhanden; persönliche Daten

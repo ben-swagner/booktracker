@@ -42,6 +42,8 @@ export interface DataProvider {
   saveFavorites(kind: Favorite["kind"], items: Partial<Favorite>[]): Promise<void>;
   /** Cover-Adresse an einem Buch merken (gemeinsame Buchdaten). */
   saveCover(bookId: string, url: string): Promise<void>;
+  /** Foto-Adresse an einer Autor:in merken (gemeinsame Buchdaten). */
+  saveAuthorPhoto(authorId: string, url: string): Promise<void>;
   /** Übernimmt einen kompletten Datenbestand (z. B. aus dem Sheet) in das Konto der Person. */
   importLibrary(src: ImportBundle, onProgress?: (step: string, done: number, total: number) => void): Promise<ImportSummary>;
 }

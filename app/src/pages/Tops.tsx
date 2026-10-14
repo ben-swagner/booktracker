@@ -98,7 +98,7 @@ export default function Tops() {
                 {e ? <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} /> : <span className="top-dot" />}
                 <div style={{ minWidth: 0 }}>
                   {e ? <Link to={`/buch/${e.mine.id}`} className="book-title" style={{ display: "block" }}>{e.book.title}</Link>
-                    : f.author_id ? <Link to={`/autorinnen/${authors.get(f.author_id!)?.slug ?? ""}`} className="book-title" style={{ display: "block" }}>{label(f)}</Link>
+                    : f.author_id ? <Link to={`/autorinnen?autor=${authors.get(f.author_id!)?.slug ?? ""}`} className="book-title" style={{ display: "block" }}>{label(f)}</Link>
                     : <strong className="book-title">{label(f)}</strong>}
                   {e && <p className="book-author">{authorNames(e)}{e.series ? ` · ${e.series.name}` : ""}</p>}
                 </div>

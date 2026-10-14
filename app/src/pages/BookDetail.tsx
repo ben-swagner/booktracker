@@ -5,6 +5,7 @@ import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSav
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
 import { Cover, Stars, StatusPill, authorNames } from "../components/ui";
+import { useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
 import { lookupIsbn } from "../lib/isbn";
@@ -29,6 +30,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const id = props.id ?? params.id;
   const inModal = !!props.onClose;
   const nav = useNavigate();
+  const openAuthor = useOpenAuthor();
   const { entries, isLoading } = useEntries();
   const saveUB = useSaveUserBook();
   const saveReading = useSaveReading();
@@ -121,7 +123,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           </div>
           <h1 style={{ fontSize: "clamp(24px,4vw,36px)" }}>{b.title}</h1>
           {b.subtitle && <p className="lede" style={{ marginTop: 0 }}>{b.subtitle}</p>}
-          <p className="book-author" style={{ fontSize: 16 }}>{authorNames(e)}{b.original_title ? ` · Original: ${b.original_title}` : ""}</p>
+          <p className="book-author" style={{ fontSize: 16 }}>{e.authors.map((a, i) => <span key={a.id}>{i > 0 ? ", " : ""}<button type="button" className="linklike" onClick={() => openAuthor(a.slug)} title="Mehr über diese Autor:in">{a.name}</button></span>)}{b.original_title ? ` · Original: ${b.original_title}` : ""}</p>
           {m.rating != null && <p><Stars value={m.rating} /> <span className="mono">{m.rating}</span>{m.verdict ? ` · ${VERDICT[m.verdict]}` : ""}{m.expectation ? ` · ${EXPECTATION[m.expectation]}` : ""}</p>}
           <div className="actions">
             {STATUS_ORDER.filter((s) => s !== m.status).map((s) => (

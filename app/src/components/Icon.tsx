@@ -19,6 +19,8 @@ const PATHS = {
   pencil: "M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4",
   flag: "M5 21V4M5 4h11l-2 4 2 4H5",
   cover: "M4 4.5h7v15H4zM13 4.5h7v15h-7zM6.5 8h2M15.5 8h2",
+  list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+  grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   moon: "M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"
 } as const;
 

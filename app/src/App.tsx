@@ -7,6 +7,7 @@ import Start from "./pages/Start";
 import Bibliothek from "./pages/Bibliothek";
 import BookDetail from "./pages/BookDetail";
 import { BookModal } from "./components/BookModal";
+import { AuthorModal } from "./components/Authors";
 import BookForm from "./pages/BookForm";
 import Wunschliste from "./pages/Wunschliste";
 import Statistik from "./pages/Statistik";
@@ -147,6 +148,7 @@ export default function App() {
           <NavLink key={l.to} to={l.to} end={l.to === "/"}><Icon d={l.icon} />{l.label}</NavLink>
         ))}
       </nav>
+      <AuthorModal />
       <BookModal />
       {toast && <div className="toast" role="status">{toast}</div>}
     </>

@@ -198,6 +198,12 @@ export class LocalProvider implements DataProvider {
     if (b) { b.cover_url = url; this.persist(); }
   }
 
+  async saveAuthorPhoto(authorId: string, url: string) {
+    const lib = await this.loadLibrary();
+    const a = lib.authors.find((x) => x.id === authorId);
+    if (a) { a.photo_url = url; this.persist(); }
+  }
+
   async importLibrary(src: ImportBundle) {
     const lib = await this.loadLibrary();
     for (const k of ["authors", "series", "books", "user_books", "readings", "wishlist_items", "goals", "challenges", "challenge_entries", "favorites"] as const) {
