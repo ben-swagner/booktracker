@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "./Link";
 import { data } from "../data";
 import { findCover } from "../lib/covers";
@@ -149,26 +149,77 @@ export function BookCard({ e }: { e: Entry }) {
   );
 }
 
+/** Breite eines Elements beobachten (für Bretter, die sich an den Bildschirm anpassen). */
+export function useWidth<T extends HTMLElement>(): [React.RefObject<T | null>, number] {
+  const ref = useRef<T>(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver((es) => setW(Math.floor(es[0].contentRect.width)));
+    ro.observe(el);
+    setW(Math.floor(el.getBoundingClientRect().width));
+    return () => ro.disconnect();
+  }, []);
+  return [ref, w];
+}
+
+/** Maße eines Buchrückens: Breite nach Seitenzahl, Höhe nach Art und Dicke, kleiner Wackler pro Titel. */
+export function spineSize(e: Entry, compact = false) {
+  const pages = e.book.pages ?? 250;
+  const w = Math.max(compact ? 12 : 14, Math.min(compact ? 36 : 44, Math.round(pages / (compact ? 24 : 20))));
+  const base = /Manga|Manhwa|Comic|Kurzgeschichte|Kinderbuch/.test(e.book.kind ?? "") ? (compact ? 70 : 82) : (compact ? 84 : 98);
+  const h = base + Math.min(22, Math.round(pages / 40)) + ((e.book.title.length * 7) % 9);
+  return { w, h };
+}
+
+const GAP = 4;
+const SHELF_PADDING = 24;
+
+/**
+ * Bretter, die sich an die verfügbare Breite anpassen: so viele Rücken pro Brett, wie hineinpassen,
+ * dann das nächste Brett darunter. Kein seitliches Scrollen.
+ */
+export function ShelfRows({ entries, compact, colorFor, maxRows }: { entries: Entry[]; compact?: boolean; colorFor?: (e: Entry) => { bg: string; fg: string }; maxRows?: number }) {
+  const [ref, width] = useWidth<HTMLDivElement>();
+  const avail = Math.max(200, (width || 320) - SHELF_PADDING);
+  const rows: Entry[][] = [];
+  let cur: Entry[] = [], used = 0;
+  for (const e of entries) {
+    const { w } = spineSize(e, compact);
+    if (used + w + GAP > avail && cur.length) { rows.push(cur); cur = []; used = 0; }
+    cur.push(e); used += w + GAP;
+  }
+  if (cur.length) rows.push(cur);
+  const shown = maxRows ? rows.slice(0, maxRows) : rows;
+  const hidden = rows.slice(shown.length).reduce((n, r) => n + r.length, 0);
+  return (
+    <div ref={ref} className="shelf-rows">
+      {shown.map((row, i) => (
+        <div key={i} className="shelf-row">
+          <div className="shelf shelf-wrap">
+            {row.map((e) => {
+              const { w, h } = spineSize(e, compact);
+              const c = colorFor ? colorFor(e) : coverColors(e.book.title);
+              return (
+                <Link key={e.mine.id} to={`/buch/${e.mine.id}`} className="spine" title={`${e.book.title} · ${authorNames(e)}`} style={{ width: w, height: h, background: c.bg, color: c.fg }}>
+                  <span>{e.book.title}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="plank" />
+        </div>
+      ))}
+      {hidden > 0 && <p className="shelf-note">… und {hidden} weitere. <Link to="/regal?v=jahre">Alle Bretter ansehen</Link></p>}
+    </div>
+  );
+}
+
 export function Shelf({ entries, note }: { entries: Entry[]; note?: string }) {
   return (
     <div className="panel shelf-box">
-      <div className="shelf-scroll">
-        <div className="shelf">
-          {entries.map((e) => {
-            const c = coverColors(e.book.title);
-            const pages = e.book.pages ?? 250;
-            const w = Math.max(14, Math.min(40, Math.round(pages / 22)));
-            const h = 70 + ((e.book.title.length * 7) % 40);
-            return (
-              <Link key={e.mine.id} to={`/buch/${e.mine.id}`} className="spine" title={e.book.title}
-                style={{ width: w, height: h, background: c.bg, color: c.fg }}>
-                <span>{e.book.title}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-      <div className="plank" />
+      <ShelfRows entries={entries} compact maxRows={3} />
       {note && <p className="shelf-note">{note}</p>}
     </div>
   );

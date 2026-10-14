@@ -4,8 +4,7 @@ import { useEntries } from "../data/hooks";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, STATUS_ORDER, coverColors } from "../lib/labels";
 import { countBy, lastFinished, readEvents } from "../lib/stats";
-import { Link } from "../components/Link";
-import { Empty, authorNames } from "../components/ui";
+import { Empty, ShelfRows, authorNames } from "../components/ui";
 
 type Sort = "titel" | "autor" | "bewertung" | "seiten" | "neu" | "beendet" | "reihe";
 type Color = "einband" | "status" | "bewertung";
@@ -17,46 +16,15 @@ const STATUS_INK: Record<ReadingStatus, string> = {
   lese: "var(--lese)", gelesen: "var(--gelesen)", tbr: "var(--tbr)", ungelesen: "var(--ungelesen)", abgebrochen: "var(--abg)", wunschliste: "var(--wunsch)"
 };
 
-function Spine({ e, color }: { e: Entry; color: Color }) {
-  const pages = e.book.pages ?? 250;
-  const w = Math.max(14, Math.min(44, Math.round(pages / 20)));
-  // Höhe: Mangas und Kurzgeschichten kleiner, dicke Bücher etwas höher, dazu ein kleiner Wackler pro Titel
-  const base = /Manga|Manhwa|Comic|Kurzgeschichte|Kinderbuch/.test(e.book.kind ?? "") ? 82 : 98;
-  const h = base + Math.min(22, Math.round(pages / 40)) + ((e.book.title.length * 7) % 9);
-  let bg: string, fg: string;
-  if (color === "status") { bg = STATUS_COLOR[e.mine.status]; fg = STATUS_INK[e.mine.status]; }
-  else if (color === "bewertung") {
-    const r = e.mine.rating;
-    bg = r == null ? "var(--surface-2)" : r >= 4.5 ? "var(--green-light)" : r >= 3.5 ? "var(--blue-light)" : r >= 2.5 ? "var(--yellow-light)" : "var(--pink-light)";
-    fg = "var(--ink)";
-  } else { const c = coverColors(e.book.title); bg = c.bg; fg = c.fg; }
-  return (
-    <Link to={`/buch/${e.mine.id}`} className="spine" title={`${e.book.title} · ${authorNames(e)}`} style={{ width: w, height: h, background: bg, color: fg }}>
-      <span>{e.book.title}</span>
-    </Link>
-  );
-}
-
-function ShelfRows({ entries, color }: { entries: Entry[]; color: Color }) {
-  // Regalbretter mit je etwa 1.100px Breite, damit es auf dem Handy scrollt und am Computer umbricht
-  const rows: Entry[][] = [];
-  let cur: Entry[] = [], width = 0;
-  for (const e of entries) {
-    const w = Math.max(14, Math.min(44, Math.round((e.book.pages ?? 250) / 20))) + 4;
-    if (width + w > 1080 && cur.length) { rows.push(cur); cur = []; width = 0; }
-    cur.push(e); width += w;
-  }
-  if (cur.length) rows.push(cur);
-  return (
-    <div className="shelf-rows">
-      {rows.map((row, i) => (
-        <div key={i} className="shelf-row">
-          <div className="shelf-scroll"><div className="shelf">{row.map((e) => <Spine key={e.mine.id} e={e} color={color} />)}</div></div>
-          <div className="plank" />
-        </div>
-      ))}
-    </div>
-  );
+function colorFor(color: Color) {
+  return (e: Entry) => {
+    if (color === "status") return { bg: STATUS_COLOR[e.mine.status], fg: STATUS_INK[e.mine.status] };
+    if (color === "bewertung") {
+      const r = e.mine.rating;
+      return { bg: r == null ? "var(--surface-2)" : r >= 4.5 ? "var(--green-light)" : r >= 3.5 ? "var(--blue-light)" : r >= 2.5 ? "var(--yellow-light)" : "var(--pink-light)", fg: "var(--ink)" };
+    }
+    return coverColors(e.book.title);
+  };
 }
 
 export default function Regal() {
@@ -137,7 +105,7 @@ export default function Regal() {
               </select>
             </div>
           </div>
-          {list.length ? <div className="panel shelf-box"><ShelfRows entries={list} color={color} /></div> : <div className="grid"><Empty title="Leeres Brett" text="Zu diesen Filtern steht nichts im Regal." /></div>}
+          {list.length ? <div className="panel shelf-box"><ShelfRows entries={list} colorFor={colorFor(color)} /></div> : <div className="grid"><Empty title="Leeres Brett" text="Zu diesen Filtern steht nichts im Regal." /></div>}
           {color === "status" && <p className="meta">Farben: {STATUS_ORDER.map((s) => <span key={s} className={"pill st-" + s} style={{ marginRight: 6 }}>{STATUS[s]}</span>)}</p>}
         </>
       ) : (
@@ -149,7 +117,7 @@ export default function Regal() {
                 <h2>{y.year}</h2>
                 <span className="muted">{y.items.length} Bücher · {pg.toLocaleString("de-DE")} Seiten</span>
               </div>
-              <ShelfRows entries={y.items} color="einband" />
+              <ShelfRows entries={y.items} />
             </section>
           );
         }) : <div className="grid"><Empty title="Noch kein Lesejahr" text="Sobald ein Buch ein Beendet-Datum hat, bekommt es hier sein Brett." /></div>
