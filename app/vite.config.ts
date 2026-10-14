@@ -38,6 +38,16 @@ export default defineConfig({
             urlPattern: /\/demo\/data\.json$/,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "demo-data" }
+          },
+          {
+            // Buchcover von Open Library und Google: einmal geladen, 60 Tage auf dem Gerät behalten (auch offline)
+            urlPattern: /^https:\/\/(covers\.openlibrary\.org|books\.google\.com|books\.googleusercontent\.com|lh\d\.googleusercontent\.com)\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "covers",
+              expiration: { maxEntries: 2000, maxAgeSeconds: 60 * 60 * 24 * 60, purgeOnQuotaError: true },
+              cacheableResponse: { statuses: [0, 200] }
+            }
           }
         ]
       }
