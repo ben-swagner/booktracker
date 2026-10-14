@@ -5,7 +5,7 @@ import { readEvents, seriesNo } from "../lib/stats";
 import { Link } from "../components/Link";
 import { Empty } from "../components/ui";
 import { toast } from "../App";
-import { KaufstoppCard } from "../components/Kaufstopp";
+import { KaufstoppCard, subReadSince } from "../components/Kaufstopp";
 import { today } from "../lib/labels";
 
 function Ring({ value, target, label }: { value: number; target: number | null; label: string }) {
@@ -43,6 +43,41 @@ function BookPicker({ entries, value, onChange }: { entries: Entry[]; value?: st
   );
 }
 
+type GoalKey = "books" | "sub" | "series";
+const GOALS: Record<GoalKey, { field: "books_goal" | "sub_goal" | "series_goal"; title: string; question: string }> = {
+  books: { field: "books_goal", title: "Bücher lesen", question: "Wie viele Bücher möchtest du dieses Jahr lesen?" },
+  sub: { field: "sub_goal", title: "Vom SuB lesen", question: "Wie viele Bücher von deinem SuB möchtest du dieses Jahr lesen?" },
+  series: { field: "series_goal", title: "Reihen beenden", question: "Wie viele Reihen möchtest du dieses Jahr beenden?" }
+};
+
+/** Ein einzelnes Jahresziel als eigene Karte mit Ring, Balken und Knopf zum Ändern. */
+function GoalCard({ title, emoji, value, target, unit, lines, onEdit, color }: {
+  title: string; emoji: string; value: number; target: number | null; unit: string; lines: (string | null)[]; onEdit: () => void; color: "blue" | "lilac" | "green";
+}) {
+  const pct = target ? Math.min(100, Math.round((value / target) * 100)) : 0;
+  const done = !!target && value >= target;
+  return (
+    <div className={`panel goal-card gc-${color}` + (done ? " done" : "")}>
+      <div className="goal-card-head">
+        <h3><span aria-hidden="true">{emoji}</span> {title}</h3>
+        <button type="button" className="btn ghost small" onClick={onEdit}>{target ? "Ziel ändern" : "Ziel setzen"}</button>
+      </div>
+      <div className="goal-card-main">
+        <Ring value={value} target={target} label={unit} />
+        <div className="goal-card-text">
+          {target ? (
+            <p className="goal-big">{done ? "Ziel erreicht! 🎉" : <>Noch <strong>{target - value}</strong> bis {target}</>}</p>
+          ) : (
+            <p className="goal-big muted">Noch kein Ziel gesetzt</p>
+          )}
+          {target ? <div className="goalbar"><div style={{ width: `${pct}%` }} /></div> : null}
+          {lines.filter(Boolean).map((l) => <p key={l!} className="meta" style={{ margin: 0 }}>{l}</p>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Ziele() {
   const { entries, lib, isLoading } = useEntries();
   const saveGoal = useSaveGoal();
@@ -51,8 +86,8 @@ export default function Ziele() {
   const saveEntry = useSaveChallengeEntry();
   const delEntry = useDeleteChallengeEntry();
   const year = new Date().getFullYear();
-  const [edit, setEdit] = useState(false);
-  const [draft, setDraft] = useState({ books: "", sub: "", series: "" });
+  const [edit, setEdit] = useState<GoalKey | null>(null);
+  const [draft, setDraft] = useState("");
   const [newCh, setNewCh] = useState<{ name: string; kind: "liste" | "bingo" | "kaufstopp"; target: string; ends: string; start?: string } | null>(null);
   const [cell, setCell] = useState<ChallengeEntry | null>(null);
   const [newLabel, setNewLabel] = useState<Record<string, string>>({});
@@ -61,7 +96,8 @@ export default function Ziele() {
   const stats = useMemo(() => {
     const ev = readEvents(entries).filter((x) => x.year === year);
     const sub = entries.filter((e) => e.mine.status === "tbr").length;
-    const subRead = ev.filter((x) => x.e.mine.status === "gelesen").length;
+    // Vom SuB: erstmals gelesen und schon vorher im Regal (gleiche Regel wie beim Kaufstopp)
+    const subRead = subReadSince(entries, `${year}-01-01`).filter((x) => x.date.startsWith(String(year))).length;
     // Reihen, die in diesem Jahr abgeschlossen wurden: letzter Band dieses Jahr beendet
     const bySeries = new Map<string, Entry[]>();
     for (const e of entries) if (e.series) bySeries.set(e.series.id, [...(bySeries.get(e.series.id) ?? []), e]);
@@ -83,10 +119,14 @@ export default function Ziele() {
 
   async function submitGoal(ev: React.FormEvent) {
     ev.preventDefault();
-    await saveGoal.mutateAsync({ user_id: "", year, books_goal: draft.books ? Number(draft.books) : goal?.books_goal ?? null, sub_goal: draft.sub ? Number(draft.sub) : goal?.sub_goal ?? null, series_goal: draft.series ? Number(draft.series) : goal?.series_goal ?? null });
-    setEdit(false);
-    toast("Ziele gespeichert.");
+    if (!edit) return;
+    const v = draft.trim() === "" ? null : Math.max(0, Number(draft));
+    const next = { books_goal: goal?.books_goal ?? null, sub_goal: goal?.sub_goal ?? null, series_goal: goal?.series_goal ?? null, [GOALS[edit].field]: v };
+    await saveGoal.mutateAsync({ user_id: "", year, ...next });
+    setEdit(null);
+    toast(v ? "Ziel gespeichert." : "Ziel entfernt.");
   }
+  const openEdit = (k: GoalKey) => { setDraft(goal?.[GOALS[k].field]?.toString() ?? ""); setEdit(k); };
   async function createChallenge(ev: React.FormEvent) {
     ev.preventDefault();
     if (!newCh?.name.trim()) return;
@@ -115,30 +155,35 @@ export default function Ziele() {
           <h1>Ziele <em>{year}</em></h1>
           <p className="lede">{stats.read} Bücher und {stats.pages.toLocaleString("de-DE")} Seiten dieses Jahr{stats.pace != null ? <>. Nach Plan wärst du jetzt bei <strong>{stats.pace}</strong>{stats.read >= stats.pace ? ", du liegst vorn" : ", du holst das auf"}.</> : "."}</p>
         </div>
-        <div className="actions"><button className="btn" onClick={() => { setDraft({ books: goal?.books_goal?.toString() ?? "", sub: goal?.sub_goal?.toString() ?? "", series: goal?.series_goal?.toString() ?? "" }); setEdit(true); }}>Ziele anpassen</button></div>
       </div>
 
-      <div className="panel">
-        <div className="goal-row">
-          <Ring value={stats.read} target={goal?.books_goal ?? null} label="Bücher" />
-          <Ring value={stats.subRead} target={goal?.sub_goal ?? null} label="vom SuB" />
-          <Ring value={stats.seriesDone} target={goal?.series_goal ?? null} label="Reihen beendet" />
-          <div className="section" style={{ flex: 1, minWidth: 200 }}>
-            <p style={{ margin: 0 }}>{goal?.books_goal ? <>Jahresziel <strong>{goal.books_goal} Bücher</strong>.</> : "Noch kein Jahresziel gesetzt."}</p>
-            <p className="meta">SuB im Moment: {stats.sub} Bücher. {goal?.sub_goal ? `Ziel: ${goal.sub_goal} davon dieses Jahr lesen.` : ""}</p>
-            {goal?.books_goal ? <div className="goalbar" style={{ background: "var(--surface-2)" }}><div style={{ width: `${Math.min(100, (stats.read / goal.books_goal) * 100)}%` }} /></div> : null}
-          </div>
-        </div>
-      </div>
+      <section className="goal-cards">
+        <GoalCard
+          title="Bücher lesen" emoji="📚" value={stats.read} target={goal?.books_goal ?? null} unit="Bücher"
+          lines={[
+            `${stats.pages.toLocaleString("de-DE")} Seiten gelesen`,
+            goal?.books_goal && stats.pace != null ? (stats.read >= stats.pace ? `Du liegst vorn: Nach Plan wärst du bei ${stats.pace}.` : `Nach Plan wärst du bei ${stats.pace}, noch ${stats.pace - stats.read} aufholen.`) : null
+          ]}
+          onEdit={() => openEdit("books")} color="blue"
+        />
+        <GoalCard
+          title="Vom SuB lesen" emoji="🗂️" value={stats.subRead} target={goal?.sub_goal ?? null} unit="SuB-Bücher"
+          lines={[`Auf dem SuB liegen gerade ${stats.sub} Bücher.`]}
+          onEdit={() => openEdit("sub")} color="lilac"
+        />
+        <GoalCard
+          title="Reihen beenden" emoji="🔗" value={stats.seriesDone} target={goal?.series_goal ?? null} unit="Reihen"
+          lines={["Zählt Reihen, deren letzter Band dieses Jahr beendet wurde."]}
+          onEdit={() => openEdit("series")} color="green"
+        />
+      </section>
 
       {edit && (
-        <div className="modal-bg" onClick={() => setEdit(false)}>
+        <div className="modal-bg" onClick={() => setEdit(null)}>
           <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={submitGoal}>
-            <h2>Ziele {year}</h2>
-            <div className="field"><label htmlFor="g1">Bücher im Jahr</label><input id="g1" className="input" type="number" min={1} value={draft.books} onChange={(e) => setDraft({ ...draft, books: e.target.value })} /></div>
-            <div className="field"><label htmlFor="g2">Davon vom SuB</label><input id="g2" className="input" type="number" min={0} value={draft.sub} onChange={(e) => setDraft({ ...draft, sub: e.target.value })} /></div>
-            <div className="field"><label htmlFor="g3">Reihen beenden</label><input id="g3" className="input" type="number" min={0} value={draft.series} onChange={(e) => setDraft({ ...draft, series: e.target.value })} /></div>
-            <div className="actions" style={{ justifyContent: "flex-end" }}><button type="button" className="btn" onClick={() => setEdit(false)}>Abbrechen</button><button className="btn primary" type="submit">Speichern</button></div>
+            <h2>{GOALS[edit].title} {year}</h2>
+            <div className="field"><label htmlFor="g1">{GOALS[edit].question}</label><input id="g1" className="input" type="number" min={0} autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="leer lassen = kein Ziel" /></div>
+            <div className="actions" style={{ justifyContent: "flex-end" }}><button type="button" className="btn" onClick={() => setEdit(null)}>Abbrechen</button><button className="btn primary" type="submit">Speichern</button></div>
           </form>
         </div>
       )}
