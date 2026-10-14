@@ -6,6 +6,10 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./styles.css";
 
+// Zeichen für die Selbstheilung in index.html: Die App ist gestartet.
+(window as any).__btBooted = true;
+try { sessionStorage.removeItem("bt-heal"); } catch { /* egal */ }
+
 // In der Artifact-Vorschau (eingebettete Seite) darf die Adresse nicht verändert werden, deshalb MemoryRouter.
 const Router = import.meta.env.VITE_ROUTER === "hash" ? MemoryRouter : BrowserRouter;
 if (import.meta.env.VITE_ROUTER !== "hash") registerSW({ immediate: true });

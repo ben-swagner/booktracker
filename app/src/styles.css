@@ -91,13 +91,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .panel { background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); padding: 18px; }
-.wrap { max-width: none; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 20px; }
-@media (min-width: 720px) { .wrap { padding-inline: 24px; padding-top: 28px; } }
-@media (min-width: 1600px) { .wrap { padding-inline: 32px; } }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 20px; }
+@media (min-width: 720px) { .wrap { padding-inline: 28px; padding-top: 28px; } }
 
 /* Navigation: oben auf dem Computer, unten auf dem Handy */
 .nav { position: sticky; top: 0; z-index: 30; padding-top: env(safe-area-inset-top, 0px); background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-.nav-inner { max-width: none; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 10px; min-height: var(--nav-h); }
+.nav-inner { max-width: 1200px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 10px; min-height: var(--nav-h); }
 .brand { font-weight: 800; font-size: 18px; letter-spacing: -.02em; text-decoration: none; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 .brand-dot { width: 12px; height: 12px; border-radius: 4px; background: var(--rainbow); }
 .nav-links { display: none; gap: 2px; flex: 1; }
@@ -490,9 +489,8 @@ textarea.input { resize: vertical; min-height: 90px; }
 @media (max-width: 600px) { .filter-row { grid-template-columns: 1fr; gap: 6px; } }
 .chip-link { text-decoration: none; color: inherit; } .chip-link:hover { background: var(--accent-soft); color: var(--accent); }
 
-/* Volle Breite am Computer: Navigation bündig mit dem Inhalt, Fließtext und Formulare bleiben gut lesbar */
-@media (min-width: 720px) { .nav-inner { padding-inline: 24px; } }
-@media (min-width: 1600px) { .nav-inner { padding-inline: 32px; } }
+/* Inhalt höchstens 1200 px breit; Fließtext und Formulare zusätzlich begrenzt, damit sie gut lesbar bleiben */
+@media (min-width: 720px) { .nav-inner { padding-inline: 28px; } }
 .prose { max-width: 75ch; }
 .form-page { width: 100%; max-width: 1000px; margin-inline: auto; }
 .tower { grid-template-columns: minmax(0, 560px) minmax(0, 1fr); }

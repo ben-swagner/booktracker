@@ -17,6 +17,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Selbstheilung: Startet die App nicht (z. B. weil der Offline-Speicher eine kaputte Datei erwischt hat),
+      // werden Offline-Speicher und Hintergrundprogramm gelöscht und die Seite einmal neu geladen.
+      setTimeout(function () {
+        if (window.__btBooted) return;
+        try { if (sessionStorage.getItem("bt-heal")) return; sessionStorage.setItem("bt-heal", "1"); } catch (e) {}
+        var jobs = [];
+        if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+        if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+        Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+      }, 8000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
