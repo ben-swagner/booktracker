@@ -91,7 +91,7 @@ export default function Ziele() {
     ev.preventDefault();
     if (!newCh?.name.trim()) return;
     if (newCh.kind === "kaufstopp") {
-      const c = await saveCh.mutateAsync({ name: newCh.name.trim(), kind: "kaufstopp", target: null, ends_on: null, description: "Tage ohne neuen Buchkauf" });
+      const c = await saveCh.mutateAsync({ name: newCh.name.trim(), kind: "kaufstopp", target: newCh.target === "" ? 5 : Math.max(0, Number(newCh.target)), ends_on: null, description: "Tage ohne neuen Buchkauf" });
       await saveEntry.mutateAsync({ challenge_id: c.id, label: `start:${newCh.start || today()}`, position: 0, done: false });
       setNewCh(null);
       toast("Kaufstopp gestartet. Viel Erfolg!");
@@ -207,6 +207,7 @@ export default function Ziele() {
             {newCh.kind === "kaufstopp" && (
               <>
                 <p className="meta" style={{ margin: 0 }}>Die App zählt, wie viele Tage du kein neues Buch gekauft hast. Kaufst du doch eins, trägst du es ein und der Zähler beginnt von vorn. Dein Rekord bleibt gespeichert.</p>
+                <div className="field"><label htmlFor="cr">Belohnung: ein neues Buch nach wie vielen gelesenen SuB-Büchern? (0 = keine Belohnung)</label><input id="cr" className="input" type="number" min={0} value={newCh.target === "" ? "5" : newCh.target} onChange={(e) => setNewCh({ ...newCh, target: e.target.value })} /></div>
                 <div className="field"><label htmlFor="cs">Gestartet am</label><input id="cs" className="input" type="date" max={today()} value={newCh.start ?? today()} onChange={(e) => setNewCh({ ...newCh, start: e.target.value })} /></div>
               </>
             )}
