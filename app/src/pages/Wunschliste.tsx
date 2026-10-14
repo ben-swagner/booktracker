@@ -53,10 +53,6 @@ export default function Wunschliste() {
     save.mutate({ id: w.id, title: w.title, owned: true, purchase_condition: "Gekauft" });
     toast(`„${w.title}“ ist jetzt unter Gekauft.`);
   }
-  function markOpen(w: WishlistItem) {
-    save.mutate({ id: w.id, title: w.title, owned: false, purchase_condition: null, priority: w.priority === "gekauft" ? "mittel" : w.priority });
-    toast(`„${w.title}“ ist wieder offen.`);
-  }
 
   const bought = all.filter(isBought);
   const spend = {
@@ -165,7 +161,6 @@ export default function Wunschliste() {
                   )}
                   <td>
                     <div className="wish-actions">
-                      {filter === "gekauft" && <button className="btn small ghost" onClick={() => markOpen(w)} title="Zurück auf die offene Liste">Wieder offen</button>}
                       <button className="btn ghost small" aria-label="Von der Wunschliste streichen" title="Von der Wunschliste streichen" onClick={() => confirm(`„${w.title}“ von der Wunschliste streichen?`) && del.mutate(w.id)}>✕</button>
                     </div>
                   </td>
