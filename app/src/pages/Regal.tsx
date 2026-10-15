@@ -49,12 +49,17 @@ export default function Regal() {
   const genres = useMemo(() => [...countBy(entries, (e) => e.book.genre).entries()].sort((a, b) => b[1] - a[1]), [entries]);
   const kinds = useMemo(() => [...countBy(entries, (e) => e.book.kind).entries()].sort((a, b) => b[1] - a[1]), [entries]);
 
-  const list = useMemo(() => {
+  // Dieselben Filter gelten für das ganze Regal und für die Lesejahre
+  const keep = useMemo(() => {
     const nq = q.trim().toLowerCase();
-    let out = entries.filter((e) =>
+    return (e: Entry) =>
       (status === "alle" || e.mine.status === status) && (!genre || e.book.genre === genre) && (!kind || e.book.kind === kind) &&
-      (!nq || `${e.book.title} ${authorNames(e)} ${e.series?.name ?? ""}`.toLowerCase().includes(nq)));
-    const cmp: Record<Sort, (a: Entry, b: Entry) => number> = {
+      (!nq || `${e.book.title} ${authorNames(e)} ${e.series?.name ?? ""}`.toLowerCase().includes(nq));
+  }, [status, genre, kind, q]);
+  const sortSet = params.has("sort");
+
+  const cmp = useMemo(() => {
+    const c: Record<Sort, (a: Entry, b: Entry) => number> = {
       titel: (a, b) => a.book.title.localeCompare(b.book.title, "de"),
       autor: (a, b) => authorNames(a).localeCompare(authorNames(b), "de") || a.book.title.localeCompare(b.book.title, "de"),
       bewertung: (a, b) => (b.mine.rating ?? -1) - (a.mine.rating ?? -1),
@@ -63,8 +68,10 @@ export default function Regal() {
       beendet: (a, b) => lastFinished(b).localeCompare(lastFinished(a)),
       reihe: (a, b) => (a.series?.name ?? "zzz").localeCompare(b.series?.name ?? "zzz", "de") || (Number(a.book.series_number) || 0) - (Number(b.book.series_number) || 0)
     };
-    return [...out].sort(cmp[sort]);
-  }, [entries, status, genre, kind, q, sort]);
+    return c[sort];
+  }, [sort]);
+
+  const list = useMemo(() => entries.filter(keep).sort(cmp), [entries, keep, cmp]);
 
   const years = useMemo(() => {
     const ev = readEvents(entries);
@@ -74,8 +81,12 @@ export default function Regal() {
       list.push({ e: x.e, date: x.r.finished_on ?? x.r.finished_text ?? "" });
       by.set(x.year, list);
     }
-    return [...by.entries()].sort((a, b) => b[0] - a[0]).map(([y, l]) => ({ year: y, items: l.sort((a, b) => a.date.localeCompare(b.date)).map((x) => x.e) }));
-  }, [entries]);
+    return [...by.entries()].sort((a, b) => b[0] - a[0]).map(([y, l]) => {
+      const items = l.filter((x) => keep(x.e)).sort((a, b) => a.date.localeCompare(b.date)).map((x) => x.e);
+      // ohne eigene Sortierung bleibt die Reihenfolge, in der die Bücher beendet wurden
+      return { year: y, items: sortSet ? [...items].sort(cmp) : items };
+    });
+  }, [entries, keep, cmp, sortSet]);
 
   if (isLoading) return <p className="muted">Lade…</p>;
   const pages = list.reduce((s, e) => s + (e.book.pages ?? 0), 0);
@@ -92,26 +103,26 @@ export default function Regal() {
           <button type="button" aria-pressed={look === "ruecken"} onClick={() => setLook("ruecken")} title="Buchrücken"><Icon name="books" size={20} /></button>
           <button type="button" aria-pressed={look === "cover"} onClick={() => setLook("cover")} title="Cover"><Icon name="cover" size={20} /></button>
         </div>
-        <div className="tabs" role="tablist">
-          <button className="tab" role="tab" aria-selected={view === "gesamt"} onClick={() => { const p = new URLSearchParams(params); p.delete("v"); p.delete("jahr"); setParams(p, { replace: true }); }}>Gesamt</button>
-          <button className="tab" role="tab" aria-selected={view === "jahre"} onClick={() => set("v", "jahre")}>Nach Jahr</button>
-        </div>
         </div>
       </div>
 
-      {view === "gesamt" ? (
-        <>
-          <div className="toolbar">
+      <div className="toolbar">
             <div className="tabs" role="tablist">
               <button className="tab" role="tab" aria-selected={status === "alle"} onClick={() => set("status", "alle")}>Alle</button>
               {STATUS_ORDER.map((s) => <button key={s} className="tab" role="tab" data-status={s} aria-selected={status === s} onClick={() => set("status", s)}>{STATUS[s]}</button>)}
             </div>
             <div className="tools">
               <input className="input search" type="search" placeholder="Titel, Autor:in, Reihe" value={q} onChange={(e) => set("q", e.target.value)} />
+              <select className="input" value={view === "jahre" ? (jahr || "jahre") : "gesamt"} aria-label="Regal"
+                onChange={(e) => { const v = e.target.value; const p = new URLSearchParams(params); p.delete("jahr"); if (v === "gesamt") p.delete("v"); else { p.set("v", "jahre"); if (v !== "jahre") p.set("jahr", v); } setParams(p, { replace: true }); }}>
+                <option value="gesamt">Ganzes Regal</option>
+                <option value="jahre">Nach Lesejahr</option>
+                {years.map((y) => <option key={y.year} value={String(y.year)}>Lesejahr {y.year}</option>)}
+              </select>
               <select className="input" value={genre} onChange={(e) => set("genre", e.target.value)} aria-label="Genre"><option value="">Alle Genres</option>{genres.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
               <select className="input" value={kind} onChange={(e) => set("art", e.target.value)} aria-label="Art"><option value="">Alle Arten</option>{kinds.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
-              <select className="input" value={sort} onChange={(e) => set("sort", e.target.value)} aria-label="Sortierung">
-                <option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Nach Reihe</option><option value="bewertung">Beste Bewertung</option><option value="seiten">Dickste zuerst</option><option value="neu">Zuletzt eingetragen</option><option value="beendet">Zuletzt beendet</option>
+              <select className="input" value={view === "jahre" && !sortSet ? "" : sort} onChange={(e) => set("sort", e.target.value)} aria-label="Sortierung">
+                {view === "jahre" && <option value="">Reihenfolge: wie beendet</option>}<option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Nach Reihe</option><option value="bewertung">Beste Bewertung</option><option value="seiten">Dickste zuerst</option><option value="neu">Zuletzt eingetragen</option><option value="beendet">Zuletzt beendet</option>
               </select>
               {look === "ruecken" && (
                 <select className="input" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe">
@@ -119,19 +130,15 @@ export default function Regal() {
                 </select>
               )}
             </div>
-          </div>
+      </div>
+      {view === "gesamt" ? (
+        <>
           {list.length ? <div className="panel shelf-box">{rows(list, colorFor(color))}</div> : <div className="grid"><Empty title="Leeres Brett" text="Zu diesen Filtern steht nichts im Regal." /></div>}
           {look === "ruecken" && color === "genre" && <p className="meta legend">{GENRE_LEGEND.map(([label, g]) => <span key={label} className="legend-item"><i style={{ background: familySwatch(g) }} />{label}</span>)}</p>}
           {look === "ruecken" && color === "status" && <p className="meta">Farben: {STATUS_ORDER.map((s) => <span key={s} className={"pill st-" + s} style={{ marginRight: 6 }}>{STATUS[s]}</span>)}</p>}
         </>
       ) : (
         years.length ? <>
-        <div className="tools">
-          <select className="input" value={jahr} onChange={(e) => set("jahr", e.target.value)} aria-label="Lesejahr">
-            <option value="">Alle Jahre ({years.reduce((n, y) => n + y.items.length, 0)} Bücher)</option>
-            {years.map((y) => <option key={y.year} value={String(y.year)}>{y.year} ({y.items.length} Bücher)</option>)}
-          </select>
-        </div>
         {(jahr ? years.filter((y) => String(y.year) === jahr) : years).map((y) => {
           const pg = y.items.reduce((s, e) => s + (e.book.pages ?? 0), 0);
           return (
@@ -140,7 +147,7 @@ export default function Regal() {
                 <h2>{y.year}</h2>
                 <span className="muted">{y.items.length} Bücher · {pg.toLocaleString("de-DE")} Seiten</span>
               </div>
-              {rows(y.items)}
+              {y.items.length ? rows(y.items, colorFor(color)) : <p className="muted" style={{ margin: 0 }}>Keine Bücher zu diesen Filtern.</p>}
             </section>
           );
         })}
