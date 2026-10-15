@@ -21,6 +21,7 @@ import Ziele from "./pages/Ziele";
 import Mehr from "./pages/Mehr";
 import Tops from "./pages/Tops";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PageAura } from "./components/Aura";
 
 // Untere Leiste auf dem Handy (fünf Plätze), oben am Computer stehen alle Seiten
 const ICONS = {
@@ -117,6 +118,7 @@ export default function App() {
           <NavLink to="/neu" className="btn small nav-add">+ Buch</NavLink>
         </div>
       </header>
+      {(() => { const seg = loc.pathname.split("/")[1] ?? ""; return seg === "" || seg === "buch" ? null : <PageAura key={seg} page={seg} />; })()}
       <main className="wrap">
         {data.mode === "demo" && (
           <div className="banner">Demo-Modus: Die Daten stammen aus deinem Sheet, Änderungen bleiben nur in diesem Browser. Die echte App mit Konto läuft unter booktracker.pages.dev.</div>

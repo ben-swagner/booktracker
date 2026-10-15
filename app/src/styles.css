@@ -1590,3 +1590,16 @@ body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-e
    den Inhalt darunter nicht weichzeichnen (es sieht nur die Leiste), deshalb hier fester Grund. */
 .nav-menu { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid var(--line); box-shadow: 0 24px 60px -12px rgba(23,21,26,.28), 0 0 0 1px rgba(255,255,255,.6) inset; }
 .nav-menu-item:hover, .nav-menu-item.active { background: color-mix(in srgb, var(--lilac-soft, #ECE9FA) 70%, var(--surface)); }
+
+/* Farbwolken mit mehreren Farben ineinander (hell und dunkel wie im Entwurf) */
+.aura-fill { background: radial-gradient(70% 80% at 72% 62%, var(--a1) 0%, var(--a2) 24%, var(--a3) 44%, var(--a4) 66%, var(--a5) 84%, transparent 100%); opacity: .8; }
+.aura.soft .aura-fill { opacity: .62; background: radial-gradient(75% 85% at 74% 40%, var(--a1) 0%, var(--a2) 24%, var(--a3) 44%, var(--a4) 66%, var(--a5) 84%, transparent 100%); }
+:root[data-theme="dark"] .aura-fill { background: radial-gradient(46% 50% at 70% 52%, var(--d1) 0%, var(--d2) 22%, var(--d3) 40%, var(--d4) 60%, var(--d5) 76%, rgba(15,14,17,0) 94%); opacity: .8; }
+:root[data-theme="dark"] .aura.soft .aura-fill { opacity: .62; background: radial-gradient(50% 55% at 72% 34%, var(--d1) 0%, var(--d2) 22%, var(--d3) 40%, var(--d4) 60%, var(--d5) 76%, rgba(15,14,17,0) 94%); }
+:root[data-theme="dark"] .aura svg { mix-blend-mode: overlay; opacity: .4; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .aura-fill { background: radial-gradient(46% 50% at 70% 52%, var(--d1) 0%, var(--d2) 22%, var(--d3) 40%, var(--d4) 60%, var(--d5) 76%, rgba(15,14,17,0) 94%); opacity: .8; }
+  :root:not([data-theme="light"]) .aura.soft .aura-fill { opacity: .62; background: radial-gradient(50% 55% at 72% 34%, var(--d1) 0%, var(--d2) 22%, var(--d3) 40%, var(--d4) 60%, var(--d5) 76%, rgba(15,14,17,0) 94%); }
+  :root:not([data-theme="light"]) .aura svg { mix-blend-mode: overlay; opacity: .4; }
+}
+.aura.soft { height: 680px; }

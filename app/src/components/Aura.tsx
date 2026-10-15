@@ -68,19 +68,49 @@ export function useBookTones(book?: { cover_url?: string | null; isbn13?: string
 }
 
 /**
- * Weiche, körnige Farbwolke hinter einer Seite. Ohne `inline` liegt sie oben über die ganze Fensterbreite,
- * mit `inline` füllt sie den oberen Teil des umgebenden Kastens (z. B. das Buchfenster).
+ * Weiche, körnige Farbwolke hinter einer Seite, mit mehreren Farben ineinander (wie im Entwurf).
+ * `light`: fünf Farben von der Mitte nach außen für den hellen Modus, `dark`: dasselbe für den dunklen.
+ * Ohne `inline` liegt sie oben über die ganze Fensterbreite, mit `inline` füllt sie den oberen Teil des umgebenden Kastens.
  */
-export function Aura({ tones, inline }: { tones: Tones; inline?: boolean }) {
+export function Aura({ tones, dark, inline, soft }: { tones: string[]; dark?: string[]; inline?: boolean; soft?: boolean }) {
   const id = useId().replace(/:/g, "");
+  const l = [...tones, ...LILAC_BLUE].slice(0, 5);
+  const d = dark ? [...dark, ...LILAC_BLUE_DARK].slice(0, 5) : [tones[2] ?? tones[0], tones[1] ?? tones[0], tones[0], ...LILAC_BLUE_DARK];
+  const vars: Record<string, string> = {};
+  l.forEach((c, i) => { vars[`--a${i + 1}`] = c; });
+  d.forEach((c, i) => { vars[`--d${i + 1}`] = c; });
   const el = (
-    <div className={"aura" + (inline ? " inline" : "")} aria-hidden="true" style={{ ["--a1" as string]: tones[0], ["--a2" as string]: tones[1], ["--a3" as string]: tones[2] }}>
+    <div className={"aura" + (inline ? " inline" : "") + (soft ? " soft" : "")} aria-hidden="true" style={vars}>
       <div className="aura-fill" />
       <svg><filter id={"korn" + id}><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves={2} stitchTiles="stitch" /><feColorMatrix type="saturate" values="0" /></filter><rect width="100%" height="100%" filter={`url(#korn${id})`} /></svg>
       <div className="aura-fade" />
     </div>
   );
   return inline ? el : createPortal(el, document.body);
+}
+
+/** Außenfarben, damit auch eine Buchwolke nicht einfarbig ist: zu Lavendel und Blau hin. */
+const LILAC_BLUE = ["#ABA7EC", "#9AA3DA"];
+const LILAC_BLUE_DARK = ["#9D7FD8", "#4F6FB8"];
+
+/** Farbwolken für die übrigen Seiten, je Seite etwas anders gemischt (hell, dunkel). */
+const PAGE_AURA: Record<string, [string[], string[]]> = {
+  bibliothek: [["#F3A7B5", "#F8C7A4", "#F4E2A0", "#B9B3F0", "#9DB2F2"], ["#F4E2A0", "#F8B48E", "#F3A7B5", "#9D7FD8", "#4F6FB8"]],
+  regal: [["#FF8547", "#F8B48E", "#ECC3C8", "#ABA7EC", "#9AA3DA"], ["#F8B48E", "#F3A7B5", "#B98ADB", "#6F5BD0", "#3E5FB0"]],
+  sub: [["#B9B3F0", "#F3B0C8", "#F8C7A4", "#F4E2A0", "#E2EAF8"], ["#F3A7B5", "#C79BE0", "#7F6FD8", "#4F6FB8", "#2F4F8A"]],
+  ziele: [["#9DB2F2", "#B9B3F0", "#F3B0C8", "#F8C7A4", "#F4E2A0"], ["#9DB2F2", "#9D7FD8", "#C77FB0", "#F3A7B5", "#4F6FB8"]],
+  wunschliste: [["#F4E2A0", "#F8C7A4", "#F3A7B5", "#B9B3F0", "#9DB2F2"], ["#F4E2A0", "#F8B48E", "#E07FA0", "#9D7FD8", "#4F6FB8"]],
+  statistik: [["#FF8547", "#F8B48E", "#ECC3C8", "#ABA7EC", "#9AA3DA"], ["#F4E2A0", "#F8B48E", "#F3A7B5", "#9D7FD8", "#4F6FB8"]],
+  reihen: [["#A9D3B5", "#F4E2A0", "#F8C7A4", "#F3B0C8", "#B9B3F0"], ["#A9D3B5", "#E6CF7A", "#F8B48E", "#C77FB0", "#6F5BD0"]],
+  autorinnen: [["#F3B0C8", "#B9B3F0", "#9DB2F2", "#A9D3B5", "#F4E2A0"], ["#F3A7B5", "#9D7FD8", "#4F6FB8", "#3E8E6E", "#2F4F6A"]],
+  tops: [["#F4E2A0", "#F8C7A4", "#FF8547", "#F3B0C8", "#B9B3F0"], ["#F4E2A0", "#F8B48E", "#FF8547", "#C77FB0", "#6F5BD0"]],
+  standard: [["#F8C7A4", "#F3B0C8", "#B9B3F0", "#9DB2F2", "#E2EAF8"], ["#F8B48E", "#F3A7B5", "#9D7FD8", "#4F6FB8", "#2F3F7A"]],
+};
+
+/** Farbwolke oben auf einer Seite ohne eigenes Buch (Bibliothek, Statistik, Ziele …). */
+export function PageAura({ page }: { page: string }) {
+  const [l, d] = PAGE_AURA[page] ?? PAGE_AURA.standard;
+  return <Aura tones={l} dark={d} soft />;
 }
 
 /** Farbwolke passend zu einem Buch (Cover oder Genre). */
