@@ -209,3 +209,47 @@ export async function coverRun(
   }
   return { done, found };
 }
+
+/**
+ * Eigenes Coverbild (Foto oder Datei) verkleinern und als Bild-Adresse zum Speichern zurückgeben.
+ * Ergebnis höchstens 420 px breit, als JPEG, damit es klein bleibt (meist 25 bis 45 KB).
+ */
+export async function shrinkCoverFile(file: File, maxW = 420): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("Bild konnte nicht gelesen werden"));
+      i.src = url;
+    });
+    const k = Math.min(1, maxW / img.naturalWidth);
+    const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", 0.84);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Cover aus der alten Tabelle (mit der App ausgeliefert unter /covers/sheet/). */
+export type SheetCover = { t: string; a: string; f: string };
+let sheetIndex: Promise<SheetCover[]> | null = null;
+export function loadSheetCovers(): Promise<SheetCover[]> {
+  if (!sheetIndex) sheetIndex = fetch("/covers/sheet/index.json").then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  return sheetIndex;
+}
+const keyOf = (s: string) => s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+/** Passendes Tabellen-Cover für ein Buch (gleicher Titel, Autor:in passt). */
+export function sheetCoverFor(list: SheetCover[], title: string, author?: string): string | null {
+  const t = keyOf(title), a = keyOf(author ?? "");
+  const same = list.filter((x) => keyOf(x.t) === t);
+  if (!same.length) return null;
+  const hit = same.find((x) => keyOf(x.a) === a) ?? same.find((x) => a && (keyOf(x.a).includes(a) || a.includes(keyOf(x.a)))) ?? (same.length === 1 ? same[0] : null);
+  return hit ? `/covers/sheet/${hit.f}` : null;
+}
+export const isSheetCover = (url?: string | null) => !!url && url.startsWith("/covers/sheet/");

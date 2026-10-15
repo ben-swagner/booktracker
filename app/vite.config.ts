@@ -44,6 +44,17 @@ export default defineConfig({
             options: { cacheName: "demo-data" }
           },
           {
+            // Cover aus der alten Tabelle (liegen bei der App): einmal geladen, auf dem Gerät behalten
+            urlPattern: /\/covers\/sheet\/.*\.(webp|jpg)$/,
+            handler: "CacheFirst",
+            options: { cacheName: "sheet-covers", expiration: { maxEntries: 2500, maxAgeSeconds: 60 * 60 * 24 * 365 } }
+          },
+          {
+            urlPattern: /\/covers\/sheet\/index\.json$/,
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "sheet-covers-index" }
+          },
+          {
             // Buchcover von Open Library und Google: einmal geladen, 60 Tage auf dem Gerät behalten (auch offline)
             urlPattern: /^https:\/\/(covers\.openlibrary\.org|books\.google\.com|books\.googleusercontent\.com|lh\d\.googleusercontent\.com)\//,
             handler: "CacheFirst",

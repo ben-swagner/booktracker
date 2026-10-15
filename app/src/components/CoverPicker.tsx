@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { coverCandidates, type Candidate } from "../lib/covers";
+import { useEffect, useRef, useState } from "react";
+import { coverCandidates, loadSheetCovers, sheetCoverFor, shrinkCoverFile, type Candidate } from "../lib/covers";
 
 /**
  * Auswahlfenster für ein Buchcover: zeigt alle Vorschläge aus Open Library und Google Books
@@ -14,6 +14,22 @@ export function CoverPicker({ book, current, onPick, onClose }: {
   const [list, setList] = useState<Candidate[] | null>(null);
   const [own, setOwn] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sheet, setSheet] = useState<string | null>(null);
+  const [upErr, setUpErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    loadSheetCovers().then((l) => { if (alive) setSheet(sheetCoverFor(l, book.title, book.author)); });
+    return () => { alive = false; };
+  }, [book.title, book.author]);
+
+  async function upload(f: File | undefined) {
+    if (!f) return;
+    setUpErr(null);
+    try { await pick(await shrinkCoverFile(f)); }
+    catch { setUpErr("Das Bild konnte nicht gelesen werden. Probier ein JPG oder PNG."); }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -54,7 +70,22 @@ export function CoverPicker({ book, current, onPick, onClose }: {
           </>
         )}
 
-        <h3 style={{ margin: 0 }}>Eigenes Bild</h3>
+        <h3 style={{ margin: 0 }}>Eigenes Cover hochladen</h3>
+        <p className="muted" style={{ margin: 0 }}>Foto vom Buch machen oder ein Bild aus deinen Dateien wählen. Es wird automatisch verkleinert und gespeichert.</p>
+        <div className="actions">
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => upload(e.target.files?.[0])} />
+          <button className="btn primary" disabled={busy} onClick={() => fileRef.current?.click()}>Bild hochladen</button>
+          {upErr && <span className="muted">{upErr}</span>}
+        </div>
+
+        {sheet && (
+          <>
+            <h3 style={{ margin: 0 }}>Aus deiner alten Tabelle</h3>
+            <div className="cover-grid"><Choice c={{ url: sheet, label: "Tabelle", source: "openlibrary", sure: true }} active={sheet === current} onPick={pick} busy={busy} /></div>
+          </>
+        )}
+
+        <h3 style={{ margin: 0 }}>Bild-Link einfügen</h3>
         <p className="muted" style={{ margin: 0 }}>Bild im Netz suchen (z. B. beim Verlag oder Buchhändler), Rechtsklick auf das Bild, „Bildadresse kopieren“, hier einfügen.</p>
         <div className="actions" style={{ flexWrap: "nowrap" }}>
           <input className="input" style={{ flex: 1 }} type="url" placeholder="https://…" value={own} onChange={(e) => setOwn(e.target.value)} />

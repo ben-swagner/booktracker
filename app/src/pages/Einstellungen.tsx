@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { data } from "../data";
 import { toast } from "../App";
@@ -6,7 +6,7 @@ import { clearLibraryCache, useEntries, useUser } from "../data/hooks";
 import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
-import { NO_COVER, coverRun, isGuessedCover } from "../lib/covers";
+import { NO_COVER, coverRun, isGuessedCover, isSheetCover, loadSheetCovers, sheetCoverFor, type SheetCover } from "../lib/covers";
 
 // Der Sheet-Import gehört nur zum Konto, aus dem das Sheet stammt.
 const OWNER_ID = "12804274-56db-41a9-a074-6318d4a7f463";
@@ -33,6 +33,31 @@ export default function Einstellungen() {
 
   const missing = entries.filter((e) => !e.book.cover_url);
   const guessed = entries.filter((e) => isGuessedCover(e.book.cover_url));
+  const [sheetList, setSheetList] = useState<SheetCover[] | null>(null);
+  useEffect(() => { loadSheetCovers().then(setSheetList); }, []);
+  // Bücher, für die es ein Cover aus der alten Tabelle gibt und die es noch nicht haben (eigene Uploads bleiben unangetastet)
+  const sheetJobs = !sheetList ? [] : entries.flatMap((e) => {
+    const url = sheetCoverFor(sheetList, e.book.title, authorNames(e));
+    if (!url || e.book.cover_url === url || e.book.cover_url?.startsWith("data:")) return [];
+    return [{ id: e.book.id, url }];
+  });
+  const sheetDone = entries.filter((e) => isSheetCover(e.book.cover_url)).length;
+
+  async function applySheetCovers() {
+    const jobs = sheetJobs.filter((j, i, a) => a.findIndex((x) => x.id === j.id) === i);
+    if (!jobs.length) return;
+    setCoverRunning(true); stopRef.current = false;
+    let n = 0;
+    for (const j of jobs) {
+      if (stopRef.current) break;
+      await data.saveCover(j.id, j.url).catch(() => {});
+      n++;
+      if (n % 10 === 0 || n === jobs.length) setCoverMsg(`${n} von ${jobs.length} Covern aus der Tabelle übernommen…`);
+    }
+    setCoverMsg(`Fertig: ${n} Cover aus deiner alten Tabelle übernommen.`);
+    setCoverRunning(false);
+    await qc.invalidateQueries({ queryKey: ["library"] });
+  }
   const toJob = (list: typeof entries) => list.map((e) => ({ id: e.book.id, isbn13: e.book.isbn13, title: e.book.title, author: authorNames(e) }));
 
   async function runCovers(mode: "fehlend" | "geraten") {
@@ -140,12 +165,18 @@ export default function Einstellungen() {
           Ohne Cover: <strong>{missing.filter((e) => e.book.cover_url !== NO_COVER).length}</strong>, aus der alten lockeren Suche geraten: <strong>{guessed.length}</strong> von {entries.length}.
         </p>
         {coverMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{coverMsg}</p>}
+        {(sheetJobs.length > 0 || sheetDone > 0) && (
+          <div className="sheet-covers">
+            <p style={{ margin: 0 }}><strong>Cover aus deiner alten Tabelle:</strong> {sheetDone} übernommen{sheetJobs.length ? <>, <strong>{sheetJobs.length}</strong> können noch übernommen werden. Sie ersetzen die Cover, die die App selbst gefunden hat. Selbst hochgeladene Bilder bleiben.</> : ", alles erledigt."}</p>
+            {sheetJobs.length > 0 && <div className="actions"><button className="btn primary" onClick={applySheetCovers} disabled={coverRunning}>{coverRunning ? "Läuft…" : `${sheetJobs.length} Cover übernehmen`}</button></div>}
+          </div>
+        )}
         <div className="actions">
-          <button className="btn primary" onClick={() => runCovers("geraten")} disabled={coverRunning || !guessed.length}>{coverRunning ? "Läuft…" : "Geratene Cover prüfen"}</button>
+          <button className="btn" onClick={() => runCovers("geraten")} disabled={coverRunning || !guessed.length}>{coverRunning ? "Läuft…" : "Geratene Cover prüfen"}</button>
           <button className="btn" onClick={() => runCovers("fehlend")} disabled={coverRunning}>Fehlende Cover suchen</button>
           {coverRunning && <button className="btn" onClick={() => { stopRef.current = true; }}>Anhalten</button>}
         </div>
-        <p className="muted" style={{ margin: 0, fontSize: 13 }}>Einzelne Bücher: im Buch auf „Cover ändern“ tippen, dann aus Vorschlägen wählen oder einen eigenen Bild-Link eintragen.</p>
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>Einzelne Bücher: im Buch auf „Cover ändern“ tippen. Dort kannst du ein eigenes Foto oder Bild hochladen, aus Vorschlägen wählen oder einen Bild-Link eintragen. Neue Bücher holen sich ihr Cover weiterhin automatisch über die ISBN.</p>
       </div>
       <div className="panel section">
         <h3>Darstellung</h3>
