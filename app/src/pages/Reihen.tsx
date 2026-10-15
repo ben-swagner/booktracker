@@ -62,12 +62,12 @@ export default function Reihen() {
       <div className="mast">
         <div>
           <h1>Meine <em>Reihen</em></h1>
-          <p className="lede"><strong>{groups.length}</strong> Reihen, <strong>{done}</strong> davon durchgelesen, <strong>{dabei}</strong> gerade dabei.</p>
+          <p className="lede"><strong>{groups.length}</strong> Reihen, <strong>{done}</strong> davon beendet, <strong>{dabei}</strong> gerade dabei.</p>
         </div>
       </div>
       <div className="toolbar">
         <div className="tabs" role="tablist">
-          {([["alle", "Alle"], ["dabei", "Dabei"], ["fertig", "Durch"], ["offen", "Noch nicht begonnen"], ["unvollstaendig", "Lücken im Regal"]] as [Filter, string][]).map(([f, l]) => (
+          {([["alle", "Alle"], ["dabei", "Dabei"], ["fertig", "Beendet"], ["offen", "Noch nicht begonnen"], ["unvollstaendig", "Lücken im Regal"]] as [Filter, string][]).map(([f, l]) => (
             <button key={f} className="tab" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}>{l}</button>
           ))}
         </div>
@@ -162,5 +162,5 @@ function Vols({ g }: { g: Group }) {
 /** Ein Zustand pro Reihe, überall gleich: Durch, Am Lesen, Dabei oder Offen. */
 function StatePill({ g }: { g: Group }) {
   const complete = g.total > 0 && g.read >= g.total;
-  return <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>{complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? "Dabei" : "Offen"}</span>;
+  return <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>{complete ? "Beendet" : g.reading ? "Am Lesen" : g.read ? "Dabei" : "Offen"}</span>;
 }
