@@ -3,7 +3,7 @@ import { useEntries } from "../data/hooks";
 import type { Entry, Series } from "../data/types";
 import { seriesNo } from "../lib/stats";
 import { Link } from "../components/Link";
-import { Empty, SeriesNo, StatusPill, authorNames } from "../components/ui";
+import { BINDING_LABEL, Empty, SeriesNo, StatusPill, authorNames, bindingOf, type Binding } from "../components/ui";
 import { Icon } from "../components/Icon";
 
 type Group = { series: Series; vols: Entry[]; read: number; owned: number; reading: number; total: number; next?: Entry; authors: string };
@@ -80,7 +80,7 @@ export default function Reihen() {
         </div>
       </div>
       <div className="vol-legend" aria-hidden="true">
-        <span><i className="vs gelesen" />Gelesen</span><span><i className="vs lese" />Am Lesen</span><span><i className="vs owned" />Im Regal</span><span><i className="vs wish" />Wunschliste</span><span><i className="vs" />Fehlt</span>
+        <span><i className="vs gelesen" />Gelesen</span><span><i className="vs lese" />Am Lesen</span><span><i className="vs owned" />Im Regal</span><span><i className="vs wish" />Wunschliste</span><span><i className="vs" />Fehlt</span><span className="vol-legend-note">Höhe zeigt das Format: Hardcover am größten, dann Paperback, eBook, Taschenbuch, Manga</span>
       </div>
 
       {list.length === 0 ? <div className="grid"><Empty title="Keine Reihe gefunden" /></div> : look === "liste" ? (
@@ -130,6 +130,9 @@ export default function Reihen() {
   );
 }
 
+/** Höhe der kleinen Buchrücken je Format, etwas deutlicher als in echt, damit man es sieht. */
+const SPINE_H: Record<Binding, number> = { manga: 62, taschenbuch: 74, ebook: 82, paperback: 90, hardcover: 100 };
+
 /** Bände als kleine Buchrücken: gelesen kräftig, am Lesen pfirsich, im Regal zart, fehlend gestrichelt. */
 function Spines({ g, small }: { g: Group; small?: boolean }) {
   const n = Math.min(g.total, 60);
@@ -138,7 +141,8 @@ function Spines({ g, small }: { g: Group; small?: boolean }) {
       {Array.from({ length: n }, (_, i) => {
         const v = g.vols.find((e) => seriesNo(e.book.series_number) === i + 1);
         const cls = !v ? "" : v.mine.status === "gelesen" ? "gelesen" : v.mine.status === "lese" ? "lese" : v.mine.status === "wunschliste" || v.mine.owned === false ? "wish" : "owned";
-        return <span key={i} className={"vs " + cls} style={{ height: `${82 + ((i * 37) % 19)}%` }} title={v ? `Band ${i + 1}: ${v.book.title}` : `Band ${i + 1} fehlt`} />;
+        const bind = v ? bindingOf(v) : null;
+        return <span key={i} className={"vs " + cls + (bind ? " b-" + bind : "")} style={{ height: `${bind ? SPINE_H[bind] : 72}%` }} title={v ? `Band ${i + 1}: ${v.book.title} · ${BINDING_LABEL[bind!]}` : `Band ${i + 1} fehlt`} />;
       })}
     </div>
   );
