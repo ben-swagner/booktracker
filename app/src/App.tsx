@@ -43,11 +43,11 @@ const GROUPS: { label: string; to?: string; items?: NavItem[] }[] = [
   { label: "Übersicht", to: "/" },
   { label: "Bücher", items: [
     { to: "/bibliothek", label: "Bibliothek", hint: "Alle Bücher als Karten oder Tabelle" },
-    { to: "/regal", label: "Regal", hint: "Buchrücken, gesamt oder nach Jahr" },
     { to: "/reihen", label: "Reihen", hint: "Fortschritt und Lücken" },
     { to: "/autorinnen", label: "Autor:innen", hint: "Wer steht in deinem Regal" },
     { to: "/tops", label: "Tops", hint: "Deine Favoriten" }
   ] },
+  { label: "Regal", to: "/regal" },
   { label: "SuB", to: "/sub" },
   { label: "Ziele", to: "/ziele" },
   { label: "Wunschliste", to: "/wunschliste" },
