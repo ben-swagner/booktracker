@@ -1604,3 +1604,4 @@ body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-e
 }
 .aura.soft { height: 680px; }
 .sheet-covers { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(120deg, color-mix(in srgb, #F4E2A0 45%, transparent), color-mix(in srgb, #F8C7A4 35%, transparent)); }
+.cover-picker-bg { z-index: 90; }

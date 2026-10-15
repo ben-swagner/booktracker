@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { coverCandidates, loadSheetCovers, sheetCoverFor, shrinkCoverFile, type Candidate } from "../lib/covers";
 
 /**
@@ -45,8 +46,9 @@ export function CoverPicker({ book, current, onPick, onClose }: {
   const sure = list?.filter((c) => c.sure) ?? [];
   const unsure = list?.filter((c) => !c.sure) ?? [];
 
-  return (
-    <div className="modal-bg" onClick={onClose}>
+  // Über document.body, damit das Fenster auch aus dem Buchfenster heraus sichtbar ist
+  return createPortal(
+    <div className="modal-bg cover-picker-bg" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Cover auswählen">
         <div className="section-head" style={{ marginBottom: 0 }}>
           <h2 style={{ margin: 0 }}>Cover auswählen</h2>
@@ -93,9 +95,11 @@ export function CoverPicker({ book, current, onPick, onClose }: {
         </div>
         {own.trim() && <img src={own.trim()} alt="" style={{ maxHeight: 160, borderRadius: 6, alignSelf: "flex-start" }} />}
 
-        {current && <div className="actions"><button className="btn danger" disabled={busy} onClick={() => pick(null)}>Kein Bild, farbigen Einband zeigen</button></div>}
+        <h3 style={{ margin: 0 }}>Cover entfernen</h3>
+        <div className="actions"><button className="btn danger" disabled={busy || !current} onClick={() => pick(null)}>{current ? "Aktuelles Cover löschen, farbigen Einband zeigen" : "Zeigt schon den farbigen Einband"}</button></div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
