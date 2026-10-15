@@ -10,7 +10,7 @@ import { useWidth } from "./ui";
 export const fmtN = (n: number, d = 0) => n.toLocaleString("de-DE", { maximumFractionDigits: d, minimumFractionDigits: 0 });
 
 /** Säulen, z. B. Bücher pro Monat. ghost = Vergleichswert (Vorjahr) als blasse Säule dahinter. */
-export function Columns({ data, color = "var(--ink)", height = 160, unit = "", ghostLabel }: {
+export function Columns({ data, color = "var(--c1)", height = 160, unit = "", ghostLabel }: {
   data: { label: string; value: number; ghost?: number; title?: string }[]; color?: string; height?: number; unit?: string; ghostLabel?: string;
 }) {
   const [hi, setHi] = useState<number | null>(null);
@@ -22,7 +22,7 @@ export function Columns({ data, color = "var(--ink)", height = 160, unit = "", g
           <div key={d.label} className={"ch-col" + (hi === i ? " hi" : "")} onMouseEnter={() => setHi(i)} onClick={() => setHi(i)}
             title={d.title ?? `${d.label}: ${fmtN(d.value)}${unit}${d.ghost != null && ghostLabel ? ` (${ghostLabel}: ${fmtN(d.ghost)})` : ""}`}>
             {d.ghost != null && <div className="ch-ghost" style={{ height: `${(d.ghost / max) * 100}%` }} />}
-            <div className="ch-bar" style={{ height: `${(d.value / max) * 100}%`, background: color }} />
+            <div className="ch-bar" style={{ height: `${(d.value / max) * 100}%`, background: glow(color) }} />
             {hi === i && <span className="ch-tip">{fmtN(d.value)}{unit}</span>}
           </div>
         ))}
@@ -33,7 +33,7 @@ export function Columns({ data, color = "var(--ink)", height = 160, unit = "", g
 }
 
 /** Waagrechte Balken mit Beschriftung, z. B. Genres. */
-export function BarList({ items, color = "var(--ink)", unit = "", max: maxIn, onClick }: {
+export function BarList({ items, color = "var(--c1)", unit = "", max: maxIn, onClick }: {
   items: { label: React.ReactNode; key?: string; value: number; color?: string; sub?: string; cmp?: number }[]; color?: string; unit?: string; max?: number; onClick?: (i: number) => void;
 }) {
   const max = maxIn ?? Math.max(1, ...items.map((d) => Math.max(d.value, d.cmp ?? 0)));
@@ -45,15 +45,20 @@ export function BarList({ items, color = "var(--ink)", unit = "", max: maxIn, on
           <span className="ch-barlabel">{d.label}</span>
           {hasCmp ? (
             <div className="ch-track2">
-              <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: d.color ?? color }} /></div>
+              <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: glow(d.color ?? color, "270deg") }} /></div>
               <div className="ch-track cmp"><div style={{ width: `${Math.max(d.cmp ? 2 : 0, ((d.cmp ?? 0) / max) * 100)}%`, background: d.color ?? color }} /></div>
             </div>
-          ) : <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: d.color ?? color }} /></div>}
+          ) : <div className="ch-track"><div style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: glow(d.color ?? color, "270deg") }} /></div>}
           <span className="ch-barval">{fmtN(d.value, 1)}{unit}{hasCmp ? <small className="ch-cmpval"> · {fmtN(d.cmp ?? 0, 1)}</small> : d.sub ? <small> {d.sub}</small> : null}</span>
         </div>
       ))}
     </div>
   );
+}
+
+/** Farbverlauf wie in den Farbwolken: unten bzw. rechts kräftig, zur anderen Seite weich und leicht pfirsichfarben. */
+export function glow(color: string, dir = "0deg") {
+  return `linear-gradient(${dir}, ${color}, color-mix(in srgb, ${color} 55%, #F8C7A4) 70%, color-mix(in srgb, ${color} 30%, #FFF4E8))`;
 }
 
 /** Ring-Diagramm mit Legende. Kleine Anteile werden zu „Andere“ zusammengefasst. */
@@ -118,7 +123,7 @@ export function StackBar({ items }: { items: { label: string; value: number; col
   return (
     <div className="ch-stack">
       <div className="ch-stack-bar">
-        {list.map((x) => <div key={x.label} style={{ flex: x.value, background: x.color }} title={`${x.label}: ${fmtN(x.value)} (${Math.round((x.value / total) * 100)} %)`} />)}
+        {list.map((x) => <div key={x.label} style={{ flex: x.value, background: glow(x.color, "270deg") }} title={`${x.label}: ${fmtN(x.value)} (${Math.round((x.value / total) * 100)} %)`} />)}
       </div>
       {hasCmp && <div className="ch-stack-bar cmp">{list.map((x) => <div key={x.label} style={{ flex: x.cmp ?? 0, background: x.color }} title={`Vergleich ${x.label}: ${fmtN(x.cmp ?? 0)}`} />)}</div>}
       <ul className="ch-legend row">
@@ -179,12 +184,12 @@ export function Heatmap({ rows, cols, values, unit = "Bücher" }: { rows: string
             <span className="ch-heat-row">{r}</span>
             {cols.map((c, ci) => {
               const v = values[ri][ci];
-              return <span key={c} className="ch-heat-cell" title={`${c} ${r}: ${v} ${unit}`} style={{ background: v ? `color-mix(in srgb, var(--ink) ${18 + (v / max) * 82}%, var(--surface))` : undefined }}>{v || ""}</span>;
+              return <span key={c} className="ch-heat-cell" title={`${c} ${r}: ${v} ${unit}`} style={{ background: v ? `color-mix(in srgb, var(--c1) ${18 + (v / max) * 82}%, var(--surface))` : undefined }}>{v || ""}</span>;
             })}
           </div>
         ))}
       </div>
-      <div className="ch-heat-scale"><span>weniger</span>{[0.2, 0.45, 0.7, 1].map((k) => <i key={k} style={{ background: `color-mix(in srgb, var(--ink) ${18 + k * 82}%, var(--surface))` }} />)}<span>mehr</span></div>
+      <div className="ch-heat-scale"><span>weniger</span>{[0.2, 0.45, 0.7, 1].map((k) => <i key={k} style={{ background: `color-mix(in srgb, var(--c1) ${18 + k * 82}%, var(--surface))` }} />)}<span>mehr</span></div>
     </div>
   );
 }

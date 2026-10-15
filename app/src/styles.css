@@ -1290,3 +1290,98 @@ h1 em { display: block; }
 .ch-ghost { background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 6px); box-shadow: inset 0 0 0 1px var(--line); opacity: 1; }
 .ch-legend i.ghost { background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--line); opacity: 1; }
 .ch-bar { border-radius: 8px 8px 0 0; }
+
+/* =====================================================================
+   Runde 2 der Umsetzung: mehr Farbe in Verläufen, feste Menüleiste
+   ===================================================================== */
+:root { --korn: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23k)'/%3E%3C/svg%3E");
+  --glow-1: #B9B3F0; --glow-2: #F3B0C8; --glow-3: #F8C7A4; --glow-4: #F4E2A0; --glow-5: #9DB2F2; --glow-6: #A9D3B5; }
+
+/* Menüleiste oben: nicht durchscheinend */
+.nav-inner { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; border-color: var(--line); box-shadow: 0 8px 30px rgba(23,21,26,.08); }
+
+/* Platzhaltercover: Farbwolke in den Genre-Farben, mit Korn */
+.cover.cloud::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background-image: var(--korn); background-size: 160px; opacity: .4; mix-blend-mode: overlay; pointer-events: none; }
+.cover.cloud .cover-title { position: relative; }
+.cover.cloud .cover-author { position: relative; color: var(--cover-fg2, #fff); opacity: .92; }
+
+/* Statistik: farbige Kacheln und Verläufe */
+.kpi { --kt: var(--blue); --ks: var(--blue-soft); --kg: linear-gradient(90deg, #9DB2F2, #B9B3F0); }
+.kpi-green { --kt: var(--green); --ks: var(--green-soft); --kg: linear-gradient(90deg, #F4E2A0, #A9D3B5); }
+.kpi-pink { --kt: var(--pink); --ks: var(--pink-soft); --kg: linear-gradient(90deg, #F8C7A4, #F3B0C8); }
+.kpi-yellow { --kt: var(--yellow); --ks: var(--yellow-soft); --kg: linear-gradient(90deg, #F4E2A0, #F8C7A4); }
+.kpi-lilac { --kt: var(--lilac); --ks: var(--lilac-soft); --kg: linear-gradient(90deg, #F3B0C8, #B9B3F0); }
+.kpi { position: relative; overflow: hidden; }
+.kpi::after { content: ""; position: absolute; right: -40px; top: -50px; width: 150px; height: 150px; border-radius: 50%; background: var(--kg); filter: blur(34px); opacity: .45; pointer-events: none; }
+.kpi > * { position: relative; z-index: 1; }
+.kpi-icon { background: var(--ks); color: var(--kt); }
+.kpi-bar { background: var(--surface-2); box-shadow: none; height: 12px; }
+.kpi-bar div, .big-pct .kpi-bar div { background: var(--kg, linear-gradient(90deg, #F4E2A0, #F8C7A4 45%, #9DB2F2)); }
+.fact { position: relative; overflow: hidden; background: var(--surface); }
+.fact::after { content: ""; position: absolute; left: -30px; bottom: -70px; width: 220px; height: 170px; border-radius: 50%; background: radial-gradient(closest-side, var(--ft), transparent); filter: blur(30px); opacity: .28; pointer-events: none; }
+.fact > * { position: relative; z-index: 1; }
+.fact-icon { background: var(--fs); color: var(--ft); }
+.ch-track div, .ch-bar { box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+.ch-track { height: 12px; }
+.ch-bar { width: min(70%, 28px); border-radius: 10px 10px 3px 3px; }
+.ch-stack-bar { height: 18px; gap: 3px; }
+.ch-stack-bar div { border-radius: 4px; }
+.ch-legend i { border-radius: 50%; }
+.ch-heat-cell { border-radius: 8px; }
+.trope { background: linear-gradient(90deg, var(--pink-soft), var(--peach-soft)); }
+.tend-icon { background: var(--lilac-soft); color: var(--lilac); }
+.hls-row .hl { background: var(--surface-2); }
+
+/* Wunschliste: Priorität und „Wie?“ als weiche Verlaufspillen */
+select.input.prio-select, select.input.how-select { -webkit-appearance: none; appearance: none; padding: 0 30px 0 14px; color: #17151A; font-weight: 600; border-color: transparent; background-repeat: no-repeat; background-size: 12px, 100%; background-position: right 11px center, 0 0;
+  --pfeil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2317151A' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+select.input.prio-hoch { background-image: var(--pfeil), linear-gradient(90deg, #F3B0C8, #F8C7A4); }
+select.input.prio-mittel { background-image: var(--pfeil), linear-gradient(90deg, #F4E2A0, #FBEFD6); }
+select.input.prio-niedrig { background-image: var(--pfeil), linear-gradient(90deg, #E6E4EB, #F3F2F5); color: #66616B; }
+select.input.how-gekauft { background-image: var(--pfeil), linear-gradient(90deg, #A9D3B5, #E2F0E6); }
+select.input.how-geschenkt { background-image: var(--pfeil), linear-gradient(90deg, #F3B0C8, #FBE6EE); }
+select.input.how-mitgenommen { background-image: var(--pfeil), linear-gradient(90deg, #9DB2F2, #E6EBFB); }
+select.input.prio-select option, select.input.how-select option { background: var(--surface); color: var(--ink); }
+.rel-done { background: linear-gradient(90deg, #A9D3B5, #E2F0E6); color: #1F4630; }
+.rel-soon { background: linear-gradient(90deg, #F4E2A0, #FBEFD6); color: #5A4510; }
+.btn.wish-buy { background: linear-gradient(90deg, #A9D3B5, #E2F0E6); color: #1F4630; }
+.spend { position: relative; overflow: hidden; }
+.spend::after { content: ""; position: absolute; right: -60px; top: -80px; width: 300px; height: 220px; border-radius: 50%; background: radial-gradient(closest-side, #A9D3B5, #F4E2A0 60%, transparent); filter: blur(30px); opacity: .5; pointer-events: none; }
+.spend > * { position: relative; z-index: 1; }
+
+/* Ziele: jede Karte mit eigener Farbwolke und Verlauf */
+.gcard { --g1: #9DB2F2; --g2: #B9B3F0; --gc: var(--lilac); --gc-soft: var(--lilac-soft); --gc-light: var(--lilac-light); position: relative; overflow: hidden; }
+.gcard-year { --g1: #9DB2F2; --g2: #B9B3F0; --g3: #F3B0C8; }
+.gcard-sub { --g1: #F3B0C8; --g2: #F8C7A4; --g3: #F4E2A0; --gc: var(--pink); --gc-soft: var(--pink-soft); --gc-light: var(--pink-light); }
+.gcard-series { --g1: #F4E2A0; --g2: #A9D3B5; --g3: #9DB2F2; --gc: var(--green); --gc-soft: var(--green-soft); --gc-light: var(--green-light); }
+.gcard::after { content: ""; position: absolute; right: -80px; top: -120px; width: 380px; height: 320px; border-radius: 50%; background: radial-gradient(closest-side, var(--g2), var(--g1) 55%, transparent); filter: blur(40px); opacity: .45; pointer-events: none; }
+.gcard > * { position: relative; z-index: 1; }
+.gcard.done { background: var(--surface); box-shadow: none; }
+.gcard.done::after { opacity: .75; }
+.gring { background: conic-gradient(var(--g1), var(--g2) calc(var(--p) * .5%), var(--g3, var(--g2)) calc(var(--p) * 1%), var(--gc-soft) 0); }
+.gring-in, .gring-num { color: var(--ink); }
+.gchip { background: color-mix(in srgb, var(--gc-soft) 70%, var(--surface)); }
+.gchip .icon { color: var(--gc); }
+a.gchip-link { background: var(--accent); color: var(--accent-ink); }
+.galmost-row { background: color-mix(in srgb, var(--gc-soft) 55%, var(--surface)); }
+.galmost-bar { background: var(--surface); box-shadow: none; }
+.galmost-bar div { background: linear-gradient(90deg, var(--g1), var(--g2)); }
+.galmost-n { color: var(--gc); }
+.ring { background: conic-gradient(#9DB2F2, #B9B3F0 calc(var(--p, 0) * .5%), #F3B0C8 calc(var(--p, 0) * 1%), var(--surface-2) 0); }
+.bingo-cell.done { background: linear-gradient(150deg, #D6D1F6, #F6C9D9 60%, #FAD6BE); color: #241B3A; border-color: transparent; }
+.bingo-cell.done small { color: rgba(36,27,58,.75); }
+.kaufstopp::before { opacity: .65; }
+.ks-bar { background: var(--surface-2); box-shadow: none; }
+.ks-bar div { background: linear-gradient(90deg, #F4E2A0, #A9D3B5); }
+.ks-dots span.on { background: linear-gradient(140deg, #A9D3B5, #F4E2A0); }
+.ks-num { background: linear-gradient(90deg, #2F7A5A, #6FB08A); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Autor:innen und SuB-Turm: Verläufe statt Schwarz */
+.acard-bar { background: var(--surface-2); box-shadow: none; }
+.acard-bar div { background: linear-gradient(90deg, #F8C7A4, #B9B3F0); }
+.tower-height { background: linear-gradient(90deg, #6F5BD0, #E2558A); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Dunkel: Wolken etwas kräftiger, Text auf hellen Verläufen bleibt dunkel */
+:root[data-theme="dark"] .gcard::after, :root[data-theme="dark"] .kpi::after { opacity: .3; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .gcard::after, :root:not([data-theme="light"]) .kpi::after { opacity: .3; } }
+:root[data-theme="dark"] .nav-inner { box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nav-inner { box-shadow: 0 8px 30px rgba(0,0,0,.4); } }

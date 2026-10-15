@@ -4,7 +4,7 @@ import { isDesktop, useOpenBook } from "./openBook";
 import { data } from "../data";
 import { NO_COVER, findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
-import { STATUS, fmtDate, genreColors } from "../lib/labels";
+import { STATUS, fmtDate, genreCloud, genreColors } from "../lib/labels";
 
 /** Merkt sich pro Sitzung, welche ISBNs bei Open Library kein Bild haben, damit nichts doppelt versucht wird. */
 const noCover = new Set<string>();
@@ -25,7 +25,7 @@ export function olCoverUrl(isbn: string, size: "S" | "M" | "L" = "M") {
  * sonst ein farbiger Stoffeinband mit Titel. Ein gefundenes Bild wird am Buch gespeichert.
  */
 export function Cover({ title, author, url: rawUrl, isbn, bookId, large, genre }: { title: string; author?: string; url?: string | null; isbn?: string | null; bookId?: string; large?: boolean; genre?: string | null }) {
-  const c = genreColors(genre, title);
+  const c = genreCloud(genre, title);
   const wantsNone = rawUrl === NO_COVER; // ausdrücklich kein Bild: dann auch nicht suchen
   const url = wantsNone ? null : rawUrl;
   const olTry = !url && !wantsNone && isbn && !noCover.has(isbn) ? isbn : null;
@@ -56,7 +56,7 @@ export function Cover({ title, author, url: rawUrl, isbn, bookId, large, genre }
   };
 
   return (
-    <div className={"cover" + (large ? " lg" : "")} style={{ background: c.bg, color: c.fg }} aria-hidden="true">
+    <div className={"cover" + (large ? " lg" : "") + (src ? "" : " cloud")} style={{ background: c.bg, color: c.fg, ["--cover-fg2" as string]: c.fg2 }} aria-hidden="true">
       {src ? (
         <img
           src={src}

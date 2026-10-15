@@ -105,3 +105,18 @@ export function familyTones(genre: string | null | undefined): [string, string, 
   const fam = FAMILY[genre ? GENRE_FAMILY[genre] ?? "sand" : "grau"];
   return [fam[2][0], fam[1][0], fam[0][0]];
 }
+
+/**
+ * Farbwolke für ein Platzhaltercover: drei Töne der Genre-Familie, Lage der Wolke je Titel leicht anders,
+ * damit nicht jedes Fantasy-Buch gleich aussieht. Oben hell (Titel gut lesbar), unten kräftig.
+ */
+export function genreCloud(genre: string | null | undefined, seed: string): { bg: string; fg: string; fg2: string } {
+  const fam = FAMILY[genre ? GENRE_FAMILY[genre] ?? "sand" : "grau"];
+  let h = 0;
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const x = 20 + (h % 61);           // 20 % bis 80 %
+  const w = 110 + ((h >> 3) % 50);   // Breite der Wolke
+  const mid = 38 + ((h >> 7) % 18);  // wo der mittlere Ton liegt
+  const bg = `radial-gradient(${w}% 90% at ${x}% 108%, ${fam[2][0]} 0%, ${fam[1][0]} ${mid}%, ${fam[0][0]} 88%)`;
+  return { bg, fg: fam[0][1], fg2: "#FFFFFF" };
+}
