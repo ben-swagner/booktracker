@@ -12,11 +12,11 @@ export type AuthorRow = { author: Author; books: Entry[]; read: number; avg: num
 
 /** Farben der Autor:innen-Karten nach Geschlecht: kräftig für Kopfband, hell für Initialen. */
 export const GENDER_COLOR: Record<string, { band: string; soft: string; fg: string; label: string }> = {
-  weiblich: { band: "#C2A7F1", soft: "#EEE5FD", fg: "#2A1A52", label: "Weiblich" },
-  maennlich: { band: "#8ACBF1", soft: "#DDEFFA", fg: "#15303C", label: "Männlich" },
-  divers: { band: "#F5D266", soft: "#FFF4CC", fg: "#5A4200", label: "Divers" },
-  mehrere: { band: "#8FDCB4", soft: "#DAF2E4", fg: "#0F3D28", label: "Duo oder Team" },
-  unbekannt: { band: "#C9D3D9", soft: "#EEF2F4", fg: "#34434C", label: "Noch nicht eingetragen" }
+  weiblich: { band: "#B9B3F0", soft: "#ECE9FA", fg: "#2E2470", label: "Weiblich" },
+  maennlich: { band: "#9DB2F2", soft: "#E6EBFB", fg: "#1E2F6E", label: "Männlich" },
+  divers: { band: "#F4E2A0", soft: "#FBF2D6", fg: "#5A4510", label: "Divers" },
+  mehrere: { band: "#A9D3B5", soft: "#E2F0E6", fg: "#1F4630", label: "Duo oder Team" },
+  unbekannt: { band: "#D3D0D8", soft: "#F0EFF2", fg: "#3B3740", label: "Noch nicht eingetragen" }
 };
 export const genderColor = (g?: string | null) => GENDER_COLOR[g ?? "unbekannt"] ?? GENDER_COLOR.unbekannt;
 

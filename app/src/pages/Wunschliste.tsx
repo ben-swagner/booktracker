@@ -150,7 +150,7 @@ export default function Wunschliste() {
     <>
       <div className="mast">
         <div>
-          <h1>Wunsch<em>liste</em></h1>
+          <h1>Wunschliste</h1>
           <p className="lede">{items.length} Bücher{total ? <> · zusammen <strong>{euro(total)}</strong></> : null}</p>
         </div>
       </div>

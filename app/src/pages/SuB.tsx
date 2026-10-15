@@ -243,7 +243,7 @@ function AllTbr({ tbr }: { tbr: Entry[] }) {
         </select>
       </div>
       {list.length ? (
-        <div className="grid">{list.slice(0, limit).map((e) => <BookCard key={e.mine.id} e={e} />)}</div>
+        <div className="grid covers-grid">{list.slice(0, limit).map((e) => <BookCard key={e.mine.id} e={e} />)}</div>
       ) : (
         <div className="grid"><Empty title={tbr.length ? "Nichts gefunden" : "Dein SuB ist leer"} text={tbr.length ? "Probier einen anderen Suchbegriff." : "Lege Bücher mit dem Status SuB an, dann erscheinen sie hier."} /></div>
       )}

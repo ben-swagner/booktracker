@@ -46,7 +46,7 @@ export default function Autorinnen() {
     <>
       <div className="mast">
         <div>
-          <h1>Autor:<em>innen</em></h1>
+          <h1>Autor:innen</h1>
           <p className="lede"><strong>{rows.length}</strong> Autor:innen in deinem Regal.</p>
         </div>
       </div>

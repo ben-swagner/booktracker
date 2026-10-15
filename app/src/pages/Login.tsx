@@ -39,7 +39,7 @@ export default function Login() {
   return (
     <div className="wrap">
       <div className="login panel">
-        <h1>Book<em>tracker</em></h1>
+        <h1>Booktracker</h1>
         <p className="lede">Melde dich an, dann wartet dein Regal auf dich.</p>
         <div className="tabs" role="tablist" style={{ alignSelf: "flex-start" }}>
           <button type="button" className="tab" role="tab" aria-selected={mode === "passwort"} onClick={() => { setMode("passwort"); setErr(null); }}>Mit Passwort</button>

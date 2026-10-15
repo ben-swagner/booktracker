@@ -275,7 +275,7 @@ export default function Statistik() {
     <>
       <div className="mast">
         <div>
-          <h1>Statis<em>tik</em></h1>
+          <h1>Statistik</h1>
           <p className="lede">{entries.length.toLocaleString("de-DE")} Bücher im Regal, {s.ev.length} {all ? "Lesevorgänge insgesamt" : `davon ${year} gelesen`}.</p>
         </div>
         <div className="mast-tools">
@@ -333,7 +333,7 @@ export default function Statistik() {
             {!all ? (
               <Card scope={pick("c6")} title="Bücher pro Monat" icon="calendar" wide hint={S("c6").ev.length > S("c6").dated.length ? `${S("c6").ev.length - S("c6").dated.length} Bücher ohne genaues Datum fehlen hier.` : undefined}>
                 <Columns data={MONTHS.map((m, i) => ({ label: m, value: S("c6").mBooks[i], ghost: K("c6") ? K("c6")!.mBooks[i] : S("c6").prev.length ? S("c6").pBooks[i] : undefined }))} ghostLabel={cmpOf("c6") ?? String(Number(ov["c6"] ?? year) - 1)} unit=" Bücher" />
-                {(K("c6") || S("c6").prev.length > 0) && <ul className="ch-legend row"><li><i style={{ background: "var(--c3)" }} /><span>{ov["c6"] ?? year}</span></li><li><i className="ghost" /><span>{cmpOf("c6") ?? Number(ov["c6"] ?? year) - 1} zum Vergleich</span></li></ul>}
+                {(K("c6") || S("c6").prev.length > 0) && <ul className="ch-legend row"><li><i style={{ background: "var(--ink)" }} /><span>{ov["c6"] ?? year}</span></li><li><i className="ghost" /><span>{cmpOf("c6") ?? Number(ov["c6"] ?? year) - 1} zum Vergleich</span></li></ul>}
               </Card>
             ) : (
               <Card scope="Alle Jahre" title="Bücher pro Jahr" icon="calendar" wide>
@@ -349,7 +349,7 @@ export default function Statistik() {
               return (
                 <Card scope={String(thisYear)} title="Auf Kurs zum Jahresziel?" icon="target" wide hint={<>Bei deinem Tempo schaffst du etwa <b>{forecast} Bücher</b> bis Silvester{forecast >= goal ? <>, also dein Ziel von {goal}.</> : <>, dein Ziel liegt bei {goal}.</>}</>}>
                   <Lines labels={MONTHS} unit=" Bücher" series={[
-                    { name: "Gelesen", values: cum, color: "var(--c3)" },
+                    { name: "Gelesen", values: cum, color: "var(--ink)" },
                     { name: "Plan fürs Ziel", values: MONTHS.map((_, i) => Math.round((goal * (i + 1)) / 12)), color: "var(--c0)", dashed: true }
                   ]} />
                 </Card>
@@ -434,7 +434,7 @@ export default function Statistik() {
           </div>
           <div className="srow">
             <Card scope={pick("c20")} title="Zielgruppe" icon="user"><BarList items={S("c20").audience.map(([k, n]) => ({ label: k, value: n, cmp: cm("c20", K("c20")?.audience, k) }))} color="var(--c6)" /></Card>
-            <Card scope={pick("c21")} title="Sprache" icon="globe"><BarList items={S("c21").languages.map(([k, n]) => ({ label: k, value: n, cmp: cm("c21", K("c21")?.languages, k) }))} color="var(--c3)" /></Card>
+            <Card scope={pick("c21")} title="Sprache" icon="globe"><BarList items={S("c21").languages.map(([k, n]) => ({ label: k, value: n, cmp: cm("c21", K("c21")?.languages, k) }))} color="var(--ink)" /></Card>
             {S("c22").genreStars.length > 0 && <Card scope={pick("c22")} title="Sterne je Genre" icon="star" hint="Nur Genres mit mindestens 3 bewerteten Büchern."><BarList items={S("c22").genreStars.map((x) => ({ label: x.g, value: x.a!, color: genreColor(x.g), sub: `(${x.n})`, cmp: K("c22") ? K("c22")!.genreStars.find((y) => y.g === x.g)?.a ?? 0 : undefined }))} max={5} /></Card>}
           </div>
           <div className="srow">
@@ -513,7 +513,7 @@ export default function Statistik() {
           </div>
           <div className="srow">
             <Card scope="Gesamt" title="Zielgruppe" icon="user"><BarList items={own.audience.map(([k, n]) => ({ label: k, value: n }))} color="var(--c6)" /></Card>
-            <Card scope="Gesamt" title="Sprache" icon="globe"><BarList items={own.languages.map(([k, n]) => ({ label: k, value: n }))} color="var(--c3)" /></Card>
+            <Card scope="Gesamt" title="Sprache" icon="globe"><BarList items={own.languages.map(([k, n]) => ({ label: k, value: n }))} color="var(--ink)" /></Card>
             <Card scope="Gesamt" title="Ausgabe" icon="book"><BarList items={own.editions.map(([k, n]) => ({ label: k === "Normal" ? "Normale Ausgabe" : k === "Other" ? "Andere" : k, value: n }))} color="var(--c2)" /></Card>
           </div>
           <div className="srow">

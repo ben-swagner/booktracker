@@ -3,6 +3,7 @@ import { Link } from "../components/Link";
 import { useEntries, useUser } from "../data/hooks";
 import { BookCard, Empty, Shelf } from "../components/ui";
 import { ReadingNowCard } from "../components/ReadingNow";
+import { BookAura } from "../components/Aura";
 
 export default function Start() {
   const { entries, lib, isLoading } = useEntries();
@@ -23,9 +24,10 @@ export default function Start() {
 
   return (
     <>
+      <BookAura book={(reading[0] ?? recent[0])?.book} />
       <div className="mast">
         <div>
-          <h1>Hallo <em>{user?.display_name ?? "du"}</em></h1>
+          <h1>Hallo <em>{user?.display_name ?? "du"}.</em></h1>
           <p className="lede">
             <strong>{entries.length}</strong> Bücher im Regal, <strong>{by("gelesen").length}</strong> gelesen, <strong>{by("tbr").length}</strong> auf dem SuB.
           </p>

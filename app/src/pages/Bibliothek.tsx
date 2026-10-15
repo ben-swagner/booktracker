@@ -78,7 +78,7 @@ export default function Bibliothek() {
     <>
       <div className="mast">
         <div>
-          <h1>Biblio<em>thek</em></h1>
+          <h1>Bibliothek</h1>
           <p className="lede">{list.length} von {entries.length} Büchern</p>
         </div>
         <div className="actions"><Link to="/neu" className="btn primary">+ Buch hinzufügen</Link></div>
@@ -159,7 +159,7 @@ export default function Bibliothek() {
           </table>
         </div>
       ) : (
-        <div className="grid">{list.slice(0, limit).map((e) => <BookCard key={e.mine.id} e={e} />)}</div>
+        <div className="grid covers-grid">{list.slice(0, limit).map((e) => <BookCard key={e.mine.id} e={e} />)}</div>
       )}
       {view === "karten" && list.length > limit && (
         <div className="actions" style={{ justifyContent: "center" }}>

@@ -12,6 +12,7 @@ import { CoverPicker } from "../components/CoverPicker";
 import { NO_COVER } from "../lib/covers";
 import { data } from "../data";
 import { useQueryClient } from "@tanstack/react-query";
+import { BookAura } from "../components/Aura";
 
 /** Chips, die zur Bibliothek mit passendem Filter führen (z. B. alle Bücher mit diesem Trope). */
 function Chips({ items, param }: { items?: string[]; param?: "trope" | "ohne" }) {
@@ -163,6 +164,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
 
   return (
     <>
+      <BookAura book={b} inline={inModal} />
       {!inModal && (
         <div className="actions">
           <button className="btn ghost" onClick={() => nav(-1)}>← Zurück</button>

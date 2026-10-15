@@ -99,9 +99,11 @@ export default function Einstellungen() {
     }
     download(`booktracker-${new Date().toISOString().slice(0, 10)}.csv`, "﻿" + rows.map((r) => r.map(esc).join(";")).join("\n"), "text/csv");
   }
+  const [theme, setThemeState] = useState(() => { try { return localStorage.getItem("bt-theme") ?? ""; } catch { return ""; } });
   function setTheme(t: string) {
     if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
     localStorage.setItem("bt-theme", t);
+    setThemeState(t);
   }
 
   return (
@@ -148,9 +150,9 @@ export default function Einstellungen() {
       <div className="panel section">
         <h3>Darstellung</h3>
         <div className="actions">
-          <button className="btn" onClick={() => setTheme("")}>Wie das Gerät</button>
-          <button className="btn" onClick={() => setTheme("light")}>Hell</button>
-          <button className="btn" onClick={() => setTheme("dark")}>Dunkel</button>
+          <button className={"btn" + (theme === "" ? " primary" : "")} aria-pressed={theme === ""} onClick={() => setTheme("")}>Wie das Gerät</button>
+          <button className={"btn" + (theme === "light" ? " primary" : "")} aria-pressed={theme === "light"} onClick={() => setTheme("light")}>Hell</button>
+          <button className={"btn" + (theme === "dark" ? " primary" : "")} aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>Dunkel</button>
         </div>
       </div>
       <div className="panel section">

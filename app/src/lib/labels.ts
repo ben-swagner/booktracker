@@ -52,15 +52,15 @@ export function today() {
  */
 type Shades = [string, string][];
 const FAMILY: Record<string, Shades> = {
-  lila: [["#EEE5FD", "#2A1A52"], ["#C2A7F1", "#2A1A52"], ["#6A47B8", "#FFFFFF"]],
-  rosa: [["#FCE3EE", "#5A1A36"], ["#F4A8C7", "#5A1A36"], ["#B03A6C", "#FFFFFF"]],
-  blau: [["#DDEFFA", "#15303C"], ["#8ACBF1", "#15303C"], ["#1E7EBE", "#FFFFFF"]],
-  gruen: [["#DAF2E4", "#0F3D28"], ["#8FDCB4", "#0F3D28"], ["#22825A", "#FFFFFF"]],
-  gelb: [["#FFF4CC", "#5A4200"], ["#F5D266", "#5A4200"], ["#C98F00", "#FFFFFF"]],
-  petrol: [["#D7E6EA", "#1B3540"], ["#8FB3BE", "#14303A"], ["#2E5A68", "#FFFFFF"]],
-  rot: [["#F6DCDC", "#5A1A1A"], ["#E39A9A", "#4A1414"], ["#8E2C3B", "#FFFFFF"]],
-  sand: [["#F2EBDD", "#4A3B1E"], ["#DCCBA8", "#3E3014"], ["#9C7F4A", "#FFFFFF"]],
-  grau: [["#EEF2F4", "#34434C"], ["#C9D3D9", "#26343C"], ["#5E6E78", "#FFFFFF"]]
+  lila: [["#ECE9FA", "#2E2470"], ["#B9B3F0", "#241B5C"], ["#5B45A8", "#FFFFFF"]],
+  rosa: [["#FBE6EE", "#5A1E36"], ["#F3B0C8", "#5A1E36"], ["#B23A64", "#FFFFFF"]],
+  blau: [["#E6EBFB", "#1E2F6E"], ["#9DB2F2", "#16255A"], ["#3552C9", "#FFFFFF"]],
+  gruen: [["#E2F0E6", "#1F4630"], ["#A9D3B5", "#1A3D29"], ["#2F7A5A", "#FFFFFF"]],
+  gelb: [["#FBF2D6", "#5A4510"], ["#F4E2A0", "#5A4510"], ["#B7861F", "#FFFFFF"]],
+  petrol: [["#DCEDEB", "#1B3B3A"], ["#9FCFC7", "#163533"], ["#2F6E6A", "#FFFFFF"]],
+  rot: [["#F8DEDF", "#5A1A22"], ["#EBA0A8", "#4A141B"], ["#9E2F45", "#FFFFFF"]],
+  sand: [["#FBE7DB", "#5A2E14"], ["#F8C7A4", "#6A3418"], ["#C2652F", "#FFFFFF"]],
+  grau: [["#F0EFF2", "#3B3740"], ["#D3D0D8", "#2E2B33"], ["#6B6670", "#FFFFFF"]]
 };
 export const GENRE_FAMILY: Record<string, keyof typeof FAMILY> = {
   "Fantasy": "lila", "Märchen & Sagen": "lila",
@@ -92,10 +92,16 @@ export function coverColors(seed: string): { bg: string; fg: string } {
   let h = 0;
   for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const palettes = [
-    ["#DDEFFA", "#15303C"], ["#EEE5FD", "#2A1A52"], ["#FCE3EE", "#5A1A36"], ["#FFF4CC", "#5A4200"], ["#DAF2E4", "#0F3D28"],
-    ["#1E7EBE", "#FFFFFF"], ["#6A47B8", "#FFFFFF"], ["#B03A6C", "#FFFFFF"], ["#C98F00", "#FFFFFF"], ["#22825A", "#FFFFFF"],
-    ["#8ACBF1", "#15303C"], ["#C2A7F1", "#2A1A52"], ["#F4A8C7", "#5A1A36"], ["#F5D266", "#5A4200"], ["#8FDCB4", "#0F3D28"]
+    ["#E6EBFB", "#1E2F6E"], ["#ECE9FA", "#2E2470"], ["#FBE6EE", "#5A1E36"], ["#FBF2D6", "#5A4510"], ["#E2F0E6", "#1F4630"],
+    ["#3552C9", "#FFFFFF"], ["#5B45A8", "#FFFFFF"], ["#B23A64", "#FFFFFF"], ["#C2652F", "#FFFFFF"], ["#2F7A5A", "#FFFFFF"],
+    ["#9DB2F2", "#16255A"], ["#B9B3F0", "#241B5C"], ["#F3B0C8", "#5A1E36"], ["#F4E2A0", "#5A4510"], ["#A9D3B5", "#1A3D29"]
   ];
   const [bg, fg] = palettes[h % palettes.length];
   return { bg, fg };
+}
+
+/** Drei Töne (kräftig, mittel, hell) der Genre-Familie, z. B. für die Farbwolke hinter einem Buch ohne Bild. */
+export function familyTones(genre: string | null | undefined): [string, string, string] {
+  const fam = FAMILY[genre ? GENRE_FAMILY[genre] ?? "sand" : "grau"];
+  return [fam[2][0], fam[1][0], fam[0][0]];
 }
