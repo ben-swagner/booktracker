@@ -88,6 +88,13 @@ export default function Regal() {
     });
   }, [entries, keep, cmp, sortSet]);
 
+  const [openF, setOpenF] = useState(false);
+  const [allGenres, setAllGenres] = useState(false);
+  const nActive = (view === "jahre" ? 1 : 0) + (genre ? 1 : 0) + (kind ? 1 : 0);
+  const setRegal = (v: string) => { const p = new URLSearchParams(params); p.delete("jahr"); if (v === "gesamt") p.delete("v"); else { p.set("v", "jahre"); if (v !== "jahre") p.set("jahr", v); } setParams(p, { replace: true }); };
+  const resetAll = () => { const p = new URLSearchParams(params); ["v", "jahr", "genre", "art"].forEach((k) => p.delete(k)); setParams(p, { replace: true }); };
+  const shown = view === "gesamt" ? list.length : (jahr ? years.filter((y) => String(y.year) === jahr) : years).reduce((n, y) => n + y.items.length, 0);
+
   if (isLoading) return <p className="muted">Lade…</p>;
   const pages = list.reduce((s, e) => s + (e.book.pages ?? 0), 0);
 
@@ -99,11 +106,6 @@ export default function Regal() {
           <p className="lede">{view === "gesamt" ? <><strong>{list.length}</strong> Bücher, <strong>{pages.toLocaleString("de-DE")}</strong> Seiten</> : jahr ? <>Dein Lesejahr {jahr}, Brett für Brett.</> : <>Deine Lesejahre, Brett für Brett.</>}</p>
         </div>
         <div className="regal-switches">
-        {look === "ruecken" && (
-          <select className="input regal-color" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe der Buchrücken">
-            <option value="genre">Farbe: Genre</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
-          </select>
-        )}
         <div className="view-switch" role="group" aria-label="Darstellung">
           <button type="button" aria-pressed={look === "ruecken"} onClick={() => setLook("ruecken")} title="Buchrücken"><Icon name="books" size={20} /></button>
           <button type="button" aria-pressed={look === "cover"} onClick={() => setLook("cover")} title="Cover"><Icon name="cover" size={20} /></button>
@@ -111,25 +113,65 @@ export default function Regal() {
         </div>
       </div>
 
-      <div className="toolbar">
-            <div className="tabs" role="tablist">
-              <button className="tab" role="tab" aria-selected={status === "alle"} onClick={() => set("status", "alle")}>Alle</button>
-              {STATUS_ORDER.map((s) => <button key={s} className="tab" role="tab" data-status={s} aria-selected={status === s} onClick={() => set("status", s)}>{STATUS[s]}</button>)}
-            </div>
-            <div className="tools regal-tools">
-              <input className="input search" type="search" placeholder="Suchen" value={q} onChange={(e) => set("q", e.target.value)} />
-              <select className="input" value={view === "jahre" ? (jahr || "jahre") : "gesamt"} aria-label="Regal"
-                onChange={(e) => { const v = e.target.value; const p = new URLSearchParams(params); p.delete("jahr"); if (v === "gesamt") p.delete("v"); else { p.set("v", "jahre"); if (v !== "jahre") p.set("jahr", v); } setParams(p, { replace: true }); }}>
-                <option value="gesamt">Alle Jahre</option>
-                <option value="jahre">Nach Jahr</option>
-                {years.map((y) => <option key={y.year} value={String(y.year)}>{y.year}</option>)}
-              </select>
-              <select className="input" value={genre} onChange={(e) => set("genre", e.target.value)} aria-label="Genre"><option value="">Genre</option>{genres.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
-              <select className="input" value={kind} onChange={(e) => set("art", e.target.value)} aria-label="Art"><option value="">Art</option>{kinds.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
-              <select className="input" value={view === "jahre" && !sortSet ? "" : sort} onChange={(e) => set("sort", e.target.value)} aria-label="Sortierung">
-                {view === "jahre" && <option value="">Wie beendet</option>}<option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Reihe</option><option value="bewertung">Bewertung</option><option value="seiten">Dickste</option><option value="neu">Neu eingetragen</option><option value="beendet">Zuletzt beendet</option>
-              </select>
-            </div>
+      <div className="rf">
+        <div className="rf-row">
+          <div className="tabs" role="tablist">
+            <button className="tab" role="tab" aria-selected={status === "alle"} onClick={() => set("status", "alle")}>Alle</button>
+            {STATUS_ORDER.map((s) => <button key={s} className="tab" role="tab" data-status={s} aria-selected={status === s} onClick={() => set("status", s)}>{STATUS[s]}</button>)}
+          </div>
+          <label className="rf-search"><Icon name="search" size={18} /><input type="search" placeholder="Titel, Autor:in, Reihe" aria-label="Suchen" value={q} onChange={(e) => set("q", e.target.value)} /></label>
+          <select className="input rf-sort" value={view === "jahre" && !sortSet ? "" : sort} onChange={(e) => set("sort", e.target.value)} aria-label="Sortierung">
+            {view === "jahre" && <option value="">Wie beendet</option>}<option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Nach Reihe</option><option value="bewertung">Beste Bewertung</option><option value="seiten">Dickste zuerst</option><option value="neu">Zuletzt eingetragen</option><option value="beendet">Zuletzt beendet</option>
+          </select>
+          <div className="rf-pop-wrap">
+            <button type="button" className="btn primary rf-btn" aria-expanded={openF} onClick={() => setOpenF(!openF)}><Icon name="filter" size={16} /> Filter{nActive > 0 && <span className="rf-count">{nActive}</span>}</button>
+            {openF && (
+              <>
+                <div className="rf-veil" onClick={() => setOpenF(false)} />
+                <div className="rf-pop" role="dialog" aria-label="Filter">
+                  <div className="rf-group"><span className="rf-label">Regal</span>
+                    <div className="rf-chips">
+                      <button type="button" className={"rf-chip" + (view === "gesamt" ? " on" : "")} onClick={() => setRegal("gesamt")}>Ganzes Regal</button>
+                      <button type="button" className={"rf-chip" + (view === "jahre" && !jahr ? " on" : "")} onClick={() => setRegal("jahre")}>Nach Lesejahr</button>
+                      {years.map((y) => <button key={y.year} type="button" className={"rf-chip" + (jahr === String(y.year) ? " on" : "")} onClick={() => setRegal(String(y.year))}>{y.year}</button>)}
+                    </div>
+                  </div>
+                  <div className="rf-group"><span className="rf-label">Genre</span>
+                    <div className="rf-chips">
+                      {(allGenres ? genres : genres.slice(0, 8)).map(([g, n]) => <button key={g} type="button" className={"rf-chip" + (genre === g ? " on" : "")} style={genre === g ? undefined : { background: genreColors(g, g).bg, color: genreColors(g, g).fg }} onClick={() => set("genre", genre === g ? "" : g)}>{g} <small>{n}</small></button>)}
+                      {genres.length > 8 && <button type="button" className="rf-chip more" onClick={() => setAllGenres(!allGenres)}>{allGenres ? "weniger" : `alle ${genres.length} …`}</button>}
+                    </div>
+                  </div>
+                  <div className="rf-split">
+                    <div className="rf-group"><span className="rf-label">Art</span>
+                      <div className="rf-chips">
+                        {kinds.map(([g, n]) => <button key={g} type="button" className={"rf-chip" + (kind === g ? " on" : "")} onClick={() => set("art", kind === g ? "" : g)}>{g} <small>{n}</small></button>)}
+                      </div>
+                    </div>
+                    {look === "ruecken" && (
+                      <div className="rf-group"><span className="rf-label">Farbe der Rücken</span>
+                        <div className="rf-chips">
+                          {([["genre", "Genre"], ["status", "Status"], ["bewertung", "Bewertung"]] as [Color, string][]).map(([c, l]) => <button key={c} type="button" className={"rf-chip" + (color === c ? " on" : "")} onClick={() => setColor(c)}>{l}</button>)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="rf-foot">
+                    <button type="button" className="rf-reset" onClick={resetAll} disabled={!nActive}>Alles zurücksetzen</button>
+                    <button type="button" className="btn primary" onClick={() => setOpenF(false)}>{shown} Bücher zeigen</button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+        {nActive > 0 && (
+          <div className="rf-active">
+            {view === "jahre" && <span className="rf-tag">{jahr ? `Lesejahr ${jahr}` : "Nach Lesejahr"}<button type="button" aria-label="Lesejahr entfernen" onClick={() => setRegal("gesamt")}>×</button></span>}
+            {genre && <span className="rf-tag">{genre}<button type="button" aria-label="Genre entfernen" onClick={() => set("genre", "")}>×</button></span>}
+            {kind && <span className="rf-tag">{kind}<button type="button" aria-label="Art entfernen" onClick={() => set("art", "")}>×</button></span>}
+          </div>
+        )}
       </div>
       {view === "gesamt" ? (
         <>
