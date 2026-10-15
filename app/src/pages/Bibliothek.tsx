@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { isDesktop, useOpenBook } from "../components/openBook";
 import { ContentFilterPanel, activeCount, matches, readFilter, writeFilter, type ContentFilter } from "../components/ContentFilters";
@@ -25,6 +25,12 @@ export default function Bibliothek() {
   const sort = (params.get("sort") ?? "neu") as Sort;
   const view = (localStorage.getItem("bt-view") ?? "karten") as "karten" | "tabelle";
   const [limit, setLimit] = useState(PAGE);
+  // Liste lädt beim Scrollen der ganzen Seite nach (kein eigenes Scrollfeld mehr)
+  useEffect(() => {
+    const onScroll = () => { if (window.innerHeight + window.scrollY > document.documentElement.scrollHeight - 600) setLimit((l) => l + PAGE); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const filter = readFilter(params);
   const nFilters = activeCount(filter);
   const [showFilters, setShowFilters] = useState(nFilters > 0);
@@ -132,10 +138,6 @@ export default function Bibliothek() {
       ) : view === "tabelle" ? (
         <div
           className="panel table-scroll"
-          onScroll={(ev) => {
-            const el = ev.currentTarget;
-            if (limit < list.length && el.scrollTop + el.clientHeight > el.scrollHeight - 400) setLimit(limit + PAGE);
-          }}
         >
           <table className="table book-table">
             <thead><tr><th aria-label="Cover"></th><th>Titel</th><th>Autor:in</th><th>Reihe</th><th>Status</th><th>Bewertung</th><th>Beendet</th><th>Seiten</th></tr></thead>

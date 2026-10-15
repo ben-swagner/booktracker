@@ -4,6 +4,7 @@ import type { Entry, Series } from "../data/types";
 import { seriesNo } from "../lib/stats";
 import { Link } from "../components/Link";
 import { Empty, SeriesNo, StatusPill, authorNames } from "../components/ui";
+import { Icon } from "../components/Icon";
 
 type Group = { series: Series; vols: Entry[]; read: number; owned: number; reading: number; total: number; next?: Entry; authors: string };
 type Filter = "alle" | "dabei" | "fertig" | "offen" | "unvollstaendig";
@@ -13,6 +14,8 @@ export default function Reihen() {
   const [filter, setFilter] = useState<Filter>("alle");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [look, setLookState] = useState<"kacheln" | "liste">(() => { try { return localStorage.getItem("bt-reihen-look") === "liste" ? "liste" : "kacheln"; } catch { return "kacheln"; } });
+  const setLook = (l: "kacheln" | "liste") => { setLookState(l); try { localStorage.setItem("bt-reihen-look", l); } catch { /* egal */ } };
 
   const groups = useMemo(() => {
     const by = new Map<string, Group>();
@@ -68,10 +71,37 @@ export default function Reihen() {
             <button key={f} className="tab" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}>{l}</button>
           ))}
         </div>
-        <div className="tools"><input className="input search" type="search" placeholder="Reihe oder Autor:in" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="tools">
+          <input className="input search" type="search" placeholder="Reihe oder Autor:in" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="view-switch" role="group" aria-label="Darstellung">
+            <button type="button" aria-pressed={look === "kacheln"} onClick={() => setLook("kacheln")} title="Kacheln"><Icon name="grid" size={20} /></button>
+            <button type="button" aria-pressed={look === "liste"} onClick={() => setLook("liste")} title="Liste"><Icon name="list" size={20} /></button>
+          </div>
+        </div>
+      </div>
+      <div className="vol-legend" aria-hidden="true">
+        <span><i className="vs gelesen" />Gelesen</span><span><i className="vs lese" />Am Lesen</span><span><i className="vs owned" />Im Regal</span><span><i className="vs wish" />Wunschliste</span><span><i className="vs" />Fehlt</span>
       </div>
 
-      {list.length === 0 ? <div className="grid"><Empty title="Keine Reihe gefunden" /></div> : (
+      {list.length === 0 ? <div className="grid"><Empty title="Keine Reihe gefunden" /></div> : look === "liste" ? (
+        <div className="panel series-list">
+          {list.map((g) => {
+            const isOpen = open === g.series.id;
+            const complete = g.total > 0 && g.read >= g.total;
+            return (
+              <div key={g.series.id} className={"sl-row" + (isOpen ? " open" : "")}>
+                <button type="button" className="sl-main" onClick={() => setOpen(isOpen ? null : g.series.id)} aria-expanded={isOpen}>
+                  <span className="sl-name"><strong>{g.series.name}</strong><small>{g.authors}{g.series.is_complete === false ? " · läuft noch" : ""}</small></span>
+                  <Spines g={g} small />
+                  <span className="sl-num"><span><strong>{g.read}</strong> von {g.total} gelesen</span><small>{g.owned} im Regal</small></span>
+                  <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>{complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? "Dabei" : "Offen"}</span>
+                </button>
+                {isOpen && <Vols g={g} />}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
         <div className="grid">
           {list.map((g) => {
             const isOpen = open === g.series.id;
@@ -87,34 +117,46 @@ export default function Reihen() {
                     {complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? `${g.read} von ${g.total}` : "Offen"}
                   </span>
                 </div>
-                <div className="dots" aria-label={`${g.read} von ${g.total} gelesen`}>
-                  {Array.from({ length: Math.min(g.total, 60) }, (_, i) => {
-                    const v = g.vols.find((e) => seriesNo(e.book.series_number) === i + 1);
-                    const cls = !v ? "" : v.mine.status === "gelesen" ? "gelesen" : v.mine.status === "lese" ? "lese" : "owned";
-                    return <span key={i} className={"dot " + cls} title={v ? v.book.title : `Band ${i + 1} fehlt`} />;
-                  })}
-                </div>
+                <Spines g={g} />
                 <p className="meta">{g.owned} von {g.total} im Besitz{g.next ? <> · als Nächstes: <strong>{g.next.book.title}</strong></> : null}</p>
                 <div className="actions">
                   <button className="btn small" onClick={() => setOpen(isOpen ? null : g.series.id)}>{isOpen ? "Zuklappen" : g.vols.length === 1 ? "1 Band zeigen" : `${g.vols.length} Bände zeigen`}</button>
                 </div>
-                {isOpen && (
-                  <div>
-                    {g.vols.map((e) => (
-                      <div key={e.mine.id} className="vol-row">
-                        <span className="n">{e.book.series_number ? <SeriesNo n={e.book.series_number} /> : "–"}</span>
-                        <Link to={`/buch/${e.mine.id}`}>{e.book.title}</Link>
-                        <StatusPill status={e.mine.status} />
-                      </div>
-                    ))}
-                    {g.total > g.vols.length && <div className="vol-row missing"><span className="n">…</span><span>{g.total - g.vols.length} Bände noch nicht eingetragen</span><span /></div>}
-                  </div>
-                )}
+                {isOpen && <Vols g={g} />}
               </div>
             );
           })}
         </div>
       )}
     </>
+  );
+}
+
+/** Bände als kleine Buchrücken: gelesen kräftig, am Lesen pfirsich, im Regal zart, fehlend gestrichelt. */
+function Spines({ g, small }: { g: Group; small?: boolean }) {
+  const n = Math.min(g.total, 60);
+  return (
+    <div className={"vol-spines" + (small ? " small" : "")} aria-label={`${g.read} von ${g.total} gelesen, ${g.owned} im Regal`}>
+      {Array.from({ length: n }, (_, i) => {
+        const v = g.vols.find((e) => seriesNo(e.book.series_number) === i + 1);
+        const cls = !v ? "" : v.mine.status === "gelesen" ? "gelesen" : v.mine.status === "lese" ? "lese" : v.mine.status === "wunschliste" || v.mine.owned === false ? "wish" : "owned";
+        return <span key={i} className={"vs " + cls} style={{ height: `${82 + ((i * 37) % 19)}%` }} title={v ? `Band ${i + 1}: ${v.book.title}` : `Band ${i + 1} fehlt`} />;
+      })}
+    </div>
+  );
+}
+
+function Vols({ g }: { g: Group }) {
+  return (
+    <div className="vols">
+      {g.vols.map((e) => (
+        <div key={e.mine.id} className="vol-row">
+          <span className="n">{e.book.series_number ? <SeriesNo n={e.book.series_number} /> : "–"}</span>
+          <Link to={`/buch/${e.mine.id}`}>{e.book.title}</Link>
+          <StatusPill status={e.mine.status} />
+        </div>
+      ))}
+      {g.total > g.vols.length && <div className="vol-row missing"><span className="n">…</span><span>{g.total - g.vols.length} Bände noch nicht eingetragen</span><span /></div>}
+    </div>
   );
 }

@@ -38,7 +38,7 @@ export default function Start() {
       </div>
 
       <section className="section">
-        <div className="section-head"><h2>Gerade dabei</h2>{reading.length > 0 && <span className="muted">{reading.length === 1 ? "1 Buch" : `${reading.length} Bücher`}</span>}</div>
+        <div className="section-head"><h2>Am Lesen</h2>{reading.length > 0 && <span className="muted">{reading.length === 1 ? "1 Buch" : `${reading.length} Bücher`}</span>}</div>
         {reading.length ? (
           <div className="now-grid">{reading.map((e) => <ReadingNowCard key={e.mine.id} e={e} />)}</div>
         ) : (

@@ -498,7 +498,7 @@ export default function Statistik() {
               <Donut items={own.gender.map(([k, n]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : k === "gemischt" ? "Gemischt" : GENDER_COLOR[k]?.label ?? k, value: n, color: k === "gemischt" ? "var(--c6)" : GENDER_COLOR[k]?.band ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
             </Card>
             <Card scope="Gesamt" title="Status" icon="check">
-              <Donut items={own.status.map(([k, n]) => ({ label: STATUS[k as keyof typeof STATUS] ?? k, value: n, color: `var(--${k === "lese" ? "lese" : k === "gelesen" ? "gelesen" : k === "tbr" ? "tbr" : k === "ungelesen" ? "ungelesen" : "abg"})` }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+              <Donut items={own.status.map(([k, n]) => ({ label: STATUS[k as keyof typeof STATUS] ?? k, value: n, color: k === "lese" ? "var(--c8)" : k === "gelesen" ? "var(--c4)" : k === "tbr" ? "var(--c1)" : k === "ungelesen" ? "var(--c0)" : "var(--c2)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
             </Card>
           </div>
           <div className="srow">

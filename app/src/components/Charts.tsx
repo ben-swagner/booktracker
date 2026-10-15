@@ -61,7 +61,10 @@ export function glow(color: string, dir = "0deg") {
   return `linear-gradient(${dir}, ${color}, color-mix(in srgb, ${color} 55%, #F8C7A4) 70%, color-mix(in srgb, ${color} 30%, #FFF4E8))`;
 }
 
-/** Ring-Diagramm mit Legende. Kleine Anteile werden zu „Andere“ zusammengefasst. */
+/**
+ * Anteile (früher Ring-Diagramm): große Zahl, ein breiter, weicher Stapelbalken und eine Legende mit kleinen Balken.
+ * Kleine Anteile werden zu „Andere“ zusammengefasst. Der Name bleibt Donut, damit alle Stellen weiter passen.
+ */
 export function Donut({ items, center, sub, max = 7, compare }: { items: { label: string; value: number; color: string }[]; center?: React.ReactNode; sub?: string; max?: number; compare?: { label: string; value: number }[] }) {
   const [hi, setHi] = useState<number | null>(null);
   let list = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
@@ -70,43 +73,38 @@ export function Donut({ items, center, sub, max = 7, compare }: { items: { label
     list = [...list.slice(0, max - 1), { label: "Andere", value: rest, color: "var(--c0)" }];
   }
   const total = list.reduce((n, x) => n + x.value, 0) || 1;
-  const R = 42, C = 2 * Math.PI * R, GAP = list.length > 1 ? 1.2 : 0;
-  // Vergleich: gleiche Gruppen wie oben, Rest als „Andere“
   const cmpTotal = compare ? compare.reduce((n, x) => n + x.value, 0) || 1 : 1;
   const cmpOf = (label: string) => !compare ? 0 : label === "Andere" ? compare.filter((c) => !list.some((x) => x.label === c.label)).reduce((n, c) => n + c.value, 0) : compare.find((c) => c.label === label)?.value ?? 0;
-  const R2 = 31, C2 = 2 * Math.PI * R2;
-  let acc2 = 0;
-  let acc = 0;
+  const pct = (v: number, t: number) => Math.round((v / t) * 100);
+  const top = list[0];
   return (
-    <div className="ch-donut">
-      <svg viewBox="0 0 100 100" className="ch-donut-svg" role="img" aria-label={list.map((x) => `${x.label} ${Math.round((x.value / total) * 100)} %`).join(", ")}>
-        <circle cx="50" cy="50" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="12" />
-        {compare && list.map((x) => {
-          const len = (cmpOf(x.label) / cmpTotal) * C2;
-          const el = len > 0 ? <circle key={"c" + x.label} cx="50" cy="50" r={R2} fill="none" stroke={x.color} strokeOpacity=".45" strokeWidth="5" strokeDasharray={`${Math.max(0.3, len - 0.8)} ${C2}`} strokeDashoffset={-acc2} transform="rotate(-90 50 50)"><title>{`Vergleich ${x.label}: ${fmtN(cmpOf(x.label))}`}</title></circle> : null;
-          acc2 += len;
-          return el;
-        })}
-        {list.map((x, i) => {
-          const len = (x.value / total) * C;
-          const el = (
-            <circle key={x.label} cx="50" cy="50" r={R} fill="none" stroke={x.color} strokeWidth={hi === i ? 15 : 12}
-              strokeDasharray={`${Math.max(0.5, len - GAP)} ${C}`} strokeDashoffset={-acc} transform="rotate(-90 50 50)"
-              onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} style={{ transition: "stroke-width .15s" }}>
-              <title>{`${x.label}: ${fmtN(x.value)} (${Math.round((x.value / total) * 100)} %)`}</title>
-            </circle>
-          );
-          acc += len;
-          return el;
-        })}
-      </svg>
-      <div className="ch-donut-center">
-        {hi != null ? <><strong>{Math.round((list[hi].value / total) * 100)} %</strong><span>{list[hi].label}</span></> : <>{center}{sub && <span>{sub}</span>}</>}
+    <div className="ch-share" onMouseLeave={() => setHi(null)}>
+      <div className="ch-share-head">
+        <div className="ch-share-total">{center}{sub && <span>{sub}</span>}</div>
+        {(hi != null ? list[hi] : top) && (
+          <div className="ch-share-pick">
+            <strong>{pct((hi != null ? list[hi] : top).value, total)} %</strong>
+            <span>{(hi != null ? list[hi] : top).label}</span>
+          </div>
+        )}
       </div>
-      <ul className="ch-legend">
+      <div className="ch-share-bar" role="img" aria-label={list.map((x) => `${x.label} ${pct(x.value, total)} %`).join(", ")}>
         {list.map((x, i) => (
-          <li key={x.label} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} className={hi === i ? "hi" : ""}>
-            <i style={{ background: x.color }} /><span>{x.label}</span><b>{Math.round((x.value / total) * 100)} %{compare ? <small className="ch-cmpval"> · {Math.round((cmpOf(x.label) / cmpTotal) * 100)} %</small> : null}</b>
+          <div key={x.label} className={hi === i ? "hi" : hi != null ? "dim" : ""} style={{ flex: x.value, background: glow(x.color, "270deg") }}
+            onMouseEnter={() => setHi(i)} onClick={() => setHi(i)} title={`${x.label}: ${fmtN(x.value)} (${pct(x.value, total)} %)`} />
+        ))}
+      </div>
+      {compare && (
+        <div className="ch-share-bar cmp" title="Vergleich">
+          {list.map((x) => <div key={x.label} style={{ flex: cmpOf(x.label), background: x.color }} />)}
+        </div>
+      )}
+      <ul className="ch-share-legend">
+        {list.map((x, i) => (
+          <li key={x.label} onMouseEnter={() => setHi(i)} className={hi === i ? "hi" : ""}>
+            <i style={{ background: glow(x.color, "135deg") }} />
+            <span>{x.label}</span>
+            <b>{pct(x.value, total)} %{compare ? <small className="ch-cmpval"> · {pct(cmpOf(x.label), cmpTotal)} %</small> : null}</b>
           </li>
         ))}
       </ul>
