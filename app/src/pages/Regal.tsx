@@ -99,6 +99,11 @@ export default function Regal() {
           <p className="lede">{view === "gesamt" ? <><strong>{list.length}</strong> Bücher, <strong>{pages.toLocaleString("de-DE")}</strong> Seiten</> : jahr ? <>Dein Lesejahr {jahr}, Brett für Brett.</> : <>Deine Lesejahre, Brett für Brett.</>}</p>
         </div>
         <div className="regal-switches">
+        {look === "ruecken" && (
+          <select className="input regal-color" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe der Buchrücken">
+            <option value="genre">Farbe: Genre</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
+          </select>
+        )}
         <div className="view-switch" role="group" aria-label="Darstellung">
           <button type="button" aria-pressed={look === "ruecken"} onClick={() => setLook("ruecken")} title="Buchrücken"><Icon name="books" size={20} /></button>
           <button type="button" aria-pressed={look === "cover"} onClick={() => setLook("cover")} title="Cover"><Icon name="cover" size={20} /></button>
@@ -111,24 +116,19 @@ export default function Regal() {
               <button className="tab" role="tab" aria-selected={status === "alle"} onClick={() => set("status", "alle")}>Alle</button>
               {STATUS_ORDER.map((s) => <button key={s} className="tab" role="tab" data-status={s} aria-selected={status === s} onClick={() => set("status", s)}>{STATUS[s]}</button>)}
             </div>
-            <div className="tools">
-              <input className="input search" type="search" placeholder="Titel, Autor:in, Reihe" value={q} onChange={(e) => set("q", e.target.value)} />
+            <div className="tools regal-tools">
+              <input className="input search" type="search" placeholder="Suchen" value={q} onChange={(e) => set("q", e.target.value)} />
               <select className="input" value={view === "jahre" ? (jahr || "jahre") : "gesamt"} aria-label="Regal"
                 onChange={(e) => { const v = e.target.value; const p = new URLSearchParams(params); p.delete("jahr"); if (v === "gesamt") p.delete("v"); else { p.set("v", "jahre"); if (v !== "jahre") p.set("jahr", v); } setParams(p, { replace: true }); }}>
-                <option value="gesamt">Ganzes Regal</option>
-                <option value="jahre">Nach Lesejahr</option>
-                {years.map((y) => <option key={y.year} value={String(y.year)}>Lesejahr {y.year}</option>)}
+                <option value="gesamt">Alle Jahre</option>
+                <option value="jahre">Nach Jahr</option>
+                {years.map((y) => <option key={y.year} value={String(y.year)}>{y.year}</option>)}
               </select>
-              <select className="input" value={genre} onChange={(e) => set("genre", e.target.value)} aria-label="Genre"><option value="">Alle Genres</option>{genres.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
-              <select className="input" value={kind} onChange={(e) => set("art", e.target.value)} aria-label="Art"><option value="">Alle Arten</option>{kinds.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
+              <select className="input" value={genre} onChange={(e) => set("genre", e.target.value)} aria-label="Genre"><option value="">Genre</option>{genres.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
+              <select className="input" value={kind} onChange={(e) => set("art", e.target.value)} aria-label="Art"><option value="">Art</option>{kinds.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}</select>
               <select className="input" value={view === "jahre" && !sortSet ? "" : sort} onChange={(e) => set("sort", e.target.value)} aria-label="Sortierung">
-                {view === "jahre" && <option value="">Reihenfolge: wie beendet</option>}<option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Nach Reihe</option><option value="bewertung">Beste Bewertung</option><option value="seiten">Dickste zuerst</option><option value="neu">Zuletzt eingetragen</option><option value="beendet">Zuletzt beendet</option>
+                {view === "jahre" && <option value="">Wie beendet</option>}<option value="titel">Titel A-Z</option><option value="autor">Autor:in A-Z</option><option value="reihe">Reihe</option><option value="bewertung">Bewertung</option><option value="seiten">Dickste</option><option value="neu">Neu eingetragen</option><option value="beendet">Zuletzt beendet</option>
               </select>
-              {look === "ruecken" && (
-                <select className="input" value={color} onChange={(e) => setColor(e.target.value as Color)} aria-label="Farbe">
-                  <option value="genre">Farbe: Genre</option><option value="status">Farbe: Status</option><option value="bewertung">Farbe: Bewertung</option>
-                </select>
-              )}
             </div>
       </div>
       {view === "gesamt" ? (

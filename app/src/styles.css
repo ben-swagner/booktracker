@@ -1610,3 +1610,12 @@ body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-e
 .nav { padding-inline: 16px; }
 .nav-inner { max-width: calc(1200px - 32px); }
 @media (min-width: 720px) { .nav { padding-inline: 28px; } .nav-inner { max-width: calc(1200px - 56px); } }
+
+/* Regal: Filter in einer Reihe, Farbe oben neben dem Umschalter */
+.regal-switches .regal-color { width: auto; height: 44px; border-radius: 999px; border-color: transparent; box-shadow: var(--shadow); padding-block: 0; }
+@media (min-width: 761px) {
+  .regal-tools { flex-wrap: nowrap; }
+  .regal-tools .search { flex: 1 1 200px; min-width: 140px; }
+  .regal-tools select.input { flex: 0 1 auto; min-width: 0; max-width: 220px; }
+}
+@media (max-width: 760px) { .regal-tools select.input { flex: 1 1 calc(50% - 5px); } }
