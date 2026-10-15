@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Author, Entry } from "../data/types";
 import { data } from "../data";
 import { useEntries, useSaveAuthor } from "../data/hooks";
-import { cachedAuthorPhoto, findAuthorPhoto } from "../lib/authorPhotos";
+import { NO_PHOTO, cachedAuthorPhoto, findAuthorPhoto, loadSheetPhotos, sheetPhotoFor, shrinkPhotoFile } from "../lib/authorPhotos";
+import { createPortal } from "react-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Cover, SeriesNo, Stars, StatusPill } from "./ui";
 import { isDesktop, useOpenBook } from "./openBook";
 import { Icon } from "./Icon";
@@ -49,15 +51,16 @@ const initials = (name: string) => name.split(/\s+/).filter((w) => /^[A-Za-zÀ-�
 
 /** Rundes Foto der Autor:in. Fehlt ein Foto, wird es gesucht, sobald das Bild sichtbar wird; sonst Initialen. */
 export function AuthorPhoto({ author, size = 64 }: { author: Author; size?: number }) {
-  const [src, setSrc] = useState<string | null>(author.photo_url ?? cachedAuthorPhoto(author.name) ?? null);
+  const none = author.photo_url === NO_PHOTO;
+  const [src, setSrc] = useState<string | null>(none ? null : author.photo_url ?? cachedAuthorPhoto(author.name) ?? null);
   const ref = useRef<HTMLDivElement>(null);
   const gc = genderColor(author.gender);
   const c = { bg: gc.soft, fg: gc.fg };
   // neues gespeichertes Foto (z. B. aus der alten Tabelle) sofort zeigen
-  useEffect(() => { if (author.photo_url) setSrc(author.photo_url); }, [author.photo_url]);
+  useEffect(() => { if (author.photo_url) setSrc(author.photo_url === NO_PHOTO ? null : author.photo_url); }, [author.photo_url]);
 
   useEffect(() => {
-    if (src || author.photo_url || cachedAuthorPhoto(author.name) !== undefined) return;
+    if (src || none || author.photo_url || cachedAuthorPhoto(author.name) !== undefined) return;
     const el = ref.current;
     if (!el) return;
     let alive = true;
@@ -72,7 +75,7 @@ export function AuthorPhoto({ author, size = 64 }: { author: Author; size?: numb
     }, { rootMargin: "200px" });
     io.observe(el);
     return () => { alive = false; io.disconnect(); };
-  }, [author.id, author.name, author.photo_url, src]);
+  }, [author.id, author.name, author.photo_url, src, none]);
 
   return (
     <div ref={ref} className="aphoto" style={{ width: size, height: size, background: c.bg, color: c.fg, fontSize: size * 0.34 }} aria-hidden="true">
@@ -132,6 +135,7 @@ export function AuthorModal() {
   const { entries } = useEntries();
   const openBook = useOpenBook();
   const saveAuthor = useSaveAuthor();
+  const [pickPhoto, setPickPhoto] = useState(false);
   const r = useMemo(() => (slug ? authorRows(entries.filter((e) => e.authors.some((a) => a.slug === slug))).find((x) => x.author.slug === slug) : undefined), [entries, slug]);
 
   const close = () => {
@@ -153,13 +157,18 @@ export function AuthorModal() {
 
   if (!slug) return null;
   return (
+    <>
+    {pickPhoto && r && <AuthorPhotoPicker author={r.author} onClose={() => setPickPhoto(false)} />}
     <div className="bm-backdrop" style={bookOpen ? { visibility: "hidden" } : undefined} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div className="bm am" role="dialog" aria-modal="true" aria-label="Autor:in">
         <button className="bm-close" onClick={close} aria-label="Schließen" title="Schließen (Esc)">×</button>
         {!r ? <p className="muted">Diese Autor:in steht nicht in deinem Regal.</p> : (
           <>
             <header className="am-head" style={{ ["--ac" as any]: genderColor(r.author.gender).band }}>
-              <AuthorPhoto author={r.author} size={120} />
+              <div className="am-photo">
+                <AuthorPhoto author={r.author} size={120} />
+                <button type="button" className="btn small ghost" onClick={() => setPickPhoto(true)}><Icon name="camera" size={15} /> Foto ändern</button>
+              </div>
               <div className="am-id">
                 <h2>{r.author.name}</h2>
                 <div className="am-meta">
@@ -198,5 +207,70 @@ export function AuthorModal() {
         )}
       </div>
     </div>
+    </>
+  );
+}
+
+/** Fenster zum Ändern des Fotos einer Autor:in: hochladen, aus der alten Tabelle, Link oder löschen. */
+function AuthorPhotoPicker({ author, onClose }: { author: Author; onClose: () => void }) {
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [own, setOwn] = useState("");
+  const [sheet, setSheet] = useState<string | null>(null);
+  const current = author.photo_url && author.photo_url !== NO_PHOTO ? author.photo_url : null;
+  useEffect(() => { loadSheetPhotos().then((l) => setSheet(sheetPhotoFor(l, author.name))); }, [author.name]);
+
+  async function pick(url: string) {
+    setBusy(true);
+    try {
+      await data.saveAuthorPhoto(author.id, url);
+      await qc.invalidateQueries({ queryKey: ["library"] });
+      onClose();
+    } finally { setBusy(false); }
+  }
+  async function upload(f?: File) {
+    if (!f) return;
+    setErr(null);
+    try { await pick(await shrinkPhotoFile(f)); }
+    catch { setErr("Das Bild konnte nicht gelesen werden. Probier ein JPG oder PNG."); }
+  }
+
+  return createPortal(
+    <div className="modal-bg cover-picker-bg" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Foto ändern">
+        <div className="section-head" style={{ marginBottom: 0 }}>
+          <h2 style={{ margin: 0 }}>Foto von {author.name}</h2>
+          <button className="btn ghost small" onClick={onClose}>Schließen</button>
+        </div>
+        {current && <img src={current} alt="" className="ap-current" />}
+
+        <h3 style={{ margin: 0 }}>Eigenes Foto hochladen</h3>
+        <p className="muted" style={{ margin: 0 }}>Bild aus deinen Dateien oder ein Foto wählen. Es wird quadratisch zugeschnitten und verkleinert.</p>
+        <div className="actions">
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => upload(e.target.files?.[0])} />
+          <button className="btn primary" disabled={busy} onClick={() => fileRef.current?.click()}>Bild hochladen</button>
+          {err && <span className="muted">{err}</span>}
+        </div>
+
+        {sheet && sheet !== current && (
+          <>
+            <h3 style={{ margin: 0 }}>Aus deiner alten Tabelle</h3>
+            <button type="button" className="ap-choice" disabled={busy} onClick={() => pick(sheet)}><img src={sheet} alt="" /><span>Dieses Foto nehmen</span></button>
+          </>
+        )}
+
+        <h3 style={{ margin: 0 }}>Bild-Link einfügen</h3>
+        <div className="actions" style={{ flexWrap: "nowrap" }}>
+          <input className="input" style={{ flex: 1 }} type="url" placeholder="https://…" value={own} onChange={(e) => setOwn(e.target.value)} />
+          <button className="btn primary" disabled={!own.trim() || busy} onClick={() => pick(own.trim())}>Übernehmen</button>
+        </div>
+
+        <h3 style={{ margin: 0 }}>Foto entfernen</h3>
+        <div className="actions"><button className="btn danger" disabled={busy || !current} onClick={() => pick(NO_PHOTO)}>{current ? "Foto löschen, Initialen zeigen" : "Zeigt schon die Initialen"}</button></div>
+      </div>
+    </div>,
+    document.body
   );
 }

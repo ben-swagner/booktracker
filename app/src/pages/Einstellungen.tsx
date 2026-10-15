@@ -61,6 +61,8 @@ export default function Einstellungen() {
   const allAuthors = [...new Map(entries.flatMap((e) => e.authors).map((a) => [a.id, a])).values()];
   const photoJobs = !photoList ? [] : allAuthors.flatMap((a) => {
     const url = sheetPhotoFor(photoList, a.name);
+    // selbst hochgeladene oder bewusst gelöschte Fotos bleiben unangetastet
+    if (a.photo_url === "none" || a.photo_url?.startsWith("data:")) return [];
     return url && a.photo_url !== url ? [{ id: a.id, url }] : [];
   });
   const photoDone = allAuthors.filter((a) => isSheetPhoto(a.photo_url)).length;
@@ -193,7 +195,7 @@ export default function Einstellungen() {
         </div>
         {(photoJobs.length > 0 || photoDone > 0) && (
           <div className="sheet-covers">
-            <p style={{ margin: 0 }}><strong>Fotos der Autor:innen aus deiner alten Tabelle:</strong> {photoDone} übernommen{photoJobs.length ? <>, <strong>{photoJobs.length}</strong> können noch übernommen werden. Sie ersetzen die Fotos, die die App selbst gesucht hat.</> : ", alles erledigt."}</p>
+            <p style={{ margin: 0 }}><strong>Fotos der Autor:innen aus deiner alten Tabelle:</strong> {photoDone} übernommen{photoJobs.length ? <>, <strong>{photoJobs.length}</strong> können noch übernommen werden. Sie ersetzen die Fotos, die die App selbst gesucht hat. Selbst hochgeladene oder gelöschte Fotos bleiben.</> : ", alles erledigt."}</p>
             {photoMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{photoMsg}</p>}
             {photoJobs.length > 0 && <div className="actions"><button className="btn primary" onClick={applySheetPhotos} disabled={coverRunning}>{coverRunning ? "Läuft…" : `${photoJobs.length} Fotos übernehmen`}</button></div>}
           </div>

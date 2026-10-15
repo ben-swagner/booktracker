@@ -94,3 +94,29 @@ export function sheetPhotoFor(list: SheetPhoto[], name: string): string | null {
   return hit ? `/authors/sheet/${hit.f}` : null;
 }
 export const isSheetPhoto = (url?: string | null) => !!url && url.startsWith("/authors/sheet/");
+
+/** Merker „bewusst kein Foto“: dann zeigt die App Initialen und sucht nicht selbst. */
+export const NO_PHOTO = "none";
+
+/** Foto quadratisch zuschneiden (oben etwas mehr behalten, dort ist meist das Gesicht) und verkleinern. */
+export async function shrinkPhotoFile(file: File, size = 320): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("Bild konnte nicht gelesen werden"));
+      i.src = url;
+    });
+    const s = Math.min(img.naturalWidth, img.naturalHeight);
+    const sx = (img.naturalWidth - s) / 2, sy = (img.naturalHeight - s) * 0.2;
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+    return c.toDataURL("image/jpeg", 0.85);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
