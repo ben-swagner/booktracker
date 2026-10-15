@@ -87,14 +87,13 @@ export default function Reihen() {
         <div className="panel series-list">
           {list.map((g) => {
             const isOpen = open === g.series.id;
-            const complete = g.total > 0 && g.read >= g.total;
             return (
               <div key={g.series.id} className={"sl-row" + (isOpen ? " open" : "")}>
                 <button type="button" className="sl-main" onClick={() => setOpen(isOpen ? null : g.series.id)} aria-expanded={isOpen}>
                   <span className="sl-name"><strong>{g.series.name}</strong><small>{g.authors}{g.series.is_complete === false ? " · läuft noch" : ""}</small></span>
                   <Spines g={g} small />
                   <span className="sl-num"><span><strong>{g.read}</strong> von {g.total} gelesen</span><small>{g.owned} im Regal</small></span>
-                  <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>{complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? "Dabei" : "Offen"}</span>
+                  <StatePill g={g} />
                 </button>
                 {isOpen && <Vols g={g} />}
               </div>
@@ -113,12 +112,11 @@ export default function Reihen() {
                     <h3>{g.series.name}</h3>
                     <p className="meta">{g.authors}{g.series.kind ? ` · ${g.series.kind}` : ""}{g.series.is_complete === false ? " · läuft noch" : ""}</p>
                   </div>
-                  <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>
-                    {complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? `${g.read} von ${g.total}` : "Offen"}
-                  </span>
+                  <StatePill g={g} />
                 </div>
                 <Spines g={g} />
-                <p className="meta">{g.owned} von {g.total} im Besitz{g.next ? <> · als Nächstes: <strong>{g.next.book.title}</strong></> : null}</p>
+                <p className="series-stats"><span><strong>{g.read}</strong> von {g.total} gelesen</span><span><strong>{g.owned}</strong> im Regal</span></p>
+                <p className="series-next">{g.next ? <>Als Nächstes: <strong>{g.next.book.title}</strong></> : complete ? "Alle Bände gelesen" : "Kein ungelesener Band im Regal"}</p>
                 <div className="actions">
                   <button className="btn small" onClick={() => setOpen(isOpen ? null : g.series.id)}>{isOpen ? "Zuklappen" : g.vols.length === 1 ? "1 Band zeigen" : `${g.vols.length} Bände zeigen`}</button>
                 </div>
@@ -159,4 +157,10 @@ function Vols({ g }: { g: Group }) {
       {g.total > g.vols.length && <div className="vol-row missing"><span className="n">…</span><span>{g.total - g.vols.length} Bände noch nicht eingetragen</span><span /></div>}
     </div>
   );
+}
+
+/** Ein Zustand pro Reihe, überall gleich: Durch, Am Lesen, Dabei oder Offen. */
+function StatePill({ g }: { g: Group }) {
+  const complete = g.total > 0 && g.read >= g.total;
+  return <span className={"pill " + (complete ? "st-gelesen" : g.reading ? "st-lese" : g.read ? "st-tbr" : "st-ungelesen")}>{complete ? "Durch" : g.reading ? "Am Lesen" : g.read ? "Dabei" : "Offen"}</span>;
 }

@@ -419,7 +419,7 @@ export default function Statistik() {
       {tab === "inhalte" && (
         <div className="scards">
           <div className="srow">
-          <Card scope={pick("c14")} title="Genres" icon="layers"><Donut items={S("c14").genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} compare={K("c14")?.genres.map(([label, value]) => ({ label, value }))} center={<strong>{S("c14").books.length}</strong>} sub="Bücher" /></Card>
+          <Card scope={pick("c14")} title="Genres" icon="layers"><Donut ring items={S("c14").genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} compare={K("c14")?.genres.map(([label, value]) => ({ label, value }))} center={<strong>{S("c14").books.length}</strong>} sub="Bücher" /></Card>
           <Card scope={pick("c15")} title="Untergenres" icon="layers"><BarList items={S("c15").subgenres.map(([k, n]) => ({ label: k, value: n, cmp: cm("c15", K("c15")?.subgenres, k) }))} color="var(--c1)" /></Card>
           </div>
           {s.tropes.length > 0 && (
@@ -490,7 +490,7 @@ export default function Statistik() {
               <Donut items={own.media.map(([k, n], i) => ({ label: k === "Audiobook" ? "Hörbuch" : k, value: n, color: ["var(--c3)", "var(--c1)", "var(--c5)", "var(--c4)"][i] ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
             </Card>
             <Card scope="Gesamt" title="Format" icon="books">
-              <Donut items={own.formats.map(([k, n], i) => ({ label: k, value: n, color: ["var(--c6)", "var(--c2)", "var(--c5)", "var(--c1)", "var(--c4)", "var(--c3)"][i] ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+              <Donut ring items={own.formats.map(([k, n], i) => ({ label: k, value: n, color: ["var(--c6)", "var(--c2)", "var(--c5)", "var(--c1)", "var(--c4)", "var(--c3)"][i] ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
             </Card>
           </div>
           <div className="srow">
@@ -498,12 +498,12 @@ export default function Statistik() {
               <Donut items={own.gender.map(([k, n]) => ({ label: k === "unbekannt" ? "Ohne Angabe" : k === "gemischt" ? "Gemischt" : GENDER_COLOR[k]?.label ?? k, value: n, color: k === "gemischt" ? "var(--c6)" : GENDER_COLOR[k]?.band ?? "var(--c0)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
             </Card>
             <Card scope="Gesamt" title="Status" icon="check">
-              <Donut items={own.status.map(([k, n]) => ({ label: STATUS[k as keyof typeof STATUS] ?? k, value: n, color: k === "lese" ? "var(--c8)" : k === "gelesen" ? "var(--c4)" : k === "tbr" ? "var(--c1)" : k === "ungelesen" ? "var(--c0)" : "var(--c2)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
+              <Donut ring items={own.status.map(([k, n]) => ({ label: STATUS[k as keyof typeof STATUS] ?? k, value: n, color: k === "lese" ? "var(--c8)" : k === "gelesen" ? "var(--c4)" : k === "tbr" ? "var(--c1)" : k === "ungelesen" ? "var(--c0)" : "var(--c2)" }))} center={<strong>{fmtN(own.books.length)}</strong>} sub="Bücher" />
             </Card>
           </div>
           <div className="srow">
             <Card scope="Gesamt" title="Genres" icon="layers">
-              <Donut items={own.genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} center={<strong>{own.genres.length}</strong>} sub="Genres" />
+              <Donut ring items={own.genres.map(([k, n]) => ({ label: k, value: n, color: genreColor(k) }))} center={<strong>{own.genres.length}</strong>} sub="Genres" />
             </Card>
             <Card scope="Gesamt" title="Art" icon="book"><BarList items={own.kinds.map(([k, n]) => ({ label: k, value: n }))} color="var(--c1)" /></Card>
           </div>

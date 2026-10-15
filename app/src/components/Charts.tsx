@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Icon, type IconName } from "./Icon";
 import { useWidth } from "./ui";
 
@@ -65,7 +65,7 @@ export function glow(color: string, dir = "0deg") {
  * Anteile (früher Ring-Diagramm): große Zahl, ein breiter, weicher Stapelbalken und eine Legende mit kleinen Balken.
  * Kleine Anteile werden zu „Andere“ zusammengefasst. Der Name bleibt Donut, damit alle Stellen weiter passen.
  */
-export function Donut({ items, center, sub, max = 7, compare }: { items: { label: string; value: number; color: string }[]; center?: React.ReactNode; sub?: string; max?: number; compare?: { label: string; value: number }[] }) {
+export function Donut({ items, center, sub, max = 7, compare, ring }: { items: { label: string; value: number; color: string }[]; center?: React.ReactNode; sub?: string; max?: number; compare?: { label: string; value: number }[]; ring?: boolean }) {
   const [hi, setHi] = useState<number | null>(null);
   let list = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
   if (list.length > max) {
@@ -77,6 +77,55 @@ export function Donut({ items, center, sub, max = 7, compare }: { items: { label
   const cmpOf = (label: string) => !compare ? 0 : label === "Andere" ? compare.filter((c) => !list.some((x) => x.label === c.label)).reduce((n, c) => n + c.value, 0) : compare.find((c) => c.label === label)?.value ?? 0;
   const pct = (v: number, t: number) => Math.round((v / t) * 100);
   const top = list[0];
+  const uid = useId().replace(/:/g, "");
+  if (ring) {
+    // Ring im neuen Stil: dicke, runde Segmente mit Verlauf und kleinen Lücken, Zahl in der Mitte
+    const R = 40, C = 2 * Math.PI * R, GAP = list.length > 1 ? 3.2 : 0;
+    let acc = 0;
+    const cur = hi != null ? list[hi] : null;
+    return (
+      <div className="ch-ring" onMouseLeave={() => setHi(null)}>
+        <div className="ch-ring-wrap">
+          <svg viewBox="0 0 100 100" className="ch-ring-svg" role="img" aria-label={list.map((x) => `${x.label} ${pct(x.value, total)} %`).join(", ")}>
+            <defs>
+              {list.map((x, i) => (
+                <linearGradient key={i} id={`rg${uid}-${i}`} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" style={{ stopColor: `color-mix(in srgb, ${x.color} 45%, #FFF4E8)` }} />
+                  <stop offset="1" style={{ stopColor: x.color }} />
+                </linearGradient>
+              ))}
+            </defs>
+            <circle cx="50" cy="50" r={R} fill="none" className="ch-ring-track" strokeWidth="13" />
+            {list.map((x, i) => {
+              const len = (x.value / total) * C;
+              const el = (
+                <circle key={x.label} cx="50" cy="50" r={R} fill="none" stroke={`url(#rg${uid}-${i})`} strokeWidth={hi === i ? 16 : 13} strokeLinecap={len > GAP + 2 ? "round" : "butt"}
+                  strokeDasharray={`${Math.max(0.6, len - GAP)} ${C}`} strokeDashoffset={-(acc + GAP / 2)} transform="rotate(-90 50 50)"
+                  opacity={hi != null && hi !== i ? 0.4 : 1}
+                  onMouseEnter={() => setHi(i)} onClick={() => setHi(i)} style={{ transition: "stroke-width .15s, opacity .15s" }}>
+                  <title>{`${x.label}: ${fmtN(x.value)} (${pct(x.value, total)} %)`}</title>
+                </circle>
+              );
+              acc += len;
+              return el;
+            })}
+          </svg>
+          <div className="ch-ring-center">
+            {cur ? <><strong>{pct(cur.value, total)} %</strong><span>{cur.label}</span></> : <>{center}{sub && <span>{sub}</span>}</>}
+          </div>
+        </div>
+        <ul className="ch-share-legend col">
+          {list.map((x, i) => (
+            <li key={x.label} onMouseEnter={() => setHi(i)} className={hi === i ? "hi" : ""}>
+              <i style={{ background: glow(x.color, "135deg") }} />
+              <span>{x.label}</span>
+              <b>{pct(x.value, total)} %{compare ? <small className="ch-cmpval"> · {pct(cmpOf(x.label), cmpTotal)} %</small> : null}</b>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
   return (
     <div className="ch-share" onMouseLeave={() => setHi(null)}>
       <div className="ch-share-head">
