@@ -79,3 +79,18 @@ export async function findAuthorPhoto(name: string): Promise<string | null> {
     release();
   }
 }
+
+/** Fotos aus der alten Tabelle (mit der App ausgeliefert unter /authors/sheet/). */
+export type SheetPhoto = { n: string; f: string };
+let sheetPhotos: Promise<SheetPhoto[]> | null = null;
+export function loadSheetPhotos(): Promise<SheetPhoto[]> {
+  if (!sheetPhotos) sheetPhotos = fetch("/authors/sheet/index.json").then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  return sheetPhotos;
+}
+const nameKey = (s: string) => s.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+export function sheetPhotoFor(list: SheetPhoto[], name: string): string | null {
+  const k = nameKey(name);
+  const hit = list.find((x) => nameKey(x.n) === k);
+  return hit ? `/authors/sheet/${hit.f}` : null;
+}
+export const isSheetPhoto = (url?: string | null) => !!url && url.startsWith("/authors/sheet/");

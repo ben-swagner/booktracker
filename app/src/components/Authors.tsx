@@ -53,6 +53,8 @@ export function AuthorPhoto({ author, size = 64 }: { author: Author; size?: numb
   const ref = useRef<HTMLDivElement>(null);
   const gc = genderColor(author.gender);
   const c = { bg: gc.soft, fg: gc.fg };
+  // neues gespeichertes Foto (z. B. aus der alten Tabelle) sofort zeigen
+  useEffect(() => { if (author.photo_url) setSrc(author.photo_url); }, [author.photo_url]);
 
   useEffect(() => {
     if (src || author.photo_url || cachedAuthorPhoto(author.name) !== undefined) return;

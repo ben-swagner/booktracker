@@ -46,6 +46,8 @@ export interface DataProvider {
   saveCovers(list: { id: string; url: string | null }[], onProgress?: (done: number) => void): Promise<number>;
   /** Foto-Adresse an einer Autor:in merken (gemeinsame Buchdaten). */
   saveAuthorPhoto(authorId: string, url: string): Promise<void>;
+  /** Viele Autor:innen-Fotos auf einmal speichern; gibt die Zahl der Fehler zurück. */
+  saveAuthorPhotos(list: { id: string; url: string }[], onProgress?: (done: number) => void): Promise<number>;
   /** Angaben einer Autor:in ändern (z. B. Geschlecht, Land). */
   saveAuthor(authorId: string, fields: { gender?: string | null; country?: string | null }): Promise<void>;
   /** Übernimmt einen kompletten Datenbestand (z. B. aus dem Sheet) in das Konto der Person. */

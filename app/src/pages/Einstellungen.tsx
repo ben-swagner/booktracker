@@ -6,6 +6,7 @@ import { clearLibraryCache, useEntries, useUser } from "../data/hooks";
 import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
+import { isSheetPhoto, loadSheetPhotos, sheetPhotoFor, type SheetPhoto } from "../lib/authorPhotos";
 import { NO_COVER, coverRun, isGuessedCover, isSheetCover, loadSheetCovers, sheetCoverFor, type SheetCover } from "../lib/covers";
 
 // Der Sheet-Import gehört nur zum Konto, aus dem das Sheet stammt.
@@ -50,6 +51,25 @@ export default function Einstellungen() {
     setCoverMsg(`Starte: ${jobs.length} Cover…`);
     const errors = await data.saveCovers(jobs, (n) => setCoverMsg(`${n} von ${jobs.length} Covern aus der Tabelle übernommen…`));
     setCoverMsg(errors ? `Fertig, aber ${errors} Cover konnten nicht gespeichert werden. Einfach noch einmal tippen.` : `Fertig: ${jobs.length} Cover aus deiner alten Tabelle übernommen.`);
+    setCoverRunning(false);
+    await qc.invalidateQueries({ queryKey: ["library"] });
+  }
+  // Autor:innen-Fotos aus der alten Tabelle
+  const [photoList, setPhotoList] = useState<SheetPhoto[] | null>(null);
+  const [photoMsg, setPhotoMsg] = useState<string | null>(null);
+  useEffect(() => { loadSheetPhotos().then(setPhotoList); }, []);
+  const allAuthors = [...new Map(entries.flatMap((e) => e.authors).map((a) => [a.id, a])).values()];
+  const photoJobs = !photoList ? [] : allAuthors.flatMap((a) => {
+    const url = sheetPhotoFor(photoList, a.name);
+    return url && a.photo_url !== url ? [{ id: a.id, url }] : [];
+  });
+  const photoDone = allAuthors.filter((a) => isSheetPhoto(a.photo_url)).length;
+  async function applySheetPhotos() {
+    if (!photoJobs.length) return;
+    setCoverRunning(true);
+    setPhotoMsg(`Starte: ${photoJobs.length} Fotos…`);
+    const errors = await data.saveAuthorPhotos(photoJobs, (n) => setPhotoMsg(`${n} von ${photoJobs.length} Fotos übernommen…`));
+    setPhotoMsg(errors ? `Fertig, aber ${errors} Fotos konnten nicht gespeichert werden. Einfach noch einmal tippen.` : `Fertig: ${photoJobs.length} Fotos aus deiner alten Tabelle übernommen.`);
     setCoverRunning(false);
     await qc.invalidateQueries({ queryKey: ["library"] });
   }
@@ -171,6 +191,13 @@ export default function Einstellungen() {
           <button className="btn" onClick={() => runCovers("fehlend")} disabled={coverRunning}>Fehlende Cover suchen</button>
           {coverRunning && <button className="btn" onClick={() => { stopRef.current = true; }}>Anhalten</button>}
         </div>
+        {(photoJobs.length > 0 || photoDone > 0) && (
+          <div className="sheet-covers">
+            <p style={{ margin: 0 }}><strong>Fotos der Autor:innen aus deiner alten Tabelle:</strong> {photoDone} übernommen{photoJobs.length ? <>, <strong>{photoJobs.length}</strong> können noch übernommen werden. Sie ersetzen die Fotos, die die App selbst gesucht hat.</> : ", alles erledigt."}</p>
+            {photoMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{photoMsg}</p>}
+            {photoJobs.length > 0 && <div className="actions"><button className="btn primary" onClick={applySheetPhotos} disabled={coverRunning}>{coverRunning ? "Läuft…" : `${photoJobs.length} Fotos übernehmen`}</button></div>}
+          </div>
+        )}
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>Einzelne Bücher: im Buch auf „Cover ändern“ tippen. Dort kannst du ein eigenes Foto oder Bild hochladen, aus Vorschlägen wählen oder einen Bild-Link eintragen. Neue Bücher holen sich ihr Cover weiterhin automatisch über die ISBN.</p>
       </div>
       <div className="panel section">

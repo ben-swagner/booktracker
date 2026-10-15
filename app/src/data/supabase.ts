@@ -260,6 +260,20 @@ export class SupabaseProvider implements DataProvider {
   async saveAuthorPhoto(authorId: string, url: string) {
     await this.sb.from("authors").update({ photo_url: url }).eq("id", authorId);
   }
+  async saveAuthorPhotos(list: { id: string; url: string }[], onProgress?: (done: number) => void) {
+    let next = 0, done = 0, errors = 0;
+    const worker = async () => {
+      while (next < list.length) {
+        const j = list[next++];
+        const { error } = await this.sb.from("authors").update({ photo_url: j.url }).eq("id", j.id);
+        if (error) errors++;
+        done++;
+        if (done % 20 === 0 || done === list.length) onProgress?.(done);
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, worker));
+    return errors;
+  }
 
   /**
    * Übernimmt die Daten aus dem Sheet (public/demo/data.json) in dieses Konto.

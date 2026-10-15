@@ -212,6 +212,14 @@ export class LocalProvider implements DataProvider {
     if (a) { Object.assign(a, fields); this.persist(); }
   }
 
+  async saveAuthorPhotos(list: { id: string; url: string }[], onProgress?: (done: number) => void) {
+    const lib = await this.loadLibrary();
+    const byId = new Map(lib.authors.map((a) => [a.id, a]));
+    for (const j of list) { const a = byId.get(j.id); if (a) a.photo_url = j.url; }
+    this.persist();
+    onProgress?.(list.length);
+    return 0;
+  }
   async saveAuthorPhoto(authorId: string, url: string) {
     const lib = await this.loadLibrary();
     const a = lib.authors.find((x) => x.id === authorId);

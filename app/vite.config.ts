@@ -45,12 +45,12 @@ export default defineConfig({
           },
           {
             // Cover aus der alten Tabelle (liegen bei der App): einmal geladen, auf dem Gerät behalten
-            urlPattern: /\/covers\/sheet\/.*\.(webp|jpg)$/,
+            urlPattern: /\/(covers|authors)\/sheet\/.*\.(webp|jpg)$/,
             handler: "CacheFirst",
             options: { cacheName: "sheet-covers", expiration: { maxEntries: 2500, maxAgeSeconds: 60 * 60 * 24 * 365 } }
           },
           {
-            urlPattern: /\/covers\/sheet\/index\.json$/,
+            urlPattern: /\/(covers|authors)\/sheet\/index\.json$/,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "sheet-covers-index" }
           },
