@@ -1605,3 +1605,8 @@ body::before { content: ""; position: fixed; inset: -10%; z-index: -1; pointer-e
 .aura.soft { height: 680px; }
 .sheet-covers { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 18px; background: linear-gradient(120deg, color-mix(in srgb, #F4E2A0 45%, transparent), color-mix(in srgb, #F8C7A4 35%, transparent)); }
 .cover-picker-bg { z-index: 90; }
+
+/* Menüleiste genau so breit wie der Inhalt darunter */
+.nav { padding-inline: 16px; }
+.nav-inner { max-width: calc(1200px - 32px); }
+@media (min-width: 720px) { .nav { padding-inline: 28px; } .nav-inner { max-width: calc(1200px - 56px); } }
