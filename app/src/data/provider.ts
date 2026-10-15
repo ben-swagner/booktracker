@@ -42,6 +42,8 @@ export interface DataProvider {
   saveFavorites(kind: Favorite["kind"], items: Partial<Favorite>[]): Promise<void>;
   /** Cover-Adresse an einem Buch merken (gemeinsame Buchdaten). */
   saveCover(bookId: string, url: string | null): Promise<void>;
+  /** Viele Cover auf einmal speichern; meldet Fortschritt und gibt die Zahl der Fehler zurück. */
+  saveCovers(list: { id: string; url: string | null }[], onProgress?: (done: number) => void): Promise<number>;
   /** Foto-Adresse an einer Autor:in merken (gemeinsame Buchdaten). */
   saveAuthorPhoto(authorId: string, url: string): Promise<void>;
   /** Angaben einer Autor:in ändern (z. B. Geschlecht, Land). */

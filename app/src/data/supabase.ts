@@ -236,6 +236,21 @@ export class SupabaseProvider implements DataProvider {
   async saveCover(bookId: string, url: string | null) {
     await this.sb.from("books").update({ cover_url: url }).eq("id", bookId);
   }
+  async saveCovers(list: { id: string; url: string | null }[], onProgress?: (done: number) => void) {
+    // immer 8 gleichzeitig, damit 1.500 Bücher in gut einer Minute durch sind
+    let next = 0, done = 0, errors = 0;
+    const worker = async () => {
+      while (next < list.length) {
+        const j = list[next++];
+        const { error } = await this.sb.from("books").update({ cover_url: j.url }).eq("id", j.id);
+        if (error) errors++;
+        done++;
+        if (done % 20 === 0 || done === list.length) onProgress?.(done);
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, worker));
+    return errors;
+  }
 
   async saveAuthor(authorId: string, fields: { gender?: string | null; country?: string | null }) {
     const { error } = await this.sb.from("authors").update(fields).eq("id", authorId);

@@ -47,14 +47,9 @@ export default function Einstellungen() {
     const jobs = sheetJobs.filter((j, i, a) => a.findIndex((x) => x.id === j.id) === i);
     if (!jobs.length) return;
     setCoverRunning(true); stopRef.current = false;
-    let n = 0;
-    for (const j of jobs) {
-      if (stopRef.current) break;
-      await data.saveCover(j.id, j.url).catch(() => {});
-      n++;
-      if (n % 10 === 0 || n === jobs.length) setCoverMsg(`${n} von ${jobs.length} Covern aus der Tabelle übernommen…`);
-    }
-    setCoverMsg(`Fertig: ${n} Cover aus deiner alten Tabelle übernommen.`);
+    setCoverMsg(`Starte: ${jobs.length} Cover…`);
+    const errors = await data.saveCovers(jobs, (n) => setCoverMsg(`${n} von ${jobs.length} Covern aus der Tabelle übernommen…`));
+    setCoverMsg(errors ? `Fertig, aber ${errors} Cover konnten nicht gespeichert werden. Einfach noch einmal tippen.` : `Fertig: ${jobs.length} Cover aus deiner alten Tabelle übernommen.`);
     setCoverRunning(false);
     await qc.invalidateQueries({ queryKey: ["library"] });
   }
