@@ -136,6 +136,8 @@ export function AuthorModal() {
   const openBook = useOpenBook();
   const saveAuthor = useSaveAuthor();
   const [pickPhoto, setPickPhoto] = useState(false);
+  const [serie, setSerie] = useState<string | null>(null);
+  useEffect(() => { setSerie(null); }, [slug]);
   const r = useMemo(() => (slug ? authorRows(entries.filter((e) => e.authors.some((a) => a.slug === slug))).find((x) => x.author.slug === slug) : undefined), [entries, slug]);
 
   const close = () => {
@@ -187,22 +189,47 @@ export function AuthorModal() {
                 </div>
               </div>
             </header>
-            {r.series.length > 0 && (
-              <div className="am-series">
-                <span className="gcard-kicker">Reihen</span>
-                <div className="chips">{r.series.map((s) => <span key={s.name} className="chip">{s.name} <span className="muted">· {s.n}</span></span>)}</div>
-              </div>
-            )}
-            <div className="am-books">
-              {r.books.map((e) => (
-                <button key={e.mine.id} type="button" className="am-book" onClick={() => (isDesktop() ? openBook(e.mine.id) : nav(`/buch/${e.mine.id}`))}>
-                  <Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
-                  <span className="am-book-title">{e.book.title}</span>
-                  <span className="am-book-meta">{e.series ? <>{e.series.name}<SeriesNo n={e.book.series_number} /></> : e.book.pages ? `${e.book.pages} Seiten` : ""}</span>
-                  <span className="am-book-foot"><StatusPill status={e.mine.status} />{e.mine.rating != null && <Stars value={e.mine.rating} />}</span>
-                </button>
-              ))}
-            </div>
+            {(() => {
+              // Bücher nach Reihen getrennt; Einzelbände kommen zum Schluss
+              const groups: { key: string; name: string; books: Entry[] }[] = [];
+              for (const e of r.books) {
+                const key = e.series?.name ?? "";
+                let g = groups.find((x) => x.key === key);
+                if (!g) { g = { key, name: key || "Einzelbände", books: [] }; groups.push(g); }
+                g.books.push(e);
+              }
+              groups.sort((x, y) => (x.key === "" ? 1 : 0) - (y.key === "" ? 1 : 0) || y.books.length - x.books.length || x.name.localeCompare(y.name, "de"));
+              const many = groups.length > 1;
+              const shown = many && serie !== null ? groups.filter((g) => g.key === serie) : groups;
+              return (
+                <>
+                  {many && (
+                    <div className="am-series" role="tablist" aria-label="Reihen">
+                      <button type="button" role="tab" aria-selected={serie === null} className={"am-stab" + (serie === null ? " on" : "")} onClick={() => setSerie(null)}>Alle <small>{r.books.length}</small></button>
+                      {groups.map((g) => <button key={g.key || "_einzel"} type="button" role="tab" aria-selected={serie === g.key} className={"am-stab" + (serie === g.key ? " on" : "") + (g.key ? "" : " solo")} onClick={() => setSerie(g.key)}>{g.name} <small>{g.books.length}</small></button>)}
+                    </div>
+                  )}
+                  {shown.map((g) => {
+                    const read = g.books.filter((e) => e.mine.status === "gelesen").length;
+                    return (
+                      <section key={g.key || "_einzel"} className="am-group">
+                        {many && <div className="am-group-head"><h3>{g.name}</h3><span className="muted">{g.books.length} {g.books.length === 1 ? "Buch" : g.key ? "Bände" : "Bücher"} · {read} gelesen</span></div>}
+                        <div className="am-books">
+                          {g.books.map((e) => (
+                            <button key={e.mine.id} type="button" className="am-book" onClick={() => (isDesktop() ? openBook(e.mine.id) : nav(`/buch/${e.mine.id}`))}>
+                              <Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
+                              <span className="am-book-title">{e.book.title}</span>
+                              <span className="am-book-meta">{e.series ? (many ? <>Band <SeriesNo n={e.book.series_number} /></> : <>{e.series.name}<SeriesNo n={e.book.series_number} /></>) : e.book.pages ? `${e.book.pages} Seiten` : ""}</span>
+                              <span className="am-book-foot"><StatusPill status={e.mine.status} />{e.mine.rating != null && <Stars value={e.mine.rating} />}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </>
+              );
+            })()}
           </>
         )}
       </div>

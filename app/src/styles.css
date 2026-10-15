@@ -1658,3 +1658,17 @@ select.input.rf-sort { flex: none; width: auto; height: 46px; border-radius: 999
 .ap-current { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; align-self: center; box-shadow: 0 10px 24px -10px rgba(40,30,60,.35); }
 .ap-choice { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font: inherit; cursor: pointer; align-self: flex-start; }
 .ap-choice img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+
+/* Autor:innen-Fenster: Reihen zum Auswählen, Bücher nach Reihen getrennt */
+.am-series { display: flex; flex-wrap: wrap; gap: 6px; }
+.am-stab { border: 1px solid var(--pane-line); background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--ink); border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 13.5px; cursor: pointer; }
+.am-stab small { color: var(--muted); margin-left: 3px; }
+.am-stab.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.am-stab.on small { color: inherit; opacity: .7; }
+.am-stab.solo { font-style: normal; }
+.am-group { display: flex; flex-direction: column; gap: 12px; }
+.am-group + .am-group { margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
+.am-group-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.am-group-head h3 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+.am-group-head .muted { font-size: 13px; }
+.am .am-series { flex-direction: row; align-items: center; } .am .am-stab { width: auto; flex: none; display: inline-flex; align-items: baseline; }
