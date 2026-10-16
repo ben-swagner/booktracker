@@ -1769,3 +1769,21 @@ select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg,
 .mode-audio.on { background: linear-gradient(90deg, #F8C7A4, #FBE7DB); }
 .now-mode, .reading-mode { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .reading-mode > span { font-size: 13px; color: var(--muted); }
+/* Tops: eigene Favoriten und Vorschläge aus den Bewertungen */
+.tops-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; font-size: 24px; letter-spacing: -.02em; }
+.tops-h .icon, .tops-h svg { align-self: center; }
+.tops-h .muted { font-size: 14px; font-weight: 400; letter-spacing: 0; }
+.tops-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+.tops-pick { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 12px; padding: 10px 14px 10px 8px; border-radius: 20px; background: var(--pane); border: 1px solid var(--pane-line); box-shadow: var(--pane-shine); }
+.tops-pick-main { display: flex; align-items: center; gap: 12px; min-width: 0; border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.tops-pick-main:disabled { cursor: default; }
+.tops-pick-main .cover { width: 48px; height: 72px; padding: 5px 4px; flex: none; }
+.tops-pick-main .cover .cover-title { font-size: 7px; } .tops-pick-main .cover .cover-author { display: none; }
+.tops-pick-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tops-pick-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tops-in { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(140deg, #A9D3B5, #E2F0E6); color: #1F4630; }
+.series-stack { display: inline-flex; flex: none; }
+.series-stack .cover { width: 40px; height: 60px; padding: 4px 3px; }
+.series-stack .cover + .cover { margin-left: -22px; }
+.series-stack .cover .cover-title { font-size: 6px; } .series-stack .cover .cover-author { display: none; }
+.top-row .aphoto { justify-self: center; }

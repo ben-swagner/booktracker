@@ -67,7 +67,8 @@ export function AuthorPhoto({ author, size = 64 }: { author: Author; size?: numb
     const io = new IntersectionObserver((es) => {
       if (!es[0].isIntersecting) return;
       io.disconnect();
-      findAuthorPhoto(author.name).then((url) => {
+      // zuerst das Foto aus der alten Tabelle, sonst die Suche im Netz
+      loadSheetPhotos().then((l) => sheetPhotoFor(l, author.name)).then((sheet) => sheet ?? findAuthorPhoto(author.name)).then((url) => {
         if (!alive || !url) return;
         setSrc(url);
         data.saveAuthorPhoto(author.id, url).catch(() => {});
