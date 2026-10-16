@@ -6,7 +6,7 @@ import { AUDIENCE, BURN, COMPANY, EXPECTATION, FORMATS, KINDS, MEDIA, PERIODS, S
 import { lookupIsbn } from "../lib/isbn";
 import { toast } from "../App";
 import { findDuplicates, normIsbn } from "../lib/duplicates";
-import { Cover, StatusPill, authorNames } from "../components/ui";
+import { Cover, StatusPill, authorNames, StarPicker } from "../components/ui";
 import { Link } from "../components/Link";
 // Der Scanner wird erst geladen, wenn er gebraucht wird (spart Ladezeit)
 const Scanner = lazy(() => import("../components/Scanner").then((m) => ({ default: m.Scanner })));
@@ -245,7 +245,7 @@ export default function BookForm({ editId, onDone, startTab }: { editId?: string
           <TextField k="specials" label="Extras" ph="Map, Sprayed Edges, Playlist" value={f.specials} onChange={up("specials")} />
           <TextField k="price" label="Preis in €" ph="9,99" value={f.price} onChange={up("price")} />
           <div className="field"><label>Gekauft</label><label className="check"><input type="checkbox" checked={f.bought} onChange={up("bought")} />Ja, gekauft</label></div>
-          <TextField k="rating" label="Sterne (0 bis 5, halbe erlaubt)" type="number" ph="4.5" value={f.rating} onChange={up("rating")} />
+          <div className="field"><span className="label-like">Sterne</span><StarPicker value={f.rating === "" ? null : Number(f.rating.replace(",", "."))} onChange={(v) => setF({ ...f, rating: v == null ? "" : String(v) })} /></div>
           <SelectField k="verdict" label="Kurzbewertung" opts={Object.entries(VERDICT)} value={f.verdict} onChange={up("verdict")} />
           <SelectField k="expectation" label="Erwartung" opts={Object.entries(EXPECTATION)} value={f.expectation} onChange={up("expectation")} />
           <SelectField k="spice" label="Spice" opts={[["0", "🥛 Keine"], ["1", "🌶️"], ["2", "🌶️🌶️"], ["3", "🌶️🌶️🌶️"], ["4", "🌶️🌶️🌶️🌶️"], ["5", "🌶️🌶️🌶️🌶️🌶️"]]} value={f.spice} onChange={up("spice")} />

@@ -396,3 +396,32 @@ export function Empty({ title, text, children }: { title: string; text?: string;
     </div>
   );
 }
+
+/**
+ * Sterne zum Antippen, auch halbe: linke Hälfte eines Sterns = halber Stern, rechte = ganzer.
+ * Ein Tipp auf den aktuellen Wert setzt die Bewertung zurück.
+ */
+export function StarPicker({ value, onChange, size = 30 }: { value: number | null; onChange: (v: number | null) => void; size?: number }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const shown = hover ?? value ?? 0;
+  const pick = (v: number) => onChange(value === v ? null : v);
+  return (
+    <div className="star-picker" onMouseLeave={() => setHover(null)} style={{ ["--sp" as string]: `${size}px` }}>
+      <div className="sp-stars" role="radiogroup" aria-label="Sterne">
+        {[0, 1, 2, 3, 4].map((i) => {
+          const fill = Math.max(0, Math.min(1, shown - i));
+          return (
+            <span key={i} className="sp-star">
+              <span className="sp-bg" aria-hidden="true">★</span>
+              <span className="sp-fill" aria-hidden="true" style={{ width: `${fill * 100}%` }}>★</span>
+              <button type="button" className="sp-half l" role="radio" aria-checked={value === i + 0.5} aria-label={`${(i + 0.5).toString().replace(".", ",")} Sterne`} onMouseEnter={() => setHover(i + 0.5)} onClick={() => pick(i + 0.5)} />
+              <button type="button" className="sp-half r" role="radio" aria-checked={value === i + 1} aria-label={`${i + 1} ${i ? "Sterne" : "Stern"}`} onMouseEnter={() => setHover(i + 1)} onClick={() => pick(i + 1)} />
+            </span>
+          );
+        })}
+      </div>
+      <span className="sp-value mono">{shown ? `${shown.toString().replace(".", ",")} von 5` : "noch keine"}</span>
+      {value != null && <button type="button" className="sp-clear" onClick={() => onChange(null)} aria-label="Bewertung entfernen">×</button>}
+    </div>
+  );
+}

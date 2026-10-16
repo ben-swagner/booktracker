@@ -1713,3 +1713,17 @@ select.input.rf-sort { flex: none; width: auto; height: 46px; border-radius: 999
 .bd-opinion-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .bd-opinion textarea { min-height: 110px; resize: vertical; border-radius: 18px; padding: 14px 16px; font: inherit; font-size: 15px; line-height: 1.5; background: color-mix(in srgb, var(--surface) 80%, transparent); }
 .bd-opinion-state { font-size: 12px; color: var(--muted); min-height: 16px; text-align: right; }
+
+/* Sterne zum Antippen, auch halbe */
+.star-picker { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sp-stars { display: inline-flex; gap: 2px; }
+.sp-star { position: relative; display: inline-block; width: var(--sp); height: var(--sp); font-size: var(--sp); line-height: 1; }
+.sp-bg { color: color-mix(in srgb, var(--stone) 35%, transparent); }
+.sp-fill { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; color: #E2A12E; }
+.sp-bg, .sp-fill { display: block; height: 100%; }
+.sp-half { position: absolute; top: 0; bottom: 0; width: 50%; border: 0; padding: 0; background: transparent; cursor: pointer; }
+.sp-half.l { left: 0; } .sp-half.r { right: 0; }
+.sp-half:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.sp-value { font-size: 14px; color: var(--muted); min-width: 64px; }
+.sp-clear { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; }
+.label-like { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }

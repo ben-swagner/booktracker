@@ -5,7 +5,7 @@ import BookForm from "./BookForm";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
-import { Cover, SeriesNo, Stars, authorNames } from "../components/ui";
+import { Cover, SeriesNo, StarPicker, Stars, authorNames } from "../components/ui";
 import { AuthorPhoto, useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
 import { Icon, type IconName } from "../components/Icon";
@@ -333,7 +333,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           <Sub icon="star" right={<button type="button" className="btn small ghost" onClick={() => startEdit("ich")}>{hasRating ? "Ändern" : "Bewerten"}</button>}>Bewertung</Sub>
           {hasRating ? (
             <div className="bd-verdict">
-              {m.rating != null && <div className="bd-stars"><Stars value={m.rating} /><strong className="mono">{m.rating}</strong><span className="muted">von 5</span></div>}
+              <StarPicker value={m.rating ?? null} onChange={async (v) => { await saveUB.mutateAsync({ id: m.id, book_id: b.id, rating: v }); toast(v == null ? "Sterne entfernt." : `${String(v).replace(".", ",")} Sterne gespeichert.`); }} />
               <ul className="bd-facts compact">
                 <Fact icon="heart" label="Urteil" value={m.verdict ? VERDICT[m.verdict] : null} />
                 <Fact icon="target" label="Erwartung" value={m.expectation ? EXPECTATION[m.expectation] : null} />
@@ -342,7 +342,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
                 <Fact icon="people" label="Gelesen mit" value={m.company ? COMPANY[m.company] : null} />
               </ul>
             </div>
-          ) : <p className="meta" style={{ margin: 0 }}>Noch keine Bewertung. Sterne, Urteil und Spice trägst du unter „Bewerten“ ein.</p>}
+          ) : <><StarPicker value={null} onChange={async (v) => { await saveUB.mutateAsync({ id: m.id, book_id: b.id, rating: v }); if (v != null) toast(`${String(v).replace(".", ",")} Sterne gespeichert.`); }} /><p className="meta" style={{ margin: 0 }}>Tipp auf die linke Hälfte eines Sterns für einen halben Stern. Urteil und Spice trägst du unter „Bewerten“ ein.</p></>}
           <Opinion key={m.id} value={m.review ?? ""} onSave={async (v) => { await saveUB.mutateAsync({ id: m.id, book_id: b.id, review: v.trim() ? v : null }); }} />
 
           <Sub icon="smile">Stimmung</Sub>
