@@ -83,14 +83,30 @@ export default function Wunschliste() {
   const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "", rec: "" });
 
   const all = lib?.wishlist_items ?? [];
+  type WSort = "erscheint" | "prio" | "preis-auf" | "preis-ab" | "titel" | "autor" | "neu";
+  const [sort, setSortState] = useState<WSort>(() => { try { return (localStorage.getItem("bt-wunsch-sort") as WSort) || "erscheint"; } catch { return "erscheint"; } });
+  const setSort = (v: WSort) => { setSortState(v); try { localStorage.setItem("bt-wunsch-sort", v); } catch { /* egal */ } };
   const counts = { offen: all.filter((w) => !isBought(w)).length, gekauft: all.filter(isBought).length };
   const items = useMemo(() => {
     const nq = q.toLowerCase();
     return all
       .filter((w) => (filter === "gekauft" ? isBought(w) : !isBought(w)))
       .filter((w) => !nq || [w.title, w.author, w.series_name, w.genre].join(" ").toLowerCase().includes(nq))
-      .sort((a, b) => (a.release_date ?? "9999").localeCompare(b.release_date ?? "9999") || a.title.localeCompare(b.title, "de"));
-  }, [all, q, filter]);
+      .sort((a, b) => {
+        const byTitle = a.title.localeCompare(b.title, "de");
+        const prio = (w: WishlistItem) => { const i = (PRIO_ORDER as readonly string[]).indexOf(w.priority); return i < 0 ? 9 : i; };
+        const price = (w: WishlistItem) => w.price_cents ?? null;
+        switch (sort) {
+          case "prio": return prio(a) - prio(b) || (a.release_date ?? "9999").localeCompare(b.release_date ?? "9999") || byTitle;
+          case "preis-auf": { const x = price(a), y = price(b); return x == null ? (y == null ? byTitle : 1) : y == null ? -1 : x - y || byTitle; }
+          case "preis-ab": { const x = price(a), y = price(b); return x == null ? (y == null ? byTitle : 1) : y == null ? -1 : y - x || byTitle; }
+          case "titel": return byTitle;
+          case "autor": return (a.author ?? "~").localeCompare(b.author ?? "~", "de") || byTitle;
+          case "neu": return (b.created_at ?? "").localeCompare(a.created_at ?? "") || byTitle;
+          default: return (a.release_date ?? "9999").localeCompare(b.release_date ?? "9999") || byTitle;
+        }
+      });
+  }, [all, q, filter, sort]);
 
   function markBought(w: WishlistItem) {
     save.mutate({ id: w.id, title: w.title, owned: true, purchase_condition: "Gekauft" });
@@ -206,7 +222,18 @@ export default function Wunschliste() {
             <button key={f} className="tab" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)}>{f === "offen" ? "Offen" : "Gekauft"} <span className="tab-count">{counts[f]}</span></button>
           ))}
         </div>
-        <div className="tools"><input className="input search" type="search" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="tools">
+          <input className="input search" type="search" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <select className="input wish-sort" value={sort} onChange={(e) => setSort(e.target.value as WSort)} aria-label="Sortierung">
+            <option value="erscheint">Erscheint zuerst</option>
+            <option value="prio">Priorität</option>
+            <option value="preis-auf">Preis aufsteigend</option>
+            <option value="preis-ab">Preis absteigend</option>
+            <option value="titel">Titel A-Z</option>
+            <option value="autor">Autor:in A-Z</option>
+            <option value="neu">Zuletzt hinzugefügt</option>
+          </select>
+        </div>
       </div>
 
       {items.length === 0 ? (

@@ -1736,3 +1736,4 @@ tr:hover .rec-btn.add, .rec-btn.add:focus-visible { opacity: 1; }
 .rec-input { margin-top: 4px; height: 32px; font-size: 13px; padding: 0 10px; max-width: 220px; }
 .rel-later { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: linear-gradient(90deg, #ECE9FA, #E6EBFB); color: #2E2470; }
 .rel-unknown { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-2); color: var(--muted); }
+select.input.wish-sort { width: auto; flex: none; }

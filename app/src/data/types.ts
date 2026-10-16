@@ -128,6 +128,7 @@ export interface WishlistItem {
   price_cents?: number | null;
   priority: "niedrig" | "mittel" | "hoch" | "gekauft";
   recommended_by?: string | null;
+  created_at?: string;
   owned?: boolean;
   purchase_condition?: string | null;
   note?: string | null;
