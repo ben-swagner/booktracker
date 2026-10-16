@@ -30,9 +30,9 @@ const isBought = (w: WishlistItem) => !!w.owned || w.priority === "gekauft";
  * Wie ein Buch von der Wunschliste ins Regal kam. Gespeichert im Feld purchase_condition
  * (ältere Einträge haben dort „Neu“ oder „Gebraucht“ und zählen als gekauft).
  */
-type How = "Gekauft" | "Geschenkt" | "Mitgenommen";
-const HOWS: How[] = ["Gekauft", "Geschenkt", "Mitgenommen"];
-const howOf = (w: WishlistItem): How => (w.purchase_condition === "Geschenkt" || w.purchase_condition === "Mitgenommen" ? w.purchase_condition : "Gekauft");
+type How = "Gekauft" | "Geschenkt" | "Mitgenommen" | "Anders";
+const HOWS: How[] = ["Gekauft", "Geschenkt", "Mitgenommen", "Anders"];
+const howOf = (w: WishlistItem): How => (w.purchase_condition === "Geschenkt" || w.purchase_condition === "Mitgenommen" || w.purchase_condition === "Anders" ? w.purchase_condition : "Gekauft");
 const parseEuro = (v: string) => { const n = Number(v.replace(/[^\d,.-]/g, "").replace(",", ".")); return v.trim() === "" || isNaN(n) ? null : Math.round(n * 100); };
 
 /** Formate, die man sich wünschen kann. Alte Werte aus dem Sheet bleiben gültig. */
@@ -108,9 +108,14 @@ export default function Wunschliste() {
       });
   }, [all, q, filter, sort]);
 
-  function markBought(w: WishlistItem) {
-    save.mutate({ id: w.id, title: w.title, owned: true, purchase_condition: "Gekauft" });
-    toast(`„${w.title}“ ist jetzt unter Gekauft.`);
+  const [ask, setAsk] = useState<WishlistItem | null>(null);
+  function markBought(w: WishlistItem, how: How, priceCents?: number | null) {
+    save.mutate({ id: w.id, title: w.title, owned: true, purchase_condition: how, ...(how === "Gekauft" && priceCents !== undefined ? { price_cents: priceCents } : {}) });
+    toast(`„${w.title}“ ist jetzt unter Gekauft (${how}).`);
+  }
+  function backToWishlist(w: WishlistItem) {
+    save.mutate({ id: w.id, title: w.title, owned: false, purchase_condition: null, ...(w.priority === "gekauft" ? { priority: "mittel" as const } : {}) });
+    toast(`„${w.title}“ steht wieder auf der Wunschliste.`);
   }
 
   const bought = all.filter(isBought);
@@ -119,6 +124,7 @@ export default function Wunschliste() {
     nBought: bought.filter((w) => howOf(w) === "Gekauft").length,
     nGift: bought.filter((w) => howOf(w) === "Geschenkt").length,
     nFree: bought.filter((w) => howOf(w) === "Mitgenommen").length,
+    nOther: bought.filter((w) => howOf(w) === "Anders").length,
     saved: bought.filter((w) => howOf(w) !== "Gekauft").reduce((n, w) => n + (w.price_cents ?? 0), 0)
   };
 
@@ -181,6 +187,7 @@ export default function Wunschliste() {
         <div className="gchips">
           <span className="gchip"><Icon name="gift" size={16} />Geschenkt <strong>{spend.nGift}</strong></span>
           <span className="gchip"><Icon name="books" size={16} />Mitgenommen <strong>{spend.nFree}</strong></span>
+          {spend.nOther > 0 && <span className="gchip"><Icon name="sparkle" size={16} />Anders <strong>{spend.nOther}</strong></span>}
           {spend.saved > 0 && <span className="gchip"><Icon name="sparkle" size={16} />Gespart <strong>{euro(spend.saved)}</strong></span>}
         </div>
       </section>
@@ -241,13 +248,13 @@ export default function Wunschliste() {
       ) : (
         <div className="panel table-scroll">
           <table className="table wish-table">
-            <thead><tr>{filter === "offen" && <th className="check-col">Gekauft</th>}<th>Titel</th><th>Autor:in</th><th>Reihe</th><th>Format</th><th>Erscheint</th>{filter === "offen" ? <th>Preis</th> : <><th>Wie?</th><th>Bezahlt</th></>}{filter === "offen" && <th>Priorität</th>}<th aria-label="Aktionen"></th></tr></thead>
+            <thead><tr>{filter === "offen" && <th className="check-col">Habe ich</th>}<th>Titel</th><th>Autor:in</th><th>Reihe</th><th>Format</th><th>Erscheint</th>{filter === "offen" ? <th>Preis</th> : <><th>Wie?</th><th>Bezahlt</th></>}{filter === "offen" && <th>Priorität</th>}<th aria-label="Aktionen"></th></tr></thead>
             <tbody>
               {items.map((w) => (
                 <tr key={w.id}>
                   {filter === "offen" && (
                     <td className="check-col">
-                      <input type="checkbox" className="wish-check" checked={false} onChange={() => markBought(w)} aria-label={`„${w.title}“ als gekauft abhaken`} title="Als gekauft abhaken" />
+                      <input type="checkbox" className="wish-check" checked={false} onChange={() => setAsk(w)} aria-label={`„${w.title}“ abhaken`} title="Abhaken: gekauft, geschenkt …" />
                     </td>
                   )}
                   <td><strong>{w.title}</strong><RecBy value={w.recommended_by ?? ""} onSave={(v) => save.mutate({ id: w.id, title: w.title, recommended_by: v || null })} /></td>
@@ -284,6 +291,7 @@ export default function Wunschliste() {
                   )}
                   <td>
                     <div className="wish-actions">
+                      {filter === "gekauft" && <button className="btn ghost small wish-back" title="Zurück auf die Wunschliste" onClick={() => backToWishlist(w)}><Icon name="history" size={16} /> Zurück</button>}
                       {w.isbn && cleanIsbn(w.isbn) && <button className="btn ghost small" aria-label="Barcode zeigen" title="Barcode zum Vorzeigen im Laden" onClick={() => setShowCode(w)}><Icon name="barcode" size={18} /></button>}
                       <button className="btn ghost small" aria-label="Von der Wunschliste streichen" title="Von der Wunschliste streichen" onClick={() => confirm(`„${w.title}“ von der Wunschliste streichen?`) && del.mutate(w.id)}>✕</button>
                     </div>
@@ -294,6 +302,7 @@ export default function Wunschliste() {
           </table>
         </div>
       )}
+      {ask && <HowDialog w={ask} onClose={() => setAsk(null)} onPick={(how, c) => { markBought(ask, how, c); setAsk(null); }} />}
       {showCode && (
         <div className="bm-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowCode(null); }}>
           <div className="code-modal" role="dialog" aria-modal="true" aria-label="Barcode">
@@ -323,4 +332,31 @@ function RecBy({ value, onSave }: { value: string; onSave: (v: string) => void }
   return value
     ? <button type="button" className="rec-btn" onClick={() => { setText(value); setEdit(true); }}>Empfohlen von <strong>{value}</strong></button>
     : <button type="button" className="rec-btn add" onClick={() => { setText(""); setEdit(true); }}>+ Empfohlen von</button>;
+}
+
+/** Beim Abhaken fragen, wie das Buch kam: gekauft (mit Preis), geschenkt, mitgenommen oder anders. */
+function HowDialog({ w, onClose, onPick }: { w: WishlistItem; onClose: () => void; onPick: (how: How, priceCents?: number | null) => void }) {
+  const [how, setHow] = useState<How>("Gekauft");
+  const [price, setPrice] = useState(w.price_cents != null ? (w.price_cents / 100).toFixed(2).replace(".", ",") : "");
+  const LABEL: Record<How, string> = { Gekauft: "Gekauft", Geschenkt: "Geschenkt bekommen", Mitgenommen: "Mitgenommen (z. B. Tauschregal)", Anders: "Anders bekommen" };
+  return (
+    <div className="modal-bg cover-picker-bg" onClick={onClose}>
+      <div className="modal how-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Wie hast du das Buch bekommen?">
+        <h2 style={{ margin: 0 }}>Wie hast du es bekommen?</h2>
+        <p className="muted" style={{ margin: 0 }}>„{w.title}“</p>
+        <div className="how-choices" role="radiogroup">
+          {HOWS.map((h) => (
+            <button key={h} type="button" role="radio" aria-checked={how === h} className={"how-choice how-" + h.toLowerCase() + (how === h ? " on" : "")} onClick={() => setHow(h)}>{LABEL[h]}</button>
+          ))}
+        </div>
+        {how === "Gekauft" && (
+          <div className="field"><label htmlFor="how-price">Bezahlt in €</label><input id="how-price" className="input" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="optional" /></div>
+        )}
+        <div className="actions" style={{ justifyContent: "flex-end" }}>
+          <button type="button" className="btn" onClick={onClose}>Abbrechen</button>
+          <button type="button" className="btn primary" onClick={() => onPick(how, how === "Gekauft" ? parseEuro(price) : undefined)}>Abhaken</button>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -1737,3 +1737,14 @@ tr:hover .rec-btn.add, .rec-btn.add:focus-visible { opacity: 1; }
 .rel-later { display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: linear-gradient(90deg, #ECE9FA, #E6EBFB); color: #2E2470; }
 .rel-unknown { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-2); color: var(--muted); }
 select.input.wish-sort { width: auto; flex: none; }
+/* Wunschliste: Abhaken mit Auswahl, wie das Buch kam */
+.how-modal { gap: 14px; }
+.how-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.how-choice { padding: 14px 12px; border-radius: 16px; border: 2px solid transparent; font: inherit; font-weight: 600; font-size: 14px; color: #17151A; cursor: pointer; text-align: left; }
+.how-choice.how-gekauft { background: linear-gradient(90deg, #A9D3B5, #E2F0E6); }
+.how-choice.how-geschenkt { background: linear-gradient(90deg, #F3B0C8, #FBE6EE); }
+.how-choice.how-mitgenommen { background: linear-gradient(90deg, #9DB2F2, #E6EBFB); }
+.how-choice.how-anders { background: linear-gradient(90deg, #F4E2A0, #FBF2D6); }
+.how-choice.on { border-color: #17151A; box-shadow: 0 6px 16px -8px rgba(23,21,26,.4); }
+select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg, #F4E2A0, #FBF2D6); }
+.wish-back { white-space: nowrap; }
