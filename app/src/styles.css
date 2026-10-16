@@ -1758,3 +1758,4 @@ select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg,
 .hl-badge.tone-green .hl-head { background: linear-gradient(90deg, #A9D3B5, #E2F0E6); }
 .hl-badge .hl-line { font-weight: 600; color: var(--ink); }
 @media (max-width: 560px) { .hl-head { font-size: 11px; padding: 4px 8px; white-space: normal; } }
+.genre-chip { border: 0; padding: 4px 10px; border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }

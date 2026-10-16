@@ -3,7 +3,7 @@ import { useDeleteWishlistItem, useEntries, useSaveWishlistItem } from "../data/
 import { cleanIsbn, lookupIsbn } from "../lib/isbn";
 import { findDuplicates, normIsbn } from "../lib/duplicates";
 import { Barcode } from "../components/Barcode";
-import { STATUS } from "../lib/labels";
+import { STATUS, genreColors } from "../lib/labels";
 import type { WishlistItem } from "../data/types";
 import { euro, fmtDate, today } from "../lib/labels";
 import { Empty, SeriesNo } from "../components/ui";
@@ -80,10 +80,17 @@ export default function Wunschliste() {
   const del = useDeleteWishlistItem();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"offen" | "gekauft">("offen");
-  const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "", rec: "" });
+  const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "", rec: "", genre: "" });
 
   const all = lib?.wishlist_items ?? [];
-  type WSort = "erscheint" | "prio" | "preis-auf" | "preis-ab" | "titel" | "autor" | "neu";
+  type WSort = "erscheint" | "prio" | "preis-auf" | "preis-ab" | "titel" | "autor" | "genre" | "neu";
+  const [genre, setGenre] = useState("");
+  const allGenres = useMemo(() => [...new Set(all.map((w) => w.genre).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "de")), [all]);
+  const genres = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const w of all) if (w.genre && (filter === "gekauft" ? isBought(w) : !isBought(w))) m.set(w.genre, (m.get(w.genre) ?? 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "de"));
+  }, [all, filter]);
   const [sort, setSortState] = useState<WSort>(() => { try { return (localStorage.getItem("bt-wunsch-sort") as WSort) || "erscheint"; } catch { return "erscheint"; } });
   const setSort = (v: WSort) => { setSortState(v); try { localStorage.setItem("bt-wunsch-sort", v); } catch { /* egal */ } };
   const counts = { offen: all.filter((w) => !isBought(w)).length, gekauft: all.filter(isBought).length };
@@ -92,6 +99,7 @@ export default function Wunschliste() {
     return all
       .filter((w) => (filter === "gekauft" ? isBought(w) : !isBought(w)))
       .filter((w) => !nq || [w.title, w.author, w.series_name, w.genre].join(" ").toLowerCase().includes(nq))
+      .filter((w) => !genre || w.genre === genre)
       .sort((a, b) => {
         const byTitle = a.title.localeCompare(b.title, "de");
         const prio = (w: WishlistItem) => { const i = (PRIO_ORDER as readonly string[]).indexOf(w.priority); return i < 0 ? 9 : i; };
@@ -101,12 +109,13 @@ export default function Wunschliste() {
           case "preis-auf": { const x = price(a), y = price(b); return x == null ? (y == null ? byTitle : 1) : y == null ? -1 : x - y || byTitle; }
           case "preis-ab": { const x = price(a), y = price(b); return x == null ? (y == null ? byTitle : 1) : y == null ? -1 : y - x || byTitle; }
           case "titel": return byTitle;
+          case "genre": return (a.genre ?? "~").localeCompare(b.genre ?? "~", "de") || byTitle;
           case "autor": return (a.author ?? "~").localeCompare(b.author ?? "~", "de") || byTitle;
           case "neu": return (b.created_at ?? "").localeCompare(a.created_at ?? "") || byTitle;
           default: return (a.release_date ?? "9999").localeCompare(b.release_date ?? "9999") || byTitle;
         }
       });
-  }, [all, q, filter, sort]);
+  }, [all, q, filter, sort, genre]);
 
   const [ask, setAsk] = useState<WishlistItem | null>(null);
   function markBought(w: WishlistItem, how: How, priceCents?: number | null) {
@@ -162,9 +171,9 @@ export default function Wunschliste() {
     await save.mutateAsync({
       title: draft.title.trim(), author: draft.author || null, isbn: draft.isbn || null,
       price_cents: draft.price ? Math.round(Number(draft.price.replace(",", ".")) * 100) : null, priority: draft.priority,
-      wanted_format: draft.format, release_date: draft.release || null, recommended_by: draft.rec.trim() || null
+      wanted_format: draft.format, release_date: draft.release || null, recommended_by: draft.rec.trim() || null, genre: draft.genre.trim() || null
     });
-    setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel", format: "Egal", release: "", rec: "" });
+    setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel", format: "Egal", release: "", rec: "", genre: "" });
     setHint(null);
     toast("Auf die Wunschliste gesetzt.");
   }
@@ -219,6 +228,8 @@ export default function Wunschliste() {
             {(["hoch", "mittel", "niedrig"] as const).map((p) => <option key={p} value={p}>{PRIO[p]}</option>)}
           </select>
         </div>
+        <div className="field"><label htmlFor="wgen">Genre</label><input id="wgen" className="input" list="wgen-list" autoComplete="off" value={draft.genre} onChange={(e) => setDraft({ ...draft, genre: e.target.value })} /></div>
+        <datalist id="wgen-list">{allGenres.map((g) => <option key={g} value={g} />)}</datalist>
         <div className="field"><label htmlFor="wrec">Empfohlen von</label><input id="wrec" className="input" autoComplete="off" value={draft.rec} onChange={(e) => setDraft({ ...draft, rec: e.target.value })} /></div>
         <div className="actions span2" style={{ justifyContent: "flex-end" }}><button className="btn primary" type="submit">Hinzufügen</button></div>
       </form>
@@ -231,6 +242,11 @@ export default function Wunschliste() {
         </div>
         <div className="tools">
           <input className="input search" type="search" placeholder="Suchen…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <select className="input wish-sort" value={genre} onChange={(e) => setGenre(e.target.value)} aria-label="Genre">
+            <option value="">Alle Genres</option>
+            {genres.map(([g, n]) => <option key={g} value={g}>{g} ({n})</option>)}
+            {genre && !genres.some(([g]) => g === genre) && <option value={genre}>{genre}</option>}
+          </select>
           <select className="input wish-sort" value={sort} onChange={(e) => setSort(e.target.value as WSort)} aria-label="Sortierung">
             <option value="erscheint">Erscheint zuerst</option>
             <option value="prio">Priorität</option>
@@ -238,6 +254,7 @@ export default function Wunschliste() {
             <option value="preis-ab">Preis absteigend</option>
             <option value="titel">Titel A-Z</option>
             <option value="autor">Autor:in A-Z</option>
+            <option value="genre">Genre A-Z</option>
             <option value="neu">Zuletzt hinzugefügt</option>
           </select>
         </div>
@@ -248,7 +265,7 @@ export default function Wunschliste() {
       ) : (
         <div className="panel table-scroll">
           <table className="table wish-table">
-            <thead><tr>{filter === "offen" && <th className="check-col">Habe ich</th>}<th>Titel</th><th>Autor:in</th><th>Reihe</th><th>Format</th><th>Erscheint</th>{filter === "offen" ? <th>Preis</th> : <><th>Wie?</th><th>Bezahlt</th></>}{filter === "offen" && <th>Priorität</th>}<th aria-label="Aktionen"></th></tr></thead>
+            <thead><tr>{filter === "offen" && <th className="check-col">Habe ich</th>}<th>Titel</th><th>Autor:in</th><th>Genre</th><th>Reihe</th><th>Format</th><th>Erscheint</th>{filter === "offen" ? <th>Preis</th> : <><th>Wie?</th><th>Bezahlt</th></>}{filter === "offen" && <th>Priorität</th>}<th aria-label="Aktionen"></th></tr></thead>
             <tbody>
               {items.map((w) => (
                 <tr key={w.id}>
@@ -259,6 +276,7 @@ export default function Wunschliste() {
                   )}
                   <td><strong>{w.title}</strong><RecBy value={w.recommended_by ?? ""} onSave={(v) => save.mutate({ id: w.id, title: w.title, recommended_by: v || null })} /></td>
                   <td>{w.author}</td>
+                  <td><GenreCell value={w.genre ?? ""} options={allGenres} onSave={(v) => save.mutate({ id: w.id, title: w.title, genre: v || null })} /></td>
                   <td>{w.series_name ? <>{w.series_name}<SeriesNo n={w.series_number} total={w.series_total} /></> : ""}</td>
                   <td>
                     {filter === "offen" ? (
@@ -359,4 +377,19 @@ function HowDialog({ w, onClose, onPick }: { w: WishlistItem; onClose: () => voi
       </div>
     </div>
   );
+}
+
+/** Genre in der Liste: Schild in der Genrefarbe, antippen zum Ändern. */
+function GenreCell({ value, options, onSave }: { value: string; options: string[]; onSave: (v: string) => void }) {
+  const [edit, setEdit] = useState(false);
+  const [text, setText] = useState(value);
+  if (edit) return (
+    <input className="input rec-input" autoFocus list="wgen-list" autoComplete="off" value={text} aria-label="Genre" onChange={(e) => setText(e.target.value)}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setText(value); setEdit(false); } }}
+      onBlur={() => { setEdit(false); if (text.trim() !== value) onSave(text.trim()); }} />
+  );
+  void options;
+  if (!value) return <button type="button" className="rec-btn add" onClick={() => { setText(""); setEdit(true); }}>+ Genre</button>;
+  const c = genreColors(value, value);
+  return <button type="button" className="genre-chip" style={{ background: c.bg, color: c.fg }} onClick={() => { setText(value); setEdit(true); }} title="Genre ändern">{value}</button>;
 }
