@@ -428,12 +428,25 @@ export function StarPicker({ value, onChange, size = 30 }: { value: number | nul
 
 /** Wie ein Durchgang gelesen wird: gedruckt, als eBook oder als Hörbuch. Ein Tipp auf die aktive Wahl hebt sie auf. */
 export const READ_MODES: [string, string, string][] = [["print", "Gedruckt", "book"], ["ebook", "eBook", "tablet"], ["audio", "Hörbuch", "headphones"]];
-export function ModePicker({ value, onChange, small }: { value?: string | null; onChange: (v: string | null) => void; small?: boolean }) {
+/** Welche Lesearten ein Buch hergibt, je nachdem welche Ausgaben man besitzt (Medium und Format). Unbekannt: alle. */
+export function ownedModes(m: { medium?: string[] | null; format?: string[] | null }): { modes: string[]; printLabel?: string } {
+  const med = (m.medium ?? []).map((x) => x.toLowerCase()), fmt = (m.format ?? []).map((x) => x.toLowerCase());
+  const printFmts = (m.format ?? []).filter((x) => /hardcover|taschenbuch|paperback|klappen|broschur/i.test(x));
+  const modes = new Set<string>();
+  if (med.includes("print") || printFmts.length) modes.add("print");
+  if (med.includes("digital") || fmt.includes("ebook")) modes.add("ebook");
+  if (med.some((x) => x.startsWith("audio") || x.includes("hör")) || fmt.some((x) => x.includes("hör") || x.startsWith("audio"))) modes.add("audio");
+  return { modes: modes.size ? READ_MODES.map(([k]) => k).filter((k) => modes.has(k)) : READ_MODES.map(([k]) => k), printLabel: printFmts.length === 1 ? printFmts[0] : undefined };
+}
+
+export function ModePicker({ value, onChange, small, allowed, printLabel }: { value?: string | null; onChange: (v: string | null) => void; small?: boolean; allowed?: string[]; printLabel?: string }) {
+  // eine schon gewählte Leseart bleibt sichtbar, auch wenn die Ausgabe nicht mehr eingetragen ist
+  const show = READ_MODES.filter(([k]) => !allowed || allowed.includes(k) || k === value);
   return (
     <div className={"mode-picker" + (small ? " small" : "")} role="radiogroup" aria-label="Wie liest du es?">
-      {READ_MODES.map(([k, l]) => (
+      {show.map(([k, l0]) => { const l = k === "print" && printLabel ? printLabel : l0; return (
         <button key={k} type="button" role="radio" aria-checked={value === k} className={"mode-opt mode-" + k + (value === k ? " on" : "")} onClick={() => onChange(value === k ? null : k)}>{l}</button>
-      ))}
+      ); })}
     </div>
   );
 }

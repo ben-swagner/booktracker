@@ -5,7 +5,7 @@ import BookForm from "./BookForm";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
-import { Cover, ModePicker, SeriesNo, StarPicker, Stars, authorNames } from "../components/ui";
+import { Cover, ModePicker, ownedModes, SeriesNo, StarPicker, Stars, authorNames } from "../components/ui";
 import { AuthorPhoto, useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
 import { Icon, type IconName } from "../components/Icon";
@@ -494,7 +494,7 @@ function Readings({ e }: { e: Entry }) {
                     {fuzzy(r.finished_on, r.finished_text)}
                   </label>
                 </div>
-                <div className="reading-mode"><span>Gelesen als</span><ModePicker small value={r.mode} onChange={(v) => saveReading.mutate({ ...r, mode: v })} /></div>
+                <div className="reading-mode"><span>Gelesen als</span><ModePicker small allowed={ownedModes(m).modes} printLabel={ownedModes(m).printLabel} value={r.mode} onChange={(v) => saveReading.mutate({ ...r, mode: v })} /></div>
                 {!r.abandoned && (
                   <div className="actions" style={{ marginTop: 2 }}>
                     {!done && <button className="btn small" onClick={() => setEnd(r, today())}><Icon name="check" size={15} /> Heute beendet</button>}
