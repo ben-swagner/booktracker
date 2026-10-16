@@ -48,12 +48,12 @@ function Release({ w }: { w: WishlistItem }) {
   if ((w.release_date && w.release_date <= t) || (!w.release_date && textDone)) {
     return <span className="rel-done" title={w.release_date ? `Erschienen am ${fmtDate(w.release_date)}` : "Erschienen"}><Icon name="check" size={15} />Erschienen</span>;
   }
-  if (!w.release_date) return <span className="muted">{w.release_text ?? ""}</span>;
+  if (!w.release_date) return <span className="rel-unknown">{w.release_text?.trim() || "Termin offen"}</span>;
   const days = Math.round((Date.parse(w.release_date) - Date.parse(t)) / 86400000);
   return (
     <span className="rel-future">
       <span className="mono">{fmtDate(w.release_date)}</span>
-      {days <= 30 && <span className="rel-soon">{days === 1 ? "morgen" : `in ${days} Tagen`}</span>}
+      <span className={days <= 30 ? "rel-soon" : "rel-later"}>{days === 1 ? "morgen" : `in ${days.toLocaleString("de-DE")} Tagen`}</span>
     </span>
   );
 }
@@ -80,7 +80,7 @@ export default function Wunschliste() {
   const del = useDeleteWishlistItem();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"offen" | "gekauft">("offen");
-  const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "" });
+  const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "", rec: "" });
 
   const all = lib?.wishlist_items ?? [];
   const counts = { offen: all.filter((w) => !isBought(w)).length, gekauft: all.filter(isBought).length };
@@ -106,6 +106,8 @@ export default function Wunschliste() {
     saved: bought.filter((w) => howOf(w) !== "Gekauft").reduce((n, w) => n + (w.price_cents ?? 0), 0)
   };
 
+  // bisher genannte Empfehlungen als Vorschläge im Feld
+  const recNames = useMemo(() => [...new Set(all.map((w) => w.recommended_by).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "de")), [all]);
   if (isLoading || !lib) return <p className="muted">Lade…</p>;
   const total = items.reduce((s, w) => s + (w.price_cents ?? 0), 0);
 
@@ -133,15 +135,16 @@ export default function Wunschliste() {
     }
   }
 
+
   async function add(ev: React.FormEvent) {
     ev.preventDefault();
     if (!draft.title.trim()) return;
     await save.mutateAsync({
       title: draft.title.trim(), author: draft.author || null, isbn: draft.isbn || null,
       price_cents: draft.price ? Math.round(Number(draft.price.replace(",", ".")) * 100) : null, priority: draft.priority,
-      wanted_format: draft.format, release_date: draft.release || null
+      wanted_format: draft.format, release_date: draft.release || null, recommended_by: draft.rec.trim() || null
     });
-    setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel", format: "Egal", release: "" });
+    setDraft({ title: "", author: "", isbn: "", price: "", priority: "mittel", format: "Egal", release: "", rec: "" });
     setHint(null);
     toast("Auf die Wunschliste gesetzt.");
   }
@@ -195,6 +198,8 @@ export default function Wunschliste() {
             {(["hoch", "mittel", "niedrig"] as const).map((p) => <option key={p} value={p}>{PRIO[p]}</option>)}
           </select>
         </div>
+        <div className="field"><label htmlFor="wrec">Empfohlen von</label><input id="wrec" className="input" list="wrec-list" placeholder="z. B. Jenny, BookTok, Buchhandlung" value={draft.rec} onChange={(e) => setDraft({ ...draft, rec: e.target.value })} /></div>
+        <datalist id="wrec-list">{recNames.map((n) => <option key={n} value={n} />)}</datalist>
         <div className="actions span2" style={{ justifyContent: "flex-end" }}><button className="btn primary" type="submit">Hinzufügen</button></div>
       </form>
 
@@ -221,7 +226,7 @@ export default function Wunschliste() {
                       <input type="checkbox" className="wish-check" checked={false} onChange={() => markBought(w)} aria-label={`„${w.title}“ als gekauft abhaken`} title="Als gekauft abhaken" />
                     </td>
                   )}
-                  <td><strong>{w.title}</strong>{w.recommended_by ? <div className="meta">Empfohlen von {w.recommended_by}</div> : null}</td>
+                  <td><strong>{w.title}</strong><RecBy value={w.recommended_by ?? ""} onSave={(v) => save.mutate({ id: w.id, title: w.title, recommended_by: v || null })} /></td>
                   <td>{w.author}</td>
                   <td>{w.series_name ? <>{w.series_name}<SeriesNo n={w.series_number} total={w.series_total} /></> : ""}</td>
                   <td>
@@ -279,4 +284,19 @@ export default function Wunschliste() {
       )}
     </>
   );
+}
+
+/** „Empfohlen von …“ unter dem Titel: antippen zum Eintragen oder Ändern, Enter oder Wegklicken speichert. */
+function RecBy({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [edit, setEdit] = useState(false);
+  const [text, setText] = useState(value);
+  if (edit) return (
+    <input className="input rec-input" autoFocus list="wrec-list" value={text} placeholder="Wer hat es empfohlen?" aria-label="Empfohlen von"
+      onChange={(e) => setText(e.target.value)}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setText(value); setEdit(false); } }}
+      onBlur={() => { setEdit(false); if (text.trim() !== value) onSave(text.trim()); }} />
+  );
+  return value
+    ? <button type="button" className="rec-btn" onClick={() => { setText(value); setEdit(true); }}>Empfohlen von <strong>{value}</strong></button>
+    : <button type="button" className="rec-btn add" onClick={() => { setText(""); setEdit(true); }}>+ Empfohlen von</button>;
 }
