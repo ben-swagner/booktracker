@@ -1685,3 +1685,22 @@ select.input.rf-sort { flex: none; width: auto; height: 46px; border-radius: 999
 :root[data-theme="dark"] .bingo-cell:not(.done) .bingo-book { background: rgba(255,255,255,.08); color: var(--muted); }
 @media (max-width: 700px) { .bingo-goal { font-size: 13px; } .bingo-book { font-size: 11px; padding: 4px 6px; } .bingo-cell { padding: 9px; } }
 @media (max-width: 480px) { .bingo { grid-template-columns: repeat(2, 1fr); } .bingo-cell { aspect-ratio: auto; min-height: 120px; } .bingo-goal { font-size: 14px; } .bingo-book { font-size: 12px; } }
+
+/* Buchseite: Status als ein Knopf mit Auswahl statt vieler Knöpfe */
+.st-menu-wrap { position: relative; }
+.st-menu-btn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.st-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--muted); }
+.st-lese .st-dot { background: var(--lese); }
+.st-tbr .st-dot { background: var(--tbr); }
+.st-gelesen .st-dot { background: var(--gelesen); }
+.st-ungelesen .st-dot { background: transparent; box-shadow: inset 0 0 0 2px var(--ungelesen, var(--stone)); }
+.st-abgebrochen .st-dot { background: var(--abg); }
+.st-wunschliste .st-dot { background: var(--wunsch); }
+.st-menu { position: absolute; left: 0; top: 46px; z-index: 21; min-width: 240px; padding: 8px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 24px 60px -12px rgba(23,21,26,.28); display: flex; flex-direction: column; gap: 2px; }
+.st-menu-head { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 6px 10px 4px; }
+.st-menu-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.st-menu-item:hover { background: var(--surface-2); }
+.st-menu-item.on { background: color-mix(in srgb, var(--lilac-soft, #ECE9FA) 70%, var(--surface)); font-weight: 600; }
+.st-menu-item.on > svg:last-child, .st-menu-item.on > .icon:last-child { margin-left: auto; }
+.st-menu-sep { height: 1px; background: var(--line); margin: 4px 8px; }
+.bd-hero { position: relative; z-index: 3 !important; }

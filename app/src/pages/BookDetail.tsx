@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
-import { Cover, SeriesNo, Stars, StatusPill, authorNames } from "../components/ui";
+import { Cover, SeriesNo, Stars, authorNames } from "../components/ui";
 import { AuthorPhoto, useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
 import { Icon, type IconName } from "../components/Icon";
@@ -65,6 +65,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const del = useDeleteUserBook();
   const [page, setPage] = useState<string>("");
   const [pickCover, setPickCover] = useState(false);
+  const [stOpen, setStOpen] = useState(false);
   const [quote, setQuote] = useState("");
   const [moodText, setMoodText] = useState("");
   const [moreMoods, setMoreMoods] = useState(false);
@@ -178,7 +179,6 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
         </div>
         <div className="section bd-head">
           <div className="card-top">
-            <StatusPill status={m.status} />
             {e.series && <span className="tag">{e.series.name}<SeriesNo n={b.series_number} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}</span>}
             {b.series_roles?.map((r) => <span key={r} className="tag">{r}</span>)}
           </div>
@@ -208,17 +208,36 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             </p>
           )}
           <div className="actions">
-            {STATUS_ORDER.filter((s) => s !== m.status).map((s) => (
-              <button key={s} className="btn small" onClick={() => setStatus(s)}><Icon name={STATUS_ICON[s]} size={15} /> {STATUS[s]}</button>
-            ))}
-            {m.status === "gelesen" && (() => {
-              const last = [...e.readings].filter((r) => !r.abandoned).sort((x, y) => x.read_number - y.read_number).pop();
-              return (
-                <button className="btn small" onClick={() => (last && (last.finished_on || last.finished_text) ? toggleFinished(last) : setStatus("lese"))}>
-                  <Icon name="history" size={15} /> Doch noch nicht beendet
-                </button>
-              );
-            })()}
+            <div className="st-menu-wrap">
+              <button type="button" className={"st-menu-btn st-" + m.status} aria-haspopup="menu" aria-expanded={stOpen} onClick={() => setStOpen(!stOpen)}>
+                <span className="st-dot" aria-hidden="true" /><span className="st-menu-label">{STATUS[m.status]}</span><Icon name="chevron" size={14} />
+              </button>
+              {stOpen && (
+                <>
+                  <div className="rf-veil" onClick={() => setStOpen(false)} />
+                  <div className="st-menu" role="menu">
+                    <span className="st-menu-head">Status ändern</span>
+                    {STATUS_ORDER.map((s) => (
+                      <button key={s} type="button" role="menuitemradio" aria-checked={s === m.status} className={"st-menu-item st-" + s + (s === m.status ? " on" : "")}
+                        onClick={async () => { setStOpen(false); if (s === m.status) return; if (s === "gelesen" && e.readings.some((r) => !r.finished_on && !r.abandoned)) await finish(); else await setStatus(s); }}>
+                        <span className="st-dot" aria-hidden="true" /><Icon name={STATUS_ICON[s]} size={15} /> {STATUS[s]}{s === m.status && <Icon name="check" size={15} />}
+                      </button>
+                    ))}
+                    {m.status === "gelesen" && (() => {
+                      const last = [...e.readings].filter((r) => !r.abandoned).sort((x, y) => x.read_number - y.read_number).pop();
+                      return (
+                        <>
+                          <span className="st-menu-sep" />
+                          <button type="button" role="menuitem" className="st-menu-item" onClick={() => { setStOpen(false); if (last && (last.finished_on || last.finished_text)) toggleFinished(last); else setStatus("lese"); }}>
+                            <Icon name="history" size={15} /> Doch noch nicht beendet
+                          </button>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </>
+              )}
+            </div>
             <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}><Icon name="pencil" size={15} /> Bearbeiten</Link>
           </div>
         </div>

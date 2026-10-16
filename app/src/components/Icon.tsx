@@ -25,6 +25,7 @@ const PATHS = {
   tower: "M12 2l2 5v3l2 2v10H8V12l2-2V7l2-5ZM8 22h8M10 16h4",
   weight: "M7 8h10l3 13H4L7 8ZM9.5 8a2.5 2.5 0 1 1 5 0",
   search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM20 20l-3.5-3.5",
+  chevron: "m6 9 6 6 6-6",
   filter: "M4 6h16M7 12h10M10 18h4",
   road: "M8 3 4 21M16 3l4 18M12 4v3M12 11v3M12 18v3",
   film: "M4 4h16v16H4zM8 4v16M16 4v16M4 8h4M4 12h4M4 16h4M16 8h4M16 12h4M16 16h4",
