@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Entry } from "../data/types";
 import { useSaveReading, useSaveUserBook } from "../data/hooks";
 import { fmtDate, today } from "../lib/labels";
-import { Cover, SeriesNo, authorNames } from "./ui";
+import { Cover, ModePicker, SeriesNo, authorNames } from "./ui";
 import { useOpenBook } from "./openBook";
 import { toast } from "../App";
 import { Icon } from "./Icon";
@@ -48,6 +48,12 @@ export function ReadingNowCard({ e }: { e: Entry }) {
         <h3 className="now-title">{b.title}</h3>
         <p className="book-author" style={{ margin: 0 }}>{authorNames(e)}</p>
         <p className="meta" style={{ margin: 0 }}>{[b.genre, b.pages ? `${b.pages} Seiten` : null, since ? `seit ${fmtDate(since)}${days ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}` : null].filter(Boolean).join(" · ")}</p>
+        <div className="now-mode"><span className="meta">Ich lese es als</span>
+          <ModePicker small value={open?.mode} onChange={async (v) => {
+            await saveReading.mutateAsync({ ...(open ?? { read_number: e.readings.length + 1, started_on: today() }), user_book_id: m.id, mode: v });
+            toast(v ? `Gespeichert: ${v === "print" ? "gedruckt" : v === "ebook" ? "als eBook" : "als Hörbuch"}.` : "Leseart entfernt.");
+          }} />
+        </div>
         <div className="now-progress">
           <div className="progress big"><div style={{ width: `${pct ?? 0}%` }} /></div>
           <span className="mono">{m.current_page ? `Seite ${m.current_page}${b.pages ? ` von ${b.pages}` : ""}${pct != null ? ` · ${pct} %` : ""}` : "Noch keine Seite eingetragen"}</span>

@@ -1759,3 +1759,13 @@ select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg,
 .hl-badge .hl-line { font-weight: 600; color: var(--ink); }
 @media (max-width: 560px) { .hl-head { font-size: 11px; padding: 4px 8px; white-space: normal; } }
 .genre-chip { border: 0; padding: 4px 10px; border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+/* Leseart: gedruckt, eBook, Hörbuch */
+.mode-picker { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--pane-line); }
+.mode-opt { border: 0; background: transparent; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer; }
+.mode-picker.small .mode-opt { padding: 4px 10px; font-size: 12.5px; }
+.mode-opt.on { color: #17151A; font-weight: 600; }
+.mode-print.on { background: linear-gradient(90deg, #B9B3F0, #ECE9FA); }
+.mode-ebook.on { background: linear-gradient(90deg, #9DB2F2, #E6EBFB); }
+.mode-audio.on { background: linear-gradient(90deg, #F8C7A4, #FBE7DB); }
+.now-mode, .reading-mode { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.reading-mode > span { font-size: 13px; color: var(--muted); }

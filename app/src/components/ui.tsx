@@ -425,3 +425,15 @@ export function StarPicker({ value, onChange, size = 30 }: { value: number | nul
     </div>
   );
 }
+
+/** Wie ein Durchgang gelesen wird: gedruckt, als eBook oder als Hörbuch. Ein Tipp auf die aktive Wahl hebt sie auf. */
+export const READ_MODES: [string, string, string][] = [["print", "Gedruckt", "book"], ["ebook", "eBook", "tablet"], ["audio", "Hörbuch", "headphones"]];
+export function ModePicker({ value, onChange, small }: { value?: string | null; onChange: (v: string | null) => void; small?: boolean }) {
+  return (
+    <div className={"mode-picker" + (small ? " small" : "")} role="radiogroup" aria-label="Wie liest du es?">
+      {READ_MODES.map(([k, l]) => (
+        <button key={k} type="button" role="radio" aria-checked={value === k} className={"mode-opt mode-" + k + (value === k ? " on" : "")} onClick={() => onChange(value === k ? null : k)}>{l}</button>
+      ))}
+    </div>
+  );
+}
