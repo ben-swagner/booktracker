@@ -1,3 +1,4 @@
+import { Icon } from "../components/Icon";
 import { useMemo, useState } from "react";
 import { useDeleteChallenge, useDeleteChallengeEntry, useEntries, useSaveChallenge, useSaveChallengeEntry, useSaveGoal } from "../data/hooks";
 import type { Challenge, ChallengeEntry, Entry } from "../data/types";
@@ -146,8 +147,10 @@ export default function Ziele() {
                 <div className="bingo">
                   {es.map((e) => (
                     <button key={e.id} type="button" className={"bingo-cell" + (e.done ? " done" : "")} onClick={() => setCell(e)}>
-                      <span>{e.label}</span>
-                      <small>{bookTitle(e.book_id) ?? (e.done ? "✓" : "")}</small>
+                      <span className="bingo-goal">{e.label}</span>
+                      {bookTitle(e.book_id)
+                        ? <span className="bingo-book"><Icon name="book" size={13} /><span>{bookTitle(e.book_id)}</span></span>
+                        : e.done ? <span className="bingo-check" aria-label="geschafft"><Icon name="check" size={14} /></span> : null}
                     </button>
                   ))}
                 </div>
