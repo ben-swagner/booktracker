@@ -343,6 +343,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
               </ul>
             </div>
           ) : <p className="meta" style={{ margin: 0 }}>Noch keine Bewertung. Sterne, Urteil und Spice trägst du unter „Bewerten“ ein.</p>}
+          <Opinion key={m.id} value={m.review ?? ""} onSave={async (v) => { await saveUB.mutateAsync({ id: m.id, book_id: b.id, review: v.trim() ? v : null }); }} />
 
           <Sub icon="smile">Stimmung</Sub>
           <div className="chips">
@@ -379,7 +380,6 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           <Readings e={e} />
 
           {m.notes && <><Sub icon="note">Meine Notiz</Sub><p className="prose" style={{ margin: 0 }}>{m.notes}</p></>}
-          {m.review && <><Sub icon="pencil">Rezension</Sub><p className="prose" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
             </div>
           </div>
         </section>
@@ -511,5 +511,28 @@ function Readings({ e }: { e: Entry }) {
         <p className="meta">Abbruchgrund: {list.filter((r) => r.abandoned).flatMap((r) => r.abandoned_reasons ?? []).join(", ")}</p>
       )}
     </>
+  );
+}
+
+/** Freies Feld für die eigene Meinung zum Buch. Speichert von selbst, sobald man aufhört zu tippen oder das Feld verlässt. */
+function Opinion({ value, onSave }: { value: string; onSave: (v: string) => Promise<void> }) {
+  const [text, setText] = useState(value);
+  const [state, setState] = useState<"" | "tippt" | "speichert" | "gespeichert">("");
+  const last = useRef(value);
+  const timer = useRef<number | undefined>(undefined);
+  const save = async (v: string) => {
+    window.clearTimeout(timer.current);
+    if (v === last.current) return;
+    setState("speichert");
+    try { await onSave(v); last.current = v; setState("gespeichert"); } catch { setState(""); toast("Speichern hat nicht geklappt."); }
+  };
+  return (
+    <div className="bd-opinion">
+      <label htmlFor="bd-opinion" className="bd-opinion-label"><Icon name="pencil" size={15} /> Meine Meinung</label>
+      <textarea id="bd-opinion" className="input" rows={4} placeholder="Was hat dir gefallen, was nicht? Ein paar Gedanken, eine Notiz, deine Rezension …" value={text}
+        onChange={(e) => { const v = e.target.value; setText(v); setState("tippt"); window.clearTimeout(timer.current); timer.current = window.setTimeout(() => save(v), 1200); }}
+        onBlur={() => save(text)} />
+      <span className="bd-opinion-state" aria-live="polite">{state === "speichert" ? "Speichert …" : state === "gespeichert" ? "Gespeichert" : ""}</span>
+    </div>
   );
 }
