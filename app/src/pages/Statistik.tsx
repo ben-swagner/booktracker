@@ -9,7 +9,7 @@ import { Cover } from "../components/ui";
 import { useOpenBook } from "../components/openBook";
 import { AuthorPhoto, GENDER_COLOR, useOpenAuthor } from "../components/Authors";
 import { BarList, Card, Columns, Delta, Donut, Fact, Heatmap, Kpi, Lines, ScopeSelect, StackBar, fmtN } from "../components/Charts";
-import { Icon } from "../components/Icon";
+import { Icon, type IconName } from "../components/Icon";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const MONTHS_LONG = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -262,10 +262,11 @@ export default function Statistik() {
   const wt = [...WEIGHTS].reverse().find(([, w]) => w <= s.weightKg);
   const fields = s.lengthKm * 1000 / 105;
 
-  const bookTile = (e: Entry | undefined, title: string, line: string) => e && (
-    <button type="button" className="hl" onClick={() => openBook(e.mine.id)}>
+  const bookTile = (e: Entry | undefined, title: string, line: string, icon?: IconName, tone?: string) => e && (
+    <button type="button" className={"hl" + (icon ? " hl-badge tone-" + tone : "")} onClick={() => openBook(e.mine.id)}>
+      {icon && <span className="hl-head"><Icon name={icon} size={15} />{title}</span>}
       <Cover title={e.book.title} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
-      <span className="hl-kicker">{title}</span>
+      {!icon && <span className="hl-kicker">{title}</span>}
       <span className="hl-title">{e.book.title}</span>
       <span className="hl-line">{line}</span>
     </button>
@@ -357,13 +358,13 @@ export default function Statistik() {
             })()}
 
             {(s.hl.best || s.hl.thick) && (
-              <Card scope={pick("c7")} title="Highlights" icon="sparkle" wide>
+              <Card scope={pick("c7")} title="Highlights" icon="sparkle" hint="Deine Rekorde im gewählten Zeitraum. Tipp auf ein Buch, um es zu öffnen." wide>
                 <div className="hls">
-                  {bookTile(S("c7").hl.best, "Bestbewertet", `${fmtN(S("c7").hl.best?.mine.rating ?? 0, 1)} Sterne`)}
-                  {bookTile(S("c7").hl.thick, "Dickstes Buch", `${fmtN(S("c7").hl.thick?.book.pages ?? 0)} Seiten`)}
-                  {bookTile(S("c7").hl.thin, "Dünnstes Buch", `${fmtN(S("c7").hl.thin?.book.pages ?? 0)} Seiten`)}
-                  {S("c7").hl.fast && bookTile(S("c7").hl.fast.e, "Am schnellsten", `in ${S("c7").hl.fast.r.days} ${S("c7").hl.fast.r.days === 1 ? "Tag" : "Tagen"}`)}
-                  {S("c7").hl.slow && S("c7").hl.slow !== S("c7").hl.fast && bookTile(S("c7").hl.slow.e, "Am längsten", `${S("c7").hl.slow.r.days} Tage`)}
+                  {bookTile(S("c7").hl.best, "Bestbewertet", `${fmtN(S("c7").hl.best?.mine.rating ?? 0, 1)} Sterne`, "star", "yellow")}
+                  {bookTile(S("c7").hl.thick, "Dickstes Buch", `${fmtN(S("c7").hl.thick?.book.pages ?? 0)} Seiten`, "stack", "lilac")}
+                  {bookTile(S("c7").hl.thin, "Dünnstes Buch", `${fmtN(S("c7").hl.thin?.book.pages ?? 0)} Seiten`, "pages", "blue")}
+                  {S("c7").hl.fast && bookTile(S("c7").hl.fast.e, "Am schnellsten gelesen", `in ${S("c7").hl.fast.r.days} ${S("c7").hl.fast.r.days === 1 ? "Tag" : "Tagen"}`, "bolt", "pink")}
+                  {S("c7").hl.slow && S("c7").hl.slow !== S("c7").hl.fast && bookTile(S("c7").hl.slow.e, "Am längsten gelesen", `${S("c7").hl.slow.r.days} Tage`, "clock", "green")}
                 </div>
               </Card>
             )}

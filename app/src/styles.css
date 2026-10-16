@@ -1748,3 +1748,13 @@ select.input.wish-sort { width: auto; flex: none; }
 .how-choice.on { border-color: #17151A; box-shadow: 0 6px 16px -8px rgba(23,21,26,.4); }
 select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg, #F4E2A0, #FBF2D6); }
 .wish-back { white-space: nowrap; }
+/* Highlights: Überschrift über jedem Buch als farbiges Schild */
+.hl-badge { gap: 8px; }
+.hl-head { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #17151A; white-space: nowrap; }
+.hl-badge.tone-yellow .hl-head { background: linear-gradient(90deg, #F4E2A0, #FBF2D6); }
+.hl-badge.tone-lilac .hl-head { background: linear-gradient(90deg, #B9B3F0, #ECE9FA); }
+.hl-badge.tone-blue .hl-head { background: linear-gradient(90deg, #9DB2F2, #E6EBFB); }
+.hl-badge.tone-pink .hl-head { background: linear-gradient(90deg, #F3B0C8, #FBE6EE); }
+.hl-badge.tone-green .hl-head { background: linear-gradient(90deg, #A9D3B5, #E2F0E6); }
+.hl-badge .hl-line { font-weight: 600; color: var(--ink); }
+@media (max-width: 560px) { .hl-head { font-size: 11px; padding: 4px 8px; white-space: normal; } }
