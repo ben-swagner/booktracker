@@ -1704,3 +1704,7 @@ select.input.rf-sort { flex: none; width: auto; height: 46px; border-radius: 999
 .st-menu-item.on > svg:last-child, .st-menu-item.on > .icon:last-child { margin-left: auto; }
 .st-menu-sep { height: 1px; background: var(--line); margin: 4px 8px; }
 .bd-hero { position: relative; z-index: 3 !important; }
+/* Bearbeiten im Buchfenster */
+.bd-edit { position: relative; z-index: 2; }
+.form-embedded .mast h1 { font-size: 34px; }
+.form-embedded { padding: 0; }

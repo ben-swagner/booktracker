@@ -59,13 +59,15 @@ function SelectField({ k, label, opts, value, onChange }: {
 const list = (s: string) => s.split(/[;,]/).map((x) => x.trim()).filter(Boolean);
 const num = (s: string) => (s.trim() === "" ? null : Number(s.replace(",", ".")));
 
-export default function BookForm() {
-  const { id } = useParams();
+/** Formular für neue Bücher und zum Bearbeiten. Mit `editId` und `onDone` läuft es eingebettet (z. B. im Buchfenster), ohne Seitenwechsel. */
+export default function BookForm({ editId, onDone, startTab }: { editId?: string; onDone?: () => void; startTab?: "buch" | "ich" | "inhalt" } = {}) {
+  const params = useParams();
+  const id = editId ?? params.id;
   const nav = useNavigate();
   const { entries, isLoading } = useEntries();
   const save = useSaveBook();
   const [f, setF] = useState<Form>(EMPTY);
-  const [tab, setTab] = useState<"buch" | "ich" | "inhalt">("buch");
+  const [tab, setTab] = useState<"buch" | "ich" | "inhalt">(startTab ?? "buch");
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const existing = id ? entries.find((x) => x.mine.id === id) : undefined;
@@ -151,18 +153,19 @@ export default function BookForm() {
     };
     const saved = await save.mutateAsync({ book, authors: list(f.authors), series: f.series_name || null, mine });
     toast(existing ? "Gespeichert." : "Buch eingetragen.");
+    if (onDone) { onDone(); return; }
     nav(existing ? `/buch/${existing.mine.id}` : `/bibliothek?q=${encodeURIComponent(saved.title)}`);
   }
 
   if (id && isLoading) return <p className="muted">Lade…</p>;
 
   return (
-    <form onSubmit={submit} className="section form-page">
+    <form onSubmit={submit} className={"section form-page" + (onDone ? " form-embedded" : "")}>
       {scanning && <Suspense fallback={<div className="scanner"><p className="scanner-status">Scanner wird geladen…</p></div>}><Scanner onResult={onScanned} onClose={() => setScanning(false)} /></Suspense>}
       <div className="mast">
         <h1>{existing ? "Buch bearbeiten" : "Neues Buch"}</h1>
         <div className="actions">
-          <button type="button" className="btn" onClick={() => nav(-1)}>Abbrechen</button>
+          <button type="button" className="btn" onClick={() => (onDone ? onDone() : nav(-1))}>Abbrechen</button>
           <button type="submit" className="btn primary" disabled={save.isPending}>Speichern</button>
         </div>
       </div>

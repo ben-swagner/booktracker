@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { Link } from "../components/Link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import BookForm from "./BookForm";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry, Reading, ReadingStatus } from "../data/types";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
@@ -66,6 +67,9 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const [page, setPage] = useState<string>("");
   const [pickCover, setPickCover] = useState(false);
   const [stOpen, setStOpen] = useState(false);
+  const [editing, setEditing] = useState<null | "buch" | "ich">(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  const startEdit = (t: "buch" | "ich") => { setEditing(t); setTimeout(() => topRef.current?.closest(".bm-backdrop, .bm")?.scrollTo?.({ top: 0, behavior: "smooth" }), 0); if (!inModal) window.scrollTo({ top: 0, behavior: "smooth" }); };
   const [quote, setQuote] = useState("");
   const [moodText, setMoodText] = useState("");
   const [moreMoods, setMoreMoods] = useState(false);
@@ -163,6 +167,16 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const moodChoices = [...new Set([...(m.moods ?? []), ...MOODS])];
   const shownMoods = moreMoods ? moodChoices : moodChoices.slice(0, Math.max(6, (m.moods ?? []).length));
 
+  // Bearbeiten direkt hier im Buch, ohne Seitenwechsel
+  if (editing) return (
+    <>
+      <BookAura book={b} inline={inModal} />
+      <div ref={topRef} className="bd-edit">
+        <BookForm editId={m.id} startTab={editing} onDone={() => setEditing(null)} />
+      </div>
+    </>
+  );
+
   return (
     <>
       <BookAura book={b} inline={inModal} />
@@ -238,7 +252,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
                 </>
               )}
             </div>
-            <Link className="btn small primary" to={`/buch/${m.id}/bearbeiten`}><Icon name="pencil" size={15} /> Bearbeiten</Link>
+            <button type="button" className="btn small primary" onClick={() => startEdit("buch")}><Icon name="pencil" size={15} /> Bearbeiten</button>
           </div>
         </div>
       </div>
@@ -298,7 +312,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
 
           <div className="bd-me-grid">
             <div className="section">
-          <Sub icon="star" right={<Link className="btn small ghost" to={`/buch/${m.id}/bearbeiten`}>{hasRating ? "Ändern" : "Bewerten"}</Link>}>Bewertung</Sub>
+          <Sub icon="star" right={<button type="button" className="btn small ghost" onClick={() => startEdit("ich")}>{hasRating ? "Ändern" : "Bewerten"}</button>}>Bewertung</Sub>
           {hasRating ? (
             <div className="bd-verdict">
               {m.rating != null && <div className="bd-stars"><Stars value={m.rating} /><strong className="mono">{m.rating}</strong><span className="muted">von 5</span></div>}
