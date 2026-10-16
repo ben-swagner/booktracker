@@ -1801,12 +1801,12 @@ select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg,
 .bs-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .bs-title h3 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
 .bs-title .meta { margin: 4px 0 0; }
-.bs-spines { height: 46px; }
+.bs-spines { height: 50px; padding: 5px 4px 3px; overflow: visible; }
 .bs-spines .vs { max-width: 18px; }
 .vs.cur { outline: 2px solid var(--ink); outline-offset: 2px; }
 .bs-nav { display: flex; flex-wrap: wrap; gap: 8px; }
 .bs-nav .btn { display: inline-flex; align-items: center; gap: 6px; }
-.bs-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 118px; gap: 14px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; }
+.bs-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 118px; gap: 14px; overflow-x: auto; padding: 8px 8px 12px; margin: 0 -8px; scroll-padding-left: 8px; scroll-snap-type: x proximity; }
 .bs-tile { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; scroll-snap-align: start; min-width: 0; }
 .bs-tile.gap { cursor: default; }
 .bs-cover { position: relative; display: block; }
