@@ -14,6 +14,7 @@ import { NO_COVER } from "../lib/covers";
 import { data } from "../data";
 import { useQueryClient } from "@tanstack/react-query";
 import { BookAura } from "../components/Aura";
+import { SeriesTab } from "../components/SeriesTab";
 
 /** Chips, die zur Bibliothek mit passendem Filter führen (z. B. alle Bücher mit diesem Trope). */
 function Chips({ items, param }: { items?: string[]; param?: "trope" | "ohne" }) {
@@ -60,7 +61,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const inModal = !!props.onClose;
   const nav = useNavigate();
   const openAuthor = useOpenAuthor();
-  const { entries, isLoading } = useEntries();
+  const { entries, lib, isLoading } = useEntries();
   const saveUB = useSaveUserBook();
   const saveReading = useSaveReading();
   const del = useDeleteUserBook();
@@ -76,13 +77,14 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const [quote, setQuote] = useState("");
   const [moodText, setMoodText] = useState("");
   const [moreMoods, setMoreMoods] = useState(false);
-  const [tab, setTab] = useState<"book" | "me">(() => (localStorage.getItem("bt-book-tab") === "me" ? "me" : "book"));
-  const pickTab = (t: "book" | "me") => { setTab(t); try { localStorage.setItem("bt-book-tab", t); } catch { /* egal */ } };
+  const [tabState, setTab] = useState<"book" | "me" | "series">(() => { const t = localStorage.getItem("bt-book-tab"); return t === "me" || t === "series" ? t : "book"; });
+  const pickTab = (t: "book" | "me" | "series") => { setTab(t); try { localStorage.setItem("bt-book-tab", t); } catch { /* egal */ } };
   const qc = useQueryClient();
 
   if (isLoading) return <p className="muted">Lade…</p>;
   const e = entries.find((x) => x.mine.id === id);
   if (!e) return <p className="muted">Dieses Buch gibt es nicht (mehr).</p>;
+  const tab = tabState === "series" && !e.series ? "book" : tabState;
   const { book: b, mine: m } = e;
   const lent = lentOf(m.condition);
 
@@ -197,7 +199,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
         </div>
         <div className="section bd-head">
           <div className="card-top">
-            {e.series && <span className="tag">{e.series.name}<SeriesNo n={b.series_number} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}</span>}
+            {e.series && <button type="button" className="tag tag-link" onClick={() => pickTab("series")} title="Alle Bände der Reihe ansehen">{e.series.name}<SeriesNo n={b.series_number} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}</button>}
             {b.series_roles?.map((r) => <span key={r} className="tag">{r}</span>)}
           </div>
           <h1 className="bd-title">{b.title}</h1>
@@ -277,13 +279,18 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
         </div>
       </div>
 
-      <div className="bd-tabs" role="tablist" aria-label="Bereich">
+      <div className={"bd-tabs" + (e.series ? " three" : "")} role="tablist" aria-label="Bereich">
         <button role="tab" className={"bd-tab tone-book" + (tab === "book" ? " on" : "")} aria-selected={tab === "book"} onClick={() => pickTab("book")}>
           <span className="bd-sec-ico"><Icon name="book" size={18} /></span><span><strong>Das Buch</strong><small>Angaben, die für alle gleich sind</small></span>
         </button>
         <button role="tab" className={"bd-tab tone-me" + (tab === "me" ? " on" : "")} aria-selected={tab === "me"} onClick={() => pickTab("me")}>
           <span className="bd-sec-ico"><Icon name="heart" size={18} /></span><span><strong>Mein Lesen</strong><small>Status, Stimmung, Zitate, Bewertung</small></span>
         </button>
+        {e.series && (
+          <button role="tab" className={"bd-tab tone-series" + (tab === "series" ? " on" : "")} aria-selected={tab === "series"} onClick={() => pickTab("series")}>
+            <span className="bd-sec-ico"><Icon name="layers" size={18} /></span><span><strong>Die Reihe</strong><small>{e.series.name}</small></span>
+          </button>
+        )}
       </div>
 
       {tab === "book" && (
@@ -329,6 +336,8 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
 
         </section>
       )}
+
+      {tab === "series" && e.series && <SeriesTab e={e} entries={entries} wishlist={lib?.wishlist_items ?? []} />}
 
       {tab === "me" && (
         <section className="panel bd-sec tone-me">
