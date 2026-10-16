@@ -1787,3 +1787,10 @@ select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg,
 .series-stack .cover + .cover { margin-left: -22px; }
 .series-stack .cover .cover-title { font-size: 6px; } .series-stack .cover .cover-author { display: none; }
 .top-row .aphoto { justify-self: center; }
+/* Verliehen */
+.lent-tag { background: linear-gradient(90deg, #F8C7A4, #FBE7DB); color: #5A2E12; font-weight: 600; }
+.lent-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px 10px 14px; border-radius: 18px; background: linear-gradient(90deg, color-mix(in srgb, #F8C7A4 60%, transparent), color-mix(in srgb, #FBE7DB 50%, transparent)); color: #3A1F0E; font-size: 14px; }
+.lent-box > span { flex: 1; min-width: 180px; }
+.lent-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 10px; padding: 12px 14px; border-radius: 18px; background: color-mix(in srgb, var(--surface) 75%, transparent); border: 1px solid var(--pane-line); }
+.lent-form .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.lent-form .input { height: 38px; }

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import BookForm from "./BookForm";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
 import type { Entry, Reading, ReadingStatus } from "../data/types";
-import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, spiceLabel, today } from "../lib/labels";
+import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, fmtDate, lentDays, lentOf, lentValue, spiceLabel, today } from "../lib/labels";
 import { Cover, ModePicker, ownedModes, SeriesNo, StarPicker, Stars, authorNames } from "../components/ui";
 import { AuthorPhoto, useOpenAuthor } from "../components/Authors";
 import { toast } from "../App";
@@ -67,6 +67,9 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const [page, setPage] = useState<string>("");
   const [pickCover, setPickCover] = useState(false);
   const [stOpen, setStOpen] = useState(false);
+  const [lendOpen, setLendOpen] = useState(false);
+  const [lendTo, setLendTo] = useState("");
+  const [lendSince, setLendSince] = useState("");
   const [editing, setEditing] = useState<null | "buch" | "ich">(null);
   const topRef = useRef<HTMLDivElement>(null);
   const startEdit = (t: "buch" | "ich") => { setEditing(t); setTimeout(() => topRef.current?.closest(".bm-backdrop, .bm")?.scrollTo?.({ top: 0, behavior: "smooth" }), 0); if (!inModal) window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -81,6 +84,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
   const e = entries.find((x) => x.mine.id === id);
   if (!e) return <p className="muted">Dieses Buch gibt es nicht (mehr).</p>;
   const { book: b, mine: m } = e;
+  const lent = lentOf(m.condition);
 
   async function setStatus(status: ReadingStatus) {
     await saveUB.mutateAsync({ id: m.id, book_id: b.id, status });
@@ -253,7 +257,23 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
               )}
             </div>
             <button type="button" className="btn small primary" onClick={() => startEdit("buch")}><Icon name="pencil" size={15} /> Bearbeiten</button>
+            {!lent && !lendOpen && <button type="button" className="btn small ghost" onClick={() => { setLendTo(""); setLendSince(today()); setLendOpen(true); }}><Icon name="people" size={15} /> Verleihen</button>}
           </div>
+          {lent && !lendOpen && (
+            <div className="lent-box">
+              <Icon name="people" size={16} />
+              <span>Verliehen{lent.to ? <> an <strong>{lent.to}</strong></> : null}{lent.since ? <> seit {fmtDate(lent.since)} <span className="muted">({lentDays(lent.since) === 0 ? "heute" : `${lentDays(lent.since)} ${lentDays(lent.since) === 1 ? "Tag" : "Tage"}`})</span></> : null}</span>
+              <button type="button" className="btn small ghost" onClick={() => { setLendTo(lent.to); setLendSince(lent.since ?? today()); setLendOpen(true); }}>Ändern</button>
+              <button type="button" className="btn small" onClick={async () => { await saveUB.mutateAsync({ id: m.id, book_id: b.id, condition: null }); toast("Zurückbekommen, schön!"); }}><Icon name="check" size={15} /> Zurückbekommen</button>
+            </div>
+          )}
+          {lendOpen && (
+            <form className="lent-form" onSubmit={async (ev) => { ev.preventDefault(); await saveUB.mutateAsync({ id: m.id, book_id: b.id, condition: lentValue(lendSince || null, lendTo.trim()) }); setLendOpen(false); toast("Als verliehen eingetragen."); }}>
+              <label className="field"><span>An wen?</span><input className="input" autoFocus autoComplete="off" value={lendTo} onChange={(ev) => setLendTo(ev.target.value)} /></label>
+              <label className="field"><span>Seit</span><input className="input date" type="date" value={lendSince} max={today()} onChange={(ev) => setLendSince(ev.target.value)} /></label>
+              <div className="actions"><button type="button" className="btn small" onClick={() => setLendOpen(false)}>Abbrechen</button><button type="submit" className="btn small primary">Speichern</button></div>
+            </form>
+          )}
         </div>
       </div>
 

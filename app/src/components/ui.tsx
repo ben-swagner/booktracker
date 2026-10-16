@@ -4,7 +4,7 @@ import { isDesktop, useOpenBook } from "./openBook";
 import { data } from "../data";
 import { NO_COVER, findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
-import { STATUS, fmtDate, genreCloud, genreColors } from "../lib/labels";
+import { STATUS, fmtDate, genreCloud, genreColors, lentOf } from "../lib/labels";
 
 /** Merkt sich pro Sitzung, welche ISBNs bei Open Library kein Bild haben, damit nichts doppelt versucht wird. */
 const noCover = new Set<string>();
@@ -132,6 +132,7 @@ export function BookCard({ e }: { e: Entry }) {
       <div className="card-body">
         <div className="card-top">
           <StatusPill status={m.status} />
+          {lentOf(m.condition) && <span className="tag lent-tag" title={`Verliehen${lentOf(m.condition)!.to ? ` an ${lentOf(m.condition)!.to}` : ""}`}>Verliehen</span>}
           {e.series && (
             <span className="tag">
               {e.series.name}

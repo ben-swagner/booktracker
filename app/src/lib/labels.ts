@@ -120,3 +120,19 @@ export function genreCloud(genre: string | null | undefined, seed: string): { bg
   const bg = `radial-gradient(${w}% 90% at ${x}% 108%, ${fam[2][0]} 0%, ${fam[1][0]} ${mid}%, ${fam[0][0]} 88%)`;
   return { bg, fg: fam[0][1], fg2: "#FFFFFF" };
 }
+
+/**
+ * Verliehen: steht ohne eigene Spalte im bisher ungenutzten Feld user_books.condition
+ * als „verliehen|JJJJ-MM-TT|Name“. So geht es ohne Änderung an der Datenbank.
+ */
+export type Lent = { since: string | null; to: string };
+export function lentOf(condition?: string | null): Lent | null {
+  if (!condition || !condition.startsWith("verliehen|")) return null;
+  const [, since, ...rest] = condition.split("|");
+  return { since: since || null, to: rest.join("|") };
+}
+export const lentValue = (since: string | null, to: string) => `verliehen|${since ?? ""}|${to.replace(/\|/g, "/")}`;
+export function lentDays(since: string | null) {
+  if (!since) return null;
+  return Math.max(0, Math.round((Date.parse(today()) - Date.parse(since)) / 86400000));
+}
