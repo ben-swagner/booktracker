@@ -106,8 +106,6 @@ export default function Wunschliste() {
     saved: bought.filter((w) => howOf(w) !== "Gekauft").reduce((n, w) => n + (w.price_cents ?? 0), 0)
   };
 
-  // bisher genannte Empfehlungen als Vorschläge im Feld
-  const recNames = useMemo(() => [...new Set(all.map((w) => w.recommended_by).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "de")), [all]);
   if (isLoading || !lib) return <p className="muted">Lade…</p>;
   const total = items.reduce((s, w) => s + (w.price_cents ?? 0), 0);
 
@@ -198,8 +196,7 @@ export default function Wunschliste() {
             {(["hoch", "mittel", "niedrig"] as const).map((p) => <option key={p} value={p}>{PRIO[p]}</option>)}
           </select>
         </div>
-        <div className="field"><label htmlFor="wrec">Empfohlen von</label><input id="wrec" className="input" list="wrec-list" placeholder="z. B. Jenny, BookTok, Buchhandlung" value={draft.rec} onChange={(e) => setDraft({ ...draft, rec: e.target.value })} /></div>
-        <datalist id="wrec-list">{recNames.map((n) => <option key={n} value={n} />)}</datalist>
+        <div className="field"><label htmlFor="wrec">Empfohlen von</label><input id="wrec" className="input" autoComplete="off" value={draft.rec} onChange={(e) => setDraft({ ...draft, rec: e.target.value })} /></div>
         <div className="actions span2" style={{ justifyContent: "flex-end" }}><button className="btn primary" type="submit">Hinzufügen</button></div>
       </form>
 
@@ -291,7 +288,7 @@ function RecBy({ value, onSave }: { value: string; onSave: (v: string) => void }
   const [edit, setEdit] = useState(false);
   const [text, setText] = useState(value);
   if (edit) return (
-    <input className="input rec-input" autoFocus list="wrec-list" value={text} placeholder="Wer hat es empfohlen?" aria-label="Empfohlen von"
+    <input className="input rec-input" autoFocus autoComplete="off" value={text} aria-label="Empfohlen von"
       onChange={(e) => setText(e.target.value)}
       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); (e.target as HTMLInputElement).blur(); } if (e.key === "Escape") { setText(value); setEdit(false); } }}
       onBlur={() => { setEdit(false); if (text.trim() !== value) onSave(text.trim()); }} />
