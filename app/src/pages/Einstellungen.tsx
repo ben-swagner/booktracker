@@ -7,6 +7,7 @@ import { LocalProvider } from "../data/local";
 import { STATUS, fmtDate } from "../lib/labels";
 import { authorNames } from "../components/ui";
 import { isSheetPhoto, loadSheetPhotos, sheetPhotoFor, type SheetPhoto } from "../lib/authorPhotos";
+import { GIFTED_WISH_IDS } from "../lib/giftedWishes";
 import { NO_COVER, coverRun, isGuessedCover, isSheetCover, loadSheetCovers, sheetCoverFor, type SheetCover } from "../lib/covers";
 
 // Der Sheet-Import gehört nur zum Konto, aus dem das Sheet stammt.
@@ -72,6 +73,20 @@ export default function Einstellungen() {
     setPhotoMsg(`Starte: ${photoJobs.length} Fotos…`);
     const errors = await data.saveAuthorPhotos(photoJobs, (n) => setPhotoMsg(`${n} von ${photoJobs.length} Fotos übernommen…`));
     setPhotoMsg(errors ? `Fertig, aber ${errors} Fotos konnten nicht gespeichert werden. Einfach noch einmal tippen.` : `Fertig: ${photoJobs.length} Fotos aus deiner alten Tabelle übernommen.`);
+    setCoverRunning(false);
+    await qc.invalidateQueries({ queryKey: ["library"] });
+  }
+  // Geschenkte Wunschlisten-Bücher aus der alten Tabelle richtig eintragen
+  const giftSet = new Set(GIFTED_WISH_IDS);
+  const giftJobs = (lib?.wishlist_items ?? []).filter((w) => giftSet.has(w.id) && w.purchase_condition !== "Geschenkt");
+  const [giftMsg, setGiftMsg] = useState<string | null>(null);
+  async function applyGifts() {
+    setCoverRunning(true);
+    let n = 0, err = 0;
+    for (const w of giftJobs) {
+      try { await data.saveWishlistItem({ id: w.id, title: w.title, owned: true, purchase_condition: "Geschenkt" }); n++; } catch { err++; }
+    }
+    setGiftMsg(err ? `${n} korrigiert, ${err} hat nicht geklappt. Einfach noch einmal tippen.` : `Fertig: ${n} Bücher stehen jetzt als geschenkt in der Wunschliste.`);
     setCoverRunning(false);
     await qc.invalidateQueries({ queryKey: ["library"] });
   }
@@ -198,6 +213,13 @@ export default function Einstellungen() {
             <p style={{ margin: 0 }}><strong>Fotos der Autor:innen aus deiner alten Tabelle:</strong> {photoDone} übernommen{photoJobs.length ? <>, <strong>{photoJobs.length}</strong> können noch übernommen werden. Sie ersetzen die Fotos, die die App selbst gesucht hat. Selbst hochgeladene oder gelöschte Fotos bleiben.</> : ", alles erledigt."}</p>
             {photoMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{photoMsg}</p>}
             {photoJobs.length > 0 && <div className="actions"><button className="btn primary" onClick={applySheetPhotos} disabled={coverRunning}>{coverRunning ? "Läuft…" : `${photoJobs.length} Fotos übernehmen`}</button></div>}
+          </div>
+        )}
+        {(giftJobs.length > 0 || giftMsg) && (
+          <div className="sheet-covers">
+            <p style={{ margin: 0 }}><strong>Geschenkte Bücher auf der Wunschliste:</strong> In deiner alten Tabelle stehen {GIFTED_WISH_IDS.length} Wünsche als „Geschenkt“. {giftJobs.length ? <>Bei <strong>{giftJobs.length}</strong> steht hier noch „Gekauft“.</> : null}</p>
+            {giftMsg && <p className="mono" style={{ margin: 0, fontSize: 13 }}>{giftMsg}</p>}
+            {giftJobs.length > 0 && <div className="actions"><button className="btn primary" onClick={applyGifts} disabled={coverRunning}>{giftJobs.length} als geschenkt eintragen</button></div>}
           </div>
         )}
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>Einzelne Bücher: im Buch auf „Cover ändern“ tippen. Dort kannst du ein eigenes Foto oder Bild hochladen, aus Vorschlägen wählen oder einen Bild-Link eintragen. Neue Bücher holen sich ihr Cover weiterhin automatisch über die ISBN.</p>

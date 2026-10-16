@@ -300,8 +300,8 @@ for r in load("wunschliste")[2:]:
         wanted_format=q(cell(r, 7)), release_date=q(to_date(cell(r, 8))),
         release_text=q(cell(r, 8) if cell(r, 8) and not to_date(cell(r, 8)) else None),
         genre=q(cell(r, 9)), price_cents=q(to_cents(cell(r, 10))),
-        priority=q(PRIO.get(cell(r, 11), "mittel")) + "::wish_priority",
-        recommended_by=q(cell(r, 12)), owned=q(cell(r, 13) == "TRUE"), purchase_condition=q(cell(r, 14)))))
+        priority=q(PRIO.get(cell(r, 11), "mittel")) + "::wish_priority",  # „Geschenkt“ in Prio: siehe purchase_condition
+        recommended_by=q(cell(r, 12)), owned=q(cell(r, 13) == "TRUE"), purchase_condition=q("Geschenkt" if cell(r, 11) == "Geschenkt" else ("Gekauft" if cell(r, 13) == "TRUE" else cell(r, 14))))))
 
 # Verkauf und Verkaufsplan
 for name, default_status in (("verkauf", "eingestellt"), ("verkaufsplan", "geplant")):
