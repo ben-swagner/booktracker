@@ -44,7 +44,13 @@ export default function Tops() {
     if (kind === "author") return [...authors.values()].filter((a) => a.name.toLowerCase().includes(nq)).slice(0, 8).map((a) => ({ id: a.id, label: a.name }));
     if (kind === "series") return [...series.values()].filter((s) => s.name.toLowerCase().includes(nq)).slice(0, 8).map((s) => ({ id: s.id, label: s.name }));
     const graphic = (e: Entry) => /Manga|Manhwa|Comic|Graphic/.test(e.book.kind ?? "");
-    return entries.filter((e) => (kind === "graphic" ? graphic(e) : !graphic(e)) && e.book.title.toLowerCase().includes(nq)).slice(0, 8).map((e) => ({ id: e.book.id, label: e.book.title, sub: authorNames(e) }));
+    const books = entries.filter((e) => (kind === "graphic" ? graphic(e) : !graphic(e)) && e.book.title.toLowerCase().includes(nq)).slice(0, 8).map((e) => ({ id: e.book.id, label: e.book.title, sub: authorNames(e) }));
+    if (kind !== "graphic") return books;
+    // Bei Graphics geht auch eine ganze Reihe
+    const gSeries = new Map<string, number>();
+    for (const e of entries) if (e.series && graphic(e) && e.series.name.toLowerCase().includes(nq)) gSeries.set(e.series.id, (gSeries.get(e.series.id) ?? 0) + 1);
+    const ser = [...gSeries.entries()].slice(0, 6).map(([id, n]) => ({ id: "s:" + id, label: series.get(id)?.name ?? "", sub: `ganze Reihe · ${n} Bände` }));
+    return [...ser, ...books];
   }, [q, kind, entries, authors, series]);
 
   // Vorschläge aus deinen Daten: Bewertung zuerst, dann wie oft gelesen, dann Menge
@@ -86,7 +92,7 @@ export default function Tops() {
 
   function startEdit() { setDraft(current.map((f) => ({ book_id: f.book_id, author_id: f.author_id, series_id: f.series_id }))); setEditing(true); }
   function add(id: string) {
-    const item: Partial<Favorite> = kind === "author" ? { author_id: id } : kind === "series" ? { series_id: id } : { book_id: id };
+    const item: Partial<Favorite> = id.startsWith("s:") ? { series_id: id.slice(2) } : kind === "author" ? { author_id: id } : kind === "series" ? { series_id: id } : { book_id: id };
     if (draft.some((d) => d.book_id === item.book_id && d.author_id === item.author_id && d.series_id === item.series_id)) return;
     setDraft([...draft, item]); setQ("");
   }
@@ -120,7 +126,7 @@ export default function Tops() {
         <div className="panel section">
           <div className="field">
             <label htmlFor="topq">Hinzufügen</label>
-            <input id="topq" className="input" placeholder={kind === "author" ? "Name tippen…" : kind === "series" ? "Reihe tippen…" : "Titel tippen…"} value={q} onChange={(e) => setQ(e.target.value)} />
+            <input id="topq" className="input" placeholder={kind === "author" ? "Name tippen…" : kind === "series" ? "Reihe tippen…" : kind === "graphic" ? "Titel oder Reihe tippen…" : "Titel tippen…"} value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           {hits.length > 0 && <div className="chips">{hits.map((h) => <button type="button" key={h.id} className="chip" onClick={() => add(h.id)}>{h.label}{h.sub ? ` · ${h.sub}` : ""}</button>)}</div>}
         </div>
@@ -144,6 +150,7 @@ export default function Tops() {
                     : f.author_id ? <Link to={`/autorinnen?autor=${authors.get(f.author_id!)?.slug ?? ""}`} className="book-title" style={{ display: "block" }}>{label(f)}</Link>
                     : <strong className="book-title">{label(f)}</strong>}
                   {e && <p className="book-author">{authorNames(e)}{e.series ? ` · ${e.series.name}` : ""}</p>}
+                  {f.series_id && <p className="book-author">{kind === "graphic" ? "Ganze Reihe · " : ""}{entries.filter((x) => x.series?.id === f.series_id).length} Bände</p>}
                 </div>
                 {editing ? (
                   <div className="actions" style={{ flexWrap: "nowrap" }}>
