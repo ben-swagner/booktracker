@@ -289,6 +289,24 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           </ul>
           {b.tropes?.length ? <><Sub icon="sparkle">Tropes</Sub><Chips items={b.tropes} param="trope" /></> : null}
           {b.trigger_warnings?.length ? <><Sub icon="warning">Triggerwarnungen</Sub><Chips items={b.trigger_warnings} /></> : null}
+          {hasEdition && (
+            <>
+              <Sub icon="bookmark">Meine Ausgabe</Sub>
+              <ul className="bd-facts compact">
+                <Fact icon="book" label="Medium" value={m.medium} />
+                <Fact icon="layers" label="Format" value={m.format} />
+                <Fact icon="sparkle" label="Edition" value={m.edition} />
+                <Fact icon="gift" label="Extras" value={m.specials} />
+                <Fact icon="coin" label="Preis" value={euro(m.price_cents)} />
+                <Fact icon="check" label="Gekauft" value={m.bought == null ? null : m.bought ? "Ja" : "Nein"} />
+                <Fact icon="headphones" label="Hörbuch" value={m.audio_platforms} />
+                <Fact icon="speech" label="Sprecher:in" value={m.narrators} />
+                <Fact icon="clock" label="Hördauer" value={m.duration_min ? `${Math.floor(m.duration_min / 60)} h ${m.duration_min % 60} min` : null} />
+                <Fact icon="film" label="Adaption gesehen" value={m.adaptation_seen ? "Ja" : null} />
+              </ul>
+            </>
+          )}
+
         </section>
       )}
 
@@ -359,24 +377,6 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             </div>
             <div className="section">
           <Readings e={e} />
-
-          {hasEdition && (
-            <>
-              <Sub icon="bookmark">Meine Ausgabe</Sub>
-              <ul className="bd-facts compact">
-                <Fact icon="book" label="Medium" value={m.medium} />
-                <Fact icon="layers" label="Format" value={m.format} />
-                <Fact icon="sparkle" label="Edition" value={m.edition} />
-                <Fact icon="gift" label="Extras" value={m.specials} />
-                <Fact icon="coin" label="Preis" value={euro(m.price_cents)} />
-                <Fact icon="check" label="Gekauft" value={m.bought == null ? null : m.bought ? "Ja" : "Nein"} />
-                <Fact icon="headphones" label="Hörbuch" value={m.audio_platforms} />
-                <Fact icon="speech" label="Sprecher:in" value={m.narrators} />
-                <Fact icon="clock" label="Hördauer" value={m.duration_min ? `${Math.floor(m.duration_min / 60)} h ${m.duration_min % 60} min` : null} />
-                <Fact icon="film" label="Adaption gesehen" value={m.adaptation_seen ? "Ja" : null} />
-              </ul>
-            </>
-          )}
 
           {m.notes && <><Sub icon="note">Meine Notiz</Sub><p className="prose" style={{ margin: 0 }}>{m.notes}</p></>}
           {m.review && <><Sub icon="pencil">Rezension</Sub><p className="prose" style={{ margin: 0, whiteSpace: "pre-wrap" }}>{m.review}</p></>}
