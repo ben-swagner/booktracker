@@ -1,4 +1,4 @@
-import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem, Adaptation } from "./types";
 
 export interface ImportBundle extends Partial<Library> {
   sales?: any[];
@@ -28,6 +28,9 @@ export interface DataProvider {
 
   saveBook(book: Partial<Book> & { id?: string }, authorNames: string[], seriesName?: string | null): Promise<Book>;
   saveUserBook(ub: Partial<UserBook> & { book_id: string }): Promise<UserBook>;
+  /** Adaption anlegen oder ändern (gemeinsame Buchdaten). */
+  saveAdaptation(a: Partial<Adaptation> & { book_id: string; kind: string }): Promise<Adaptation>;
+  deleteAdaptation(id: string): Promise<void>;
   deleteUserBook(id: string): Promise<void>;
   saveReading(r: Partial<Reading> & { user_book_id: string }): Promise<Reading>;
   deleteReading(id: string): Promise<void>;

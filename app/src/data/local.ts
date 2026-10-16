@@ -1,6 +1,6 @@
 import type { DataProvider, ImportBundle } from "./provider";
 import { newId, slugify } from "./provider";
-import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Adaptation, Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 const KEY = "booktracker-demo-v2";
 const DEMO_USER: Profile = { id: "demo", display_name: "Larissa" };
@@ -95,6 +95,29 @@ export class LocalProvider implements DataProvider {
     else lib.books.push(merged);
     this.persist();
     return merged;
+  }
+
+  async saveAdaptation(a: Partial<Adaptation> & { book_id: string; kind: string }) {
+    const lib = await this.loadLibrary();
+    const b = lib.books.find((x) => x.id === a.book_id);
+    if (!b) throw new Error("Buch nicht gefunden");
+    const rows = b.adaptation_rows ?? (b.adaptations ?? []).map((kind) => ({ id: `${b.id}|${kind}`, book_id: b.id, kind }));
+    const row: Adaptation = { ...(rows.find((x) => x.id === a.id) ?? { id: newId() }), ...a } as Adaptation;
+    b.adaptation_rows = [...rows.filter((x) => x.id !== row.id), row];
+    b.adaptations = b.adaptation_rows.map((x) => x.kind);
+    this.persist();
+    return row;
+  }
+
+  async deleteAdaptation(id: string) {
+    const lib = await this.loadLibrary();
+    for (const b of lib.books) {
+      const rows = b.adaptation_rows ?? (b.adaptations ?? []).map((kind) => ({ id: `${b.id}|${kind}`, book_id: b.id, kind }));
+      if (!rows.some((x) => x.id === id)) continue;
+      b.adaptation_rows = rows.filter((x) => x.id !== id);
+      b.adaptations = b.adaptation_rows.map((x) => x.kind);
+    }
+    this.persist();
   }
 
   async saveUserBook(ub: Partial<UserBook> & { book_id: string }) {

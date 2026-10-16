@@ -15,6 +15,7 @@ import { data } from "../data";
 import { useQueryClient } from "@tanstack/react-query";
 import { BookAura } from "../components/Aura";
 import { SeriesTab } from "../components/SeriesTab";
+import { AdaptationsSection } from "../components/Adaptations";
 
 /** Chips, die zur Bibliothek mit passendem Filter führen (z. B. alle Bücher mit diesem Trope). */
 function Chips({ items, param }: { items?: string[]; param?: "trope" | "ohne" }) {
@@ -312,10 +313,10 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
             <Fact icon="pin" label="Schauplatz" value={b.setting} />
             <Fact icon="eye" label="Erzählperspektive" value={b.pov} />
             <Fact icon="users" label="Hauptfiguren" value={b.main_characters} />
-            <Fact icon="film" label="Adaption" value={b.adaptations} />
           </ul>
           {b.tropes?.length ? <><Sub icon="sparkle">Tropes</Sub><Chips items={b.tropes} param="trope" /></> : null}
           {b.trigger_warnings?.length ? <><Sub icon="warning">Triggerwarnungen</Sub><Chips items={b.trigger_warnings} /></> : null}
+          <AdaptationsSection e={e} />
           {hasEdition && (
             <>
               <Sub icon="bookmark">Meine Ausgabe</Sub>
@@ -329,7 +330,6 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
                 <Fact icon="headphones" label="Hörbuch" value={m.audio_platforms} />
                 <Fact icon="speech" label="Sprecher:in" value={m.narrators} />
                 <Fact icon="clock" label="Hördauer" value={m.duration_min ? `${Math.floor(m.duration_min / 60)} h ${m.duration_min % 60} min` : null} />
-                <Fact icon="film" label="Adaption gesehen" value={m.adaptation_seen ? "Ja" : null} />
               </ul>
             </>
           )}

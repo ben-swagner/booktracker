@@ -1822,3 +1822,21 @@ select.input.how-anders { background-image: var(--pfeil), linear-gradient(90deg,
 @media (max-width: 600px) { .bd-tabs.three .bd-tab .bd-sec-ico { display: none; } .bd-tabs.three .bd-tab { padding: 10px 6px; gap: 6px; } .bd-tabs.three .bd-tab strong { font-size: 14px; } .bs-tiles { grid-auto-columns: 100px; } }
 button.tag.tag-link { cursor: pointer; font: inherit; }
 button.tag.tag-link:hover { background: var(--accent-soft); }
+/* Adaptionen in der Buchkarte */
+.adapt { display: flex; flex-direction: column; gap: 10px; }
+.adapt .bd-sub { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adapt-row { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--glass, var(--surface-2)); box-shadow: inset 0 0 0 1px var(--glass-line, var(--line)); }
+.adapt-id { display: flex; align-items: center; gap: 10px; }
+.adapt-ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; flex: none; background: var(--surface-2); color: var(--ink); }
+.adapt-name { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.adapt-name strong { font-size: 15px; }
+.adapt-name small { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adapt-del { border: 0; background: none; color: var(--muted); font-size: 20px; line-height: 1; padding: 4px 8px; cursor: pointer; border-radius: 999px; }
+.adapt-del:hover { color: var(--ink); background: var(--surface-2); }
+.adapt-me { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+.adapt-me .chip { cursor: pointer; border: 0; font: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 5px; }
+.adapt-me .chip.on { background: var(--accent); color: var(--accent-ink); }
+.adapt-cmp { display: flex; gap: 6px; flex-wrap: wrap; }
+.adapt-form { display: grid; grid-template-columns: minmax(0, 180px) 1fr 90px; gap: 8px; align-items: center; padding: 12px; border-radius: 16px; background: var(--surface-2); }
+.adapt-form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 600px) { .adapt-form { grid-template-columns: 1fr 80px; } .adapt-form select { grid-column: 1 / -1; } }

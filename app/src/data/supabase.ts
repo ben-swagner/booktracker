@@ -1,7 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { DataProvider, ImportBundle, ImportSummary } from "./provider";
 import { slugify } from "./provider";
-import type { Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
+import type { Adaptation, Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 /** Echte Datenbank mit Konten (Supabase). */
 export class SupabaseProvider implements DataProvider {
@@ -98,11 +98,12 @@ export class SupabaseProvider implements DataProvider {
     const ceRows = chRows.length ? await this.fetchIn("challenge_entries", "*", chRows.map((c: any) => c.id), "challenge_id") : [];
     const ub = { data: ubRows }, rd = { data: rdRows }, wl = { data: wlRows }, gl = { data: glRows };
     const bookIds = (ub.data as UserBook[]).map((x) => x.book_id);
-    const rawBooks = await this.fetchIn("books", "*, book_authors(author_id, position), adaptations(kind)", bookIds);
+    const rawBooks = await this.fetchIn("books", "*, book_authors(author_id, position), adaptations(id, book_id, kind, title, year)", bookIds);
     const books: Book[] = rawBooks.map((b: any) => ({
       ...b,
       author_ids: [...(b.book_authors ?? [])].sort((x, y) => x.position - y.position).map((x) => x.author_id),
-      adaptations: (b.adaptations ?? []).map((x: any) => x.kind),
+      adaptations: (b.adaptations ?? []).filter((x: any) => x.kind).map((x: any) => x.kind),
+      adaptation_rows: (b.adaptations ?? []).filter((x: any) => x.kind),
       book_authors: undefined
     }));
     const authorIds = [...new Set(books.flatMap((b) => b.author_ids ?? []))];
@@ -147,7 +148,7 @@ export class SupabaseProvider implements DataProvider {
         series_id = data.id;
       }
     }
-    const { author_ids: _a, adaptations: _ad, ...row } = book as any;
+    const { author_ids: _a, adaptations: _ad, adaptation_rows: _ar, ...row } = book as any;
     const payload = { ...row, series_id, created_by: book.id ? undefined : uid };
     const { data, error } = await this.sb.from("books").upsert(payload).select("*").single();
     if (error) throw error;
@@ -167,6 +168,19 @@ export class SupabaseProvider implements DataProvider {
       .single();
     if (error) throw error;
     return data as UserBook;
+  }
+
+  async saveAdaptation(a: Partial<Adaptation> & { book_id: string; kind: string }) {
+    const { data, error } = await this.sb.from("adaptations").upsert(a).select("*").single();
+    if (error) throw error;
+    return data as Adaptation;
+  }
+
+  async deleteAdaptation(id: string) {
+    const { data, error } = await this.sb.from("adaptations").delete().eq("id", id).select("id");
+    if (error) throw error;
+    // Ohne Lösch-Recht (Datei 0003 noch nicht ausgeführt) entfernt die Datenbank still nichts
+    if (!data?.length) throw new Error("Löschen ist in der Datenbank noch nicht freigeschaltet (Ergänzung 0003_adaptionen.sql).");
   }
 
   async deleteUserBook(id: string) {
@@ -307,7 +321,7 @@ export class SupabaseProvider implements DataProvider {
     await run("Autor:innen", "authors", (src.authors ?? []).map((a) => ({ ...clean(a, []), created_by: uid })));
     await run("Reihen", "series", (src.series ?? []).map((s) => ({ ...clean(s, []), created_by: uid })));
     const books = (src.books ?? []) as any[];
-    await run("Bücher", "books", books.map((b) => ({ ...clean(b, ["author_ids", "adaptations"]), created_by: uid })));
+    await run("Bücher", "books", books.map((b) => ({ ...clean(b, ["author_ids", "adaptations", "adaptation_rows"]), created_by: uid })));
     const ba: any[] = [];
     for (const b of books) (b.author_ids ?? []).forEach((author_id: string, i: number) => ba.push({ book_id: b.id, author_id, position: i + 1 }));
     await run("Autor:innen-Zuordnung", "book_authors", ba, { onConflict: "book_id,author_id" });

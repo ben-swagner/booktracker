@@ -98,6 +98,15 @@ export function useSaveBook() {
   });
 }
 
+export function useSaveAdaptation() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (a: Parameters<typeof data.saveAdaptation>[0]) => data.saveAdaptation(a), onSuccess: inv });
+}
+export function useDeleteAdaptation() {
+  const inv = useInvalidate();
+  return useMutation({ mutationFn: (id: string) => data.deleteAdaptation(id), onSuccess: inv });
+}
+
 export function useSaveUserBook() {
   const inv = useInvalidate();
   return useMutation({ mutationFn: (ub: Partial<UserBook> & { book_id: string }) => data.saveUserBook(ub), onSuccess: inv });

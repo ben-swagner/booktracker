@@ -93,3 +93,4 @@ Neue Felder kommen als nummerierte Dateien in `supabase/migrations/`. Jede Datei
 einfügen und auf **Run** klicken, in der Reihenfolge der Nummern:
 
 - `0002_zitate_stimmung.sql`: Lieblingszitate und Stimmung je Buch (Buchseite, Bereich „Mein Lesen“).
+- `0003_adaptionen.sql`: eigene Bewertung von Adaptionen (Film, Serie, Anime …) und Adaptionen wieder löschen können.

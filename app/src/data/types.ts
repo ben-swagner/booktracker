@@ -25,6 +25,22 @@ export interface Series {
   kind?: string | null;
 }
 
+/** Eine Verfilmung, Serie, ein Spiel usw. zu einem Buch (gemeinsame Buchdaten). */
+export interface Adaptation {
+  id: string;
+  book_id: string;
+  kind: string;
+  title?: string | null;
+  year?: number | null;
+}
+
+/** Eigene Meinung zu einer Adaption (persönlich, in user_books.adaptation_reviews je Adaption). */
+export interface AdaptationReview {
+  seen?: boolean;
+  rating?: number | null;
+  compare?: "buch" | "gleich" | "adaption" | null;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -54,6 +70,7 @@ export interface Book {
   series_roles?: string[];
   author_ids?: string[];
   adaptations?: string[];
+  adaptation_rows?: Adaptation[];
 }
 
 export interface UserBook {
@@ -77,6 +94,7 @@ export interface UserBook {
   duration_min?: number | null;
   audio_verdict?: string | null;
   adaptation_seen?: boolean;
+  adaptation_reviews?: Record<string, AdaptationReview>;
   current_page?: number | null;
   company?: Company | null;
   verdict?: Verdict | null;
