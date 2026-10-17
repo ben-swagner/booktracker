@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useDeleteWishlistItem, useEntries, useSaveWishlistItem } from "../data/hooks";
 import { cleanIsbn, lookupIsbn } from "../lib/isbn";
 import { findDuplicates, normIsbn } from "../lib/duplicates";
@@ -9,6 +9,9 @@ import { euro, fmtDate, today } from "../lib/labels";
 import { Empty, SeriesNo } from "../components/ui";
 import { toast } from "../App";
 import { Icon } from "../components/Icon";
+import { GIFTED_WISH_IDS } from "../lib/giftedWishes";
+import { data } from "../data";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Der Scanner wird erst geladen, wenn er gebraucht wird
 const Scanner = lazy(() => import("../components/Scanner").then((m) => ({ default: m.Scanner })));
@@ -81,6 +84,27 @@ export default function Wunschliste() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"offen" | "gekauft">("offen");
   const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "", rec: "", genre: "" });
+
+  // Einmalig: Wünsche, die laut alter Tabelle geschenkt wurden, als „Geschenkt“ eintragen.
+  // Nur wo noch „Gekauft“ oder nichts steht; eine andere eigene Angabe bleibt.
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!lib) return;
+    const gifted = new Set(GIFTED_WISH_IDS);
+    const jobs = lib.wishlist_items.filter((w) => gifted.has(w.id) && (!w.purchase_condition || w.purchase_condition === "Gekauft"));
+    if (!jobs.length) return;
+    let alive = true;
+    (async () => {
+      let n = 0;
+      for (const w of jobs) {
+        try { await data.saveWishlistItem({ id: w.id, title: w.title, owned: true, purchase_condition: "Geschenkt" }); n++; } catch { /* beim nächsten Öffnen wieder */ }
+      }
+      if (!alive) return;
+      await qc.invalidateQueries({ queryKey: ["library"] });
+      if (n) toast(`${n} ${n === 1 ? "Buch steht" : "Bücher stehen"} jetzt wie in deiner alten Tabelle als geschenkt.`);
+    })();
+    return () => { alive = false; };
+  }, [lib]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const all = lib?.wishlist_items ?? [];
   type WSort = "erscheint" | "prio" | "preis-auf" | "preis-ab" | "titel" | "autor" | "genre" | "neu";
