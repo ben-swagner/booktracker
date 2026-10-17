@@ -23,6 +23,10 @@ export interface DataProvider {
   signInWithProvider(provider: "google" | "apple"): Promise<void>;
   signOut(): Promise<void>;
   onAuthChange(cb: () => void): () => void;
+  /** Eigenes Profil ändern (Name, Benutzername, Bild, kurzer Text, Zitat). */
+  saveProfile(p: Partial<Profile>): Promise<Profile>;
+  /** Ist der Benutzername noch frei? (Der eigene zählt als frei.) */
+  isHandleFree(handle: string): Promise<boolean>;
 
   loadLibrary(): Promise<Library>;
 

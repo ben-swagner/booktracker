@@ -3,7 +3,10 @@ import { newId, slugify } from "./provider";
 import type { Adaptation, Book, Challenge, ChallengeEntry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 const KEY = "booktracker-demo-v2";
-const DEMO_USER: Profile = { id: "demo", display_name: "Larissa" };
+const PROFILE_KEY = "booktracker-demo-profile";
+function demoUser(): Profile {
+  try { return { id: "demo", display_name: "Larissa", ...JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "{}") }; } catch { return { id: "demo", display_name: "Larissa" }; }
+}
 
 /**
  * Demo-Modus: Grunddaten aus public/demo/data.json, eigene Änderungen im Browser (localStorage).
@@ -15,7 +18,16 @@ export class LocalProvider implements DataProvider {
   private listeners = new Set<() => void>();
 
   async currentUser() {
-    return DEMO_USER;
+    return demoUser();
+  }
+  async saveProfile(p: Partial<Profile>) {
+    const next = { ...demoUser(), ...p, id: "demo" };
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(next)); } catch { /* egal */ }
+    return next;
+  }
+  async isHandleFree(handle: string) {
+    // Im Demo-Modus gibt es nur eine Person; zum Ausprobieren sind ein paar Namen „vergeben“
+    return !["ben", "booktracker", "test"].includes(handle);
   }
   async signInWithEmail() {}
   async signInWithPassword() {}

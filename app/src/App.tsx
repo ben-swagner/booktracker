@@ -20,6 +20,8 @@ import Autorinnen from "./pages/Autorinnen";
 import Ziele from "./pages/Ziele";
 import Mehr from "./pages/Mehr";
 import Tops from "./pages/Tops";
+import Profil from "./pages/Profil";
+import { Avatar } from "./components/Avatar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PageAura } from "./components/Aura";
 
@@ -125,6 +127,7 @@ export default function App() {
           <DesktopNav />
           <span className="nav-spacer" />
           <NavLink to="/neu" className="btn small nav-add">+ Buch</NavLink>
+          <NavLink to="/profil" className="nav-avatar" aria-label="Mein Profil" title="Mein Profil"><Avatar p={user} size={36} /></NavLink>
         </div>
       </header>
       {(() => { const seg = loc.pathname.split("/")[1] ?? ""; return seg === "" || seg === "buch" ? null : <PageAura key={seg} page={seg} />; })()}
@@ -150,6 +153,7 @@ export default function App() {
           <Route path="/ziele" element={<Ziele />} />
           <Route path="/mehr" element={<Mehr />} />
           <Route path="/tops" element={<Tops />} />
+          <Route path="/profil" element={<Profil />} />
           <Route path="*" element={<Start />} />
         </Routes>
         </ErrorBoundary>

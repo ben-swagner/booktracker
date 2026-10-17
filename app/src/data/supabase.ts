@@ -19,6 +19,31 @@ export class SupabaseProvider implements DataProvider {
     return (p as Profile) ?? { id: data.user.id, display_name: data.user.email ?? "" };
   }
 
+  async saveProfile(p: Partial<Profile>): Promise<Profile> {
+    const { data: u } = await this.sb.auth.getUser();
+    if (!u.user) throw new Error("Nicht angemeldet");
+    const { id: _id, ...fields } = p;
+    const res = await this.sb.from("profiles").update(fields).eq("id", u.user.id).select("*");
+    let error = res.error, row = res.data?.[0];
+    // Konto ohne Profilzeile (sehr alte Konten): dann neu anlegen
+    if (!error && !row) {
+      const ins = await this.sb.from("profiles").insert({ id: u.user.id, display_name: "", ...fields }).select("*");
+      error = ins.error; row = ins.data?.[0];
+    }
+    if (error) {
+      if (error.code === "23505" || /duplicate|unique/i.test(error.message)) throw new Error("HANDLE_TAKEN");
+      throw error;
+    }
+    return row as Profile;
+  }
+
+  async isHandleFree(handle: string): Promise<boolean> {
+    const { data: u } = await this.sb.auth.getUser();
+    const { data, error } = await this.sb.from("profiles").select("id").eq("handle", handle).limit(2);
+    if (error) throw error;
+    return !(data ?? []).some((r: any) => r.id !== u.user?.id);
+  }
+
   async signInWithEmail(email: string) {
     const { error } = await this.sb.auth.signInWithOtp({
       email,

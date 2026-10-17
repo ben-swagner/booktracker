@@ -2,10 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 import { data } from "./index";
-import type { Book, Challenge, ChallengeEntry, Entry, Favorite, Goal, Library, Reading, UserBook, WishlistItem } from "./types";
+import type { Book, Challenge, ChallengeEntry, Entry, Favorite, Goal, Library, Profile, Reading, UserBook, WishlistItem } from "./types";
 
 export function useUser() {
   return useQuery({ queryKey: ["user"], queryFn: () => data.currentUser(), staleTime: Infinity });
+}
+
+export function useSaveProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: Partial<Profile>) => data.saveProfile(p),
+    onSuccess: (p) => qc.setQueryData(["user"], p)
+  });
 }
 
 // Die lokale Kopie ist pro Konto abgelegt, damit nie das Regal einer anderen Person auftaucht.

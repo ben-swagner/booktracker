@@ -162,9 +162,17 @@ export interface Goal {
 
 export interface Profile {
   id: string;
+  /** Benutzername ohne @, klein geschrieben, einmalig */
   handle?: string | null;
   display_name: string;
+  /** Profilbild (klein gerechnet, als Datenadresse) */
   avatar_url?: string | null;
+  /** Kurzer Satz über die Person */
+  bio?: string | null;
+  /** Lieblingszitat und woher es stammt (braucht 0004_profil.sql) */
+  quote?: string | null;
+  quote_source?: string | null;
+  is_public?: boolean;
 }
 
 export interface Challenge {
