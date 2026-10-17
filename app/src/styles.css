@@ -1931,3 +1931,13 @@ button.pf-tile:hover .pf-tile-c { transform: translateY(-3px); }
 .pf-hint.bad { color: var(--red, #C2412D); }
 .pf-count { font-weight: 500; opacity: .7; margin-left: 6px; }
 @media (max-width: 640px) { .pf-editor { grid-template-columns: 1fr; } }
+
+/* Profilbild zuschneiden */
+.crop-modal { max-width: 440px; align-items: stretch; }
+.crop-box { position: relative; align-self: center; overflow: hidden; border-radius: 18px; background: #17151A; touch-action: none; cursor: grab; user-select: none; outline-offset: 3px; }
+.crop-box:active { cursor: grabbing; }
+.crop-img { position: absolute; left: 50%; top: 50%; max-width: none; pointer-events: none; }
+.crop-mask { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 999px rgba(23,21,26,.55); outline: 2px solid rgba(255,255,255,.9); pointer-events: none; }
+.crop-tools { display: flex; align-items: center; gap: 8px; }
+.crop-tools input[type="range"] { flex: 1; accent-color: var(--ink); min-width: 0; }
+.crop-tools .btn.ghost { font-size: 18px; line-height: 1; width: 34px; padding: 4px 0; justify-content: center; }

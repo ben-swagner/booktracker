@@ -14,7 +14,7 @@ import { useOpenBook } from "../components/openBook";
 import { readEvents } from "../lib/stats";
 import { fmtDate, today } from "../lib/labels";
 import { handleProblem, normalizeHandle, readerProfile, suggestHandle } from "../lib/profile";
-import { shrinkPhotoFile } from "../lib/authorPhotos";
+import { PhotoCropper } from "../components/PhotoCropper";
 import { toast } from "../App";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
@@ -272,10 +272,16 @@ function ProfileEditor({ user, onDone }: { user: Profile; onDone: () => void }) 
     return () => { alive = false; clearTimeout(t); };
   }, [f.handle, problem, own]);
 
-  async function pickFile(file?: File | null) {
+  // Gewähltes Bild erst zuschneiden lassen
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  function pickFile(file?: File | null) {
     if (!file) return;
-    try { setF((x) => ({ ...x, avatar_url: null })); const url = await shrinkPhotoFile(file, 320); setF((x) => ({ ...x, avatar_url: url })); }
-    catch { toast("Das Bild konnte nicht gelesen werden."); }
+    if (!file.type.startsWith("image/")) { toast("Bitte wähl ein Bild aus."); return; }
+    setCropSrc(URL.createObjectURL(file));
+  }
+  function closeCrop() {
+    if (cropSrc?.startsWith("blob:")) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
   }
 
   async function submit(ev: React.FormEvent) {
@@ -310,7 +316,9 @@ function ProfileEditor({ user, onDone }: { user: Profile; onDone: () => void }) 
         <Avatar p={preview} size={112} />
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ""; }} />
         <button type="button" className="btn small" onClick={() => fileRef.current?.click()}><Icon name="camera" size={14} /> {f.avatar_url ? "Bild ändern" : "Bild hochladen"}</button>
+        {f.avatar_url && <button type="button" className="btn small ghost" onClick={() => setCropSrc(f.avatar_url)}>Ausschnitt ändern</button>}
         {f.avatar_url && <button type="button" className="btn small ghost" onClick={() => setF({ ...f, avatar_url: null })}>Bild entfernen</button>}
+        {cropSrc && <PhotoCropper src={cropSrc} onCancel={closeCrop} onDone={(url) => { setF((x) => ({ ...x, avatar_url: url })); closeCrop(); }} />}
       </div>
       <div className="pf-editor-fields">
         <div className="field">
