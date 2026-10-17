@@ -61,12 +61,17 @@ export default function Profil() {
     // Tops: deine Favoriten in ihrer Reihenfolge
     const byBook = new Map(entries.map((e) => [e.book.id, e]));
     const favs = [...lib.favorites].sort((a, b) => a.rank - b.rank);
+    // Jedes Buch, jede Autor:in und jede Reihe nur einmal zeigen, auch wenn sie in mehreren Top-Listen steht
+    const once = <T,>(list: T[], key: (x: T) => string) => { const seen = new Set<string>(); return list.filter((x) => { const k = key(x); return seen.has(k) ? false : (seen.add(k), true); }); };
     const favBooks = favs.filter((f) => (f.kind === "book" || f.kind === "graphic") && f.book_id).map((f) => byBook.get(f.book_id!)).filter(Boolean) as Entry[];
-    const topBooks = favBooks.length ? favBooks : entries.filter((e) => e.mine.rating != null).sort((a, b) => b.mine.rating! - a.mine.rating!).slice(0, 8);
+    const favBooksOnce = once(favBooks, (e) => e.book.id);
+    const topBooks = favBooksOnce.length ? favBooksOnce : entries.filter((e) => e.mine.rating != null).sort((a, b) => b.mine.rating! - a.mine.rating!).slice(0, 8);
     const authors = new Map(lib.authors.map((a) => [a.id, a]));
-    const topAuthors = favs.filter((f) => f.kind === "author" && f.author_id).map((f) => authors.get(f.author_id!)).filter(Boolean).slice(0, 8) as NonNullable<ReturnType<typeof authors.get>>[];
+    const topAuthors = favs.filter((f) => f.kind === "author" && f.author_id).map((f) => authors.get(f.author_id!)).filter(Boolean) as NonNullable<ReturnType<typeof authors.get>>[];
+    const topAuthorsOnce = once(topAuthors, (a) => a.id).slice(0, 8);
     const seriesById = new Map(lib.series.map((s) => [s.id, s]));
-    const topSeries = favs.filter((f) => f.series_id).map((f) => {
+    const seriesFavs = once([...favs.filter((f) => f.kind === "series"), ...favs.filter((f) => f.kind !== "series")].filter((f) => f.series_id), (f) => f.series_id!);
+    const topSeries = seriesFavs.map((f) => {
       const s = seriesById.get(f.series_id!);
       const first = entries.filter((e) => e.series?.id === f.series_id).sort((a, b) => (a.book.series_number ?? "").localeCompare(b.book.series_number ?? "", "de", { numeric: true }))[0];
       return s ? { s, first } : null;
@@ -80,7 +85,7 @@ export default function Profil() {
 
     return {
       reading: entries.filter((e) => e.mine.status === "lese"),
-      recent, months, gs, goal, persona, challenges, topBooks, favBooksUsed: favBooks.length > 0, topAuthors, topSeries, wishes,
+      recent, months, gs, goal, persona, challenges, topBooks, favBooksUsed: favBooksOnce.length > 0, topAuthors: topAuthorsOnce, topSeries, wishes,
       readTotal: entries.filter((e) => e.mine.status === "gelesen").length,
       topGenreYear: [...evYear.reduce((m, x) => (x.e.book.genre ? m.set(x.e.book.genre, (m.get(x.e.book.genre) ?? 0) + 1) : m), new Map<string, number>())].sort((a, b) => b[1] - a[1])[0]?.[0]
     };
