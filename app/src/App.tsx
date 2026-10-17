@@ -59,11 +59,20 @@ const GROUPS: { label: string; to?: string; items?: NavItem[] }[] = [
 function DesktopNav() {
   const loc = useLocation();
   const [open, setOpen] = useState<string | null>(null);
+  // Menü schließen bei Klick daneben oder mit der Esc-Taste (wichtig für Tablets ohne Maus)
+  useEffect(() => {
+    if (!open) return;
+    const close = (ev: Event) => { if (!(ev.target as Element)?.closest?.(".nav-group")) setOpen(null); };
+    const esc = (ev: KeyboardEvent) => { if (ev.key === "Escape") setOpen(null); };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", esc); };
+  }, [open]);
   return (
     <nav className="nav-links" onMouseLeave={() => setOpen(null)}>
       {GROUPS.map((g) => g.items ? (
         <div key={g.label} className={"nav-group" + (open === g.label ? " open" : "")} onMouseEnter={() => setOpen(g.label)}>
-          <button type="button" className={"nav-btn" + (g.items.some((i) => loc.pathname.startsWith(i.to)) ? " active" : "")} aria-haspopup="true" aria-expanded={open === g.label} onClick={() => setOpen(open === g.label ? null : g.label)}>
+          <button type="button" className={"nav-btn" + (g.items.some((i) => loc.pathname.startsWith(i.to)) ? " active" : "")} aria-haspopup="true" aria-expanded={open === g.label} onClick={() => setOpen(g.label)}>
             {g.label} <span aria-hidden="true">▾</span>
           </button>
           <div className="nav-menu" role="menu" onClick={() => setOpen(null)}>
