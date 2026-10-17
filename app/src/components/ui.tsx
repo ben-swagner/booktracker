@@ -5,6 +5,8 @@ import { data } from "../data";
 import { NO_COVER, findCover } from "../lib/covers";
 import type { Entry, ReadingStatus } from "../data/types";
 import { STATUS, fmtDate, genreCloud, genreColors, lentOf } from "../lib/labels";
+import { Icon } from "./Icon";
+import { buddyInfo, buddyLabel } from "../lib/buddy";
 
 /** Merkt sich pro Sitzung, welche ISBNs bei Open Library kein Bild haben, damit nichts doppelt versucht wird. */
 const noCover = new Set<string>();
@@ -132,6 +134,7 @@ export function BookCard({ e }: { e: Entry }) {
       <div className="card-body">
         <div className="card-top">
           <StatusPill status={m.status} />
+          {buddyInfo(e) && <span className="tag buddy-tag" title={buddyLabel(buddyInfo(e)!)}><Icon name="buddies" size={13} />{buddyInfo(e)!.kind === "buddy" ? "Buddy Read" : "Gruppe"}</span>}
           {lentOf(m.condition) && <span className="tag lent-tag" title={`Verliehen${lentOf(m.condition)!.to ? ` an ${lentOf(m.condition)!.to}` : ""}`}>Verliehen</span>}
           {e.series && (
             <span className="tag">
@@ -247,16 +250,19 @@ function Spine({ e, compact, color, onHover, shared }: { e: Entry; compact?: boo
   const openBook = useOpenBook();
   const short = spineTitle(e.book.title);
   const t = shared?.has(short) ? e.book.title : short;
-  const show = titleFits(t, w, h);
+  const buddy = buddyInfo(e);
+  // Platz unten für das Buddy-Zeichen freihalten
+  const show = titleFits(t, w, buddy ? h - 22 : h);
   return (
     <Link
       to={`/buch/${e.mine.id}`}
-      className={`spine b-${bind}`}
+      className={`spine b-${bind}` + (buddy ? " has-buddy" : "")}
       title={`${e.book.title} · ${authorNames(e)}`}
       style={{ width: w, height: h, background: color.bg, color: color.fg }}
       onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey || !isDesktop()) return; ev.preventDefault(); openBook(e.mine.id); }}
     >
       <span className="spine-hover" onMouseEnter={() => onHover(e)} onMouseLeave={() => onHover(null)} />
+      {buddy && <span className="spine-buddy" title={buddyLabel(buddy)}><Icon name="buddies" size={Math.max(9, Math.min(12, w - 10))} /></span>}
       {show ? <span className={"spine-title" + (w >= 34 && t.length > Math.floor((h - 14) / 6.1) ? " two" : "")}>{t}</span> : <span className="spine-bands" />}
     </Link>
   );
@@ -273,6 +279,7 @@ function ShelfInfo({ e, fallback }: { e: Entry | null; fallback?: React.ReactNod
       {e.book.pages ? ` · ${e.book.pages} S.` : ""}
       {` · ${BINDING_LABEL[bindingOf(e)]}`}
       {last && (last.finished_on || last.finished_text) ? ` · beendet ${fmtDate(last.finished_on, last.finished_text)}` : ""}
+      {buddyInfo(e) ? ` · ${buddyLabel(buddyInfo(e)!)}` : ""}
     </p>
   );
 }
@@ -358,6 +365,7 @@ export function CoverShelfRows({ entries }: { entries: Entry[] }) {
                 >
                   <span className="cbook-in" onMouseEnter={() => setHover(e)} onMouseLeave={() => setHover(null)}>
                     <Cover title={e.book.title} author={authorNames(e)} url={e.book.cover_url} isbn={e.book.isbn13} bookId={e.book.id} genre={e.book.genre} />
+                    {buddyInfo(e) && <span className="cover-buddy" title={buddyLabel(buddyInfo(e)!)}><Icon name="buddies" size={13} /></span>}
                   </span>
                 </Link>
               );

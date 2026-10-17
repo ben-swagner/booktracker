@@ -127,6 +127,10 @@ export interface Reading {
   abandoned_reasons?: string[];
   abandoned_final?: boolean | null;
   continue_series?: boolean | null;
+  /** Allein, Buddy Read oder Gruppe (braucht 0005_buddy_reads.sql) */
+  company?: Company | null;
+  /** Mit wem gelesen, frei geschrieben (z. B. „Anna, Tabea“) */
+  partners?: string | null;
 }
 
 export interface WishlistItem {

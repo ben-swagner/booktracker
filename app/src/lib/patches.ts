@@ -87,7 +87,8 @@ export function computePatches(entries: Entry[], lib: Library): Patch[] {
   for (const e of readEntries) for (const a of e.authors) byAuthor.set(a.id, (byAuthor.get(a.id) ?? 0) + 1);
   values.autor = { value: Math.max(0, ...byAuthor.values()) };
 
-  values.buddy = { value: readEntries.filter((e) => e.mine.company === "buddy" || e.mine.company === "group").length };
+  // Buddy Reads: jeder gemeinsame Lesevorgang zählt, alte Angaben am Buch einmal
+  values.buddy = { value: entries.reduce((n, e) => { const shared = e.readings.filter((r) => !r.abandoned && (r.company === "buddy" || r.company === "group")).length; return n + (shared || (readEntries.includes(e) && (e.mine.company === "buddy" || e.mine.company === "group") ? 1 : 0)); }, 0) };
 
   const kauf = lib.challenges.filter((c) => c.kind === "kaufstopp").map((c) => parseKaufstopp(c, lib.challenge_entries.filter((x) => x.challenge_id === c.id), entries));
   values.kaufstopp = { value: Math.max(0, ...kauf.map((k) => k.best)) };

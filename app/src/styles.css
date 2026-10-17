@@ -2007,3 +2007,13 @@ button.pf-tile:hover .pf-tile-c { transform: translateY(-3px); }
 .patch-count { top: 2px; right: 0; }
 :root[data-theme="dark"] .patch-art.locked { opacity: .7; filter: invert(1) hue-rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .patch-new .patch-art { animation: none; } .patch-tile:hover .patch-art { transform: none; } }
+
+/* Buddy Reads */
+.buddy-tag { display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(90deg, #E9DDFB, #FBE3EC); color: #3E2A66; font-weight: 600; }
+.reading-company .mode-opt { display: inline-flex; align-items: center; gap: 5px; }
+.partners-input { flex: 1 1 200px; min-width: 160px; max-width: 320px; padding-block: 7px; font-size: 14px; }
+.spine-buddy { position: absolute; left: 50%; bottom: 7px; transform: translateX(-50%); display: grid; place-items: center; width: calc(100% - 6px); max-width: 18px; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,.88); color: #3E2A66; box-shadow: 0 1px 2px rgba(0,0,0,.2); pointer-events: none; }
+.cbook-in { position: relative; }
+.cover-buddy { position: absolute; top: 5px; left: 5px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.92); color: #3E2A66; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.spine.has-buddy { padding-bottom: 26px; }
+.spine.has-buddy .spine-title { max-height: 100%; overflow: hidden; }

@@ -3,7 +3,8 @@ import { Link } from "../components/Link";
 import { useRef, useState } from "react";
 import BookForm from "./BookForm";
 import { useDeleteReading, useDeleteUserBook, useEntries, useSaveReading, useSaveUserBook } from "../data/hooks";
-import type { Entry, Reading, ReadingStatus } from "../data/types";
+import type { Company, Entry, Reading, ReadingStatus } from "../data/types";
+import { COMPANY_OPTS, buddyInfo, buddyLabel, readingCompany } from "../lib/buddy";
 import { BURN, COMPANY, EXPECTATION, STATUS, STATUS_ORDER, VERDICT, euro, fmtDate, lentDays, lentOf, lentValue, spiceLabel, today } from "../lib/labels";
 import { Cover, ModePicker, ownedModes, SeriesNo, StarPicker, Stars, authorNames } from "../components/ui";
 import { AuthorPhoto, useOpenAuthor } from "../components/Authors";
@@ -202,6 +203,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
           <div className="card-top">
             {e.series && <button type="button" className="tag tag-link" onClick={() => pickTab("series")} title="Alle Bände der Reihe ansehen">{e.series.name}<SeriesNo n={b.series_number} total={e.series.total_count} />{e.series.total_count ? <span className="sno-total">von {e.series.total_count}</span> : null}</button>}
             {b.series_roles?.map((r) => <span key={r} className="tag">{r}</span>)}
+            {(() => { const bi = buddyInfo(e); return bi ? <span className="tag buddy-tag"><Icon name="buddies" size={14} />{buddyLabel(bi)}</span> : null; })()}
           </div>
           <h1 className="bd-title">{b.title}</h1>
           {b.subtitle && <p className="lede bd-subtitle">{b.subtitle}</p>}
@@ -368,7 +370,7 @@ export default function BookDetail(props: { id?: string; onClose?: () => void } 
                 <Fact icon="target" label="Erwartung" value={m.expectation ? EXPECTATION[m.expectation] : null} />
                 <Fact icon="flame" label="Spice" value={spiceLabel(m.spice)} />
                 <Fact icon="bolt" label="Burn" value={m.burn ? BURN[m.burn] : null} />
-                <Fact icon="people" label="Gelesen mit" value={m.company ? COMPANY[m.company] : null} />
+                <Fact icon="buddies" label="Gelesen mit" value={buddyInfo(e) ? buddyLabel(buddyInfo(e)!) : m.company ? COMPANY[m.company] : null} />
               </ul>
             </div>
           ) : <><StarPicker value={null} onChange={async (v) => { await saveUB.mutateAsync({ id: m.id, book_id: b.id, rating: v }); if (v != null) toast(`${String(v).replace(".", ",")} Sterne gespeichert.`); }} /><p className="meta" style={{ margin: 0 }}>Tipp auf die linke Hälfte eines Sterns für einen halben Stern. Urteil und Spice trägst du unter „Bewerten“ ein.</p></>}
@@ -491,6 +493,21 @@ function Readings({ e }: { e: Entry }) {
     toast("Lesevorgang gelöscht.");
   }
 
+  // Solo / Buddy Read / Gruppe pro Lesevorgang. Die Angabe am Buch folgt dem letzten Durchgang (für Statistik und ältere Daten).
+  async function setCompany(r: Reading, v: Company | null) {
+    let missing = false;
+    try { await saveReading.mutateAsync({ ...r, company: v, partners: v === "buddy" || v === "group" ? r.partners ?? null : null }); }
+    catch (x: any) { if (/company|partners/.test(String(x?.message ?? x))) missing = true; else { toast("Speichern hat nicht geklappt."); return; } }
+    if (r.id === latest?.id || missing) await saveUB.mutateAsync({ id: m.id, book_id: e.book.id, company: v });
+    if (missing) toast("Am Buch gespeichert. Für jeden Lesevorgang einzeln fehlt noch eine kleine Ergänzung der Datenbank (0005_buddy_reads.sql).");
+  }
+  async function setPartners(r: Reading, v: string) {
+    const partners = v.trim() || null;
+    if ((r.partners ?? null) === partners) return;
+    try { await saveReading.mutateAsync({ ...r, partners }); }
+    catch { toast("„Mit wem?“ kann erst gespeichert werden, wenn die Datenbank-Ergänzung 0005_buddy_reads.sql eingespielt ist."); }
+  }
+
   const label = (r: Reading) => (r.read_number === 1 ? "1. Lesen" : `Reread ${r.read_number - 1}`) + (r.abandoned ? " (abgebrochen)" : "");
   const fuzzy = (iso?: string | null, text?: string | null) => (!iso && text ? <span className="meta">bisher nur ungefähr: {text}</span> : null);
 
@@ -523,6 +540,18 @@ function Readings({ e }: { e: Entry }) {
                     {fuzzy(r.finished_on, r.finished_text)}
                   </label>
                 </div>
+                {(() => { const c = readingCompany(e, r); return (
+                  <div className="reading-mode reading-company">
+                    <span>Gelesen</span>
+                    <div className="mode-picker small" role="radiogroup" aria-label="Allein oder gemeinsam?">
+                      {COMPANY_OPTS.map(([k, l]) => <button key={k} type="button" role="radio" aria-checked={c === k} className={"mode-opt" + (c === k ? " on" : "")} onClick={() => setCompany(r, c === k ? null : k)}>{k !== "solo" && <Icon name="buddies" size={14} />}{l}</button>)}
+                    </div>
+                    {(c === "buddy" || c === "group") && (
+                      <input key={r.id + (r.partners ?? "")} className="input partners-input" placeholder={c === "buddy" ? "Mit wem? (z. B. Anna)" : "Mit wem? (z. B. Lesekreis, Anna, Tabea)"} defaultValue={r.partners ?? ""}
+                        onBlur={(ev) => setPartners(r, ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") (ev.target as HTMLInputElement).blur(); }} aria-label="Mit wem gelesen" />
+                    )}
+                  </div>
+                ); })()}
                 <div className="reading-mode"><span>Gelesen als</span><ModePicker small allowed={ownedModes(m).modes} printLabel={ownedModes(m).printLabel} value={r.mode} onChange={(v) => saveReading.mutate({ ...r, mode: v })} /></div>
                 {!r.abandoned && (
                   <div className="actions" style={{ marginTop: 2 }}>
