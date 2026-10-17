@@ -22,6 +22,7 @@ import Mehr from "./pages/Mehr";
 import Tops from "./pages/Tops";
 import Profil from "./pages/Profil";
 import { Avatar } from "./components/Avatar";
+import { PatchNotifier } from "./components/Patches";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PageAura } from "./components/Aura";
 
@@ -165,6 +166,7 @@ export default function App() {
       </nav>
       <AuthorModal />
       <BookModal />
+      <PatchNotifier />
       {toast && <div className="toast" role="status">{toast}</div>}
     </>
   );

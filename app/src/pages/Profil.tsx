@@ -15,6 +15,7 @@ import { readEvents } from "../lib/stats";
 import { fmtDate, today } from "../lib/labels";
 import { handleProblem, normalizeHandle, readerProfile, suggestHandle } from "../lib/profile";
 import { PhotoCropper } from "../components/PhotoCropper";
+import { ProfilePatches } from "../components/Patches";
 import { toast } from "../App";
 
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
@@ -132,6 +133,8 @@ export default function Profil() {
         <Kpi icon="check" tone="lilac" label="Gelesen insgesamt" value={fmtN(v.readTotal)} sub={`${v.gs.completedSeries} Reihen beendet`} />
         <Kpi icon="heart" tone="pink" label={`Lieblingsgenre ${year}`} value={v.topGenreYear ?? v.persona.topGenres[0] ?? "Noch offen"} sub={v.topGenreYear ? undefined : "über alle Jahre"} />
       </div>
+
+      <ProfilePatches />
 
       <section className="panel pf-sec">
         <div className="section-head"><h2>Dein Lesejahr {year}</h2><span className="muted">{v.gs.read} Bücher</span></div>

@@ -1941,3 +1941,53 @@ button.pf-tile:hover .pf-tile-c { transform: translateY(-3px); }
 .crop-tools { display: flex; align-items: center; gap: 8px; }
 .crop-tools input[type="range"] { flex: 1; accent-color: var(--ink); min-width: 0; }
 .crop-tools .btn.ghost { font-size: 18px; line-height: 1; width: 34px; padding: 4px 0; justify-content: center; }
+
+/* ---------- Patches ---------- */
+.patch { --pc: #6F5BD0; --pr: #D6A72B; position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--pc) 70%, #fff) 0%, var(--pc) 55%, color-mix(in srgb, var(--pc) 75%, #000) 100%);
+  box-shadow: 0 0 0 4px var(--pr), 0 0 0 5px rgba(0,0,0,.12), 0 6px 14px -6px rgba(23,21,26,.45), inset 0 2px 3px rgba(255,255,255,.35), inset 0 -3px 6px rgba(0,0,0,.25); color: #fff; }
+.patch::before { content: ""; position: absolute; inset: 9%; border-radius: 50%; border: 2px dashed rgba(255,255,255,.7); pointer-events: none; }
+.patch::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: .18;
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.6) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; }
+.patch.rainbow { border: 4px solid transparent;
+  background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--pc) 70%, #fff) 0%, var(--pc) 55%, color-mix(in srgb, var(--pc) 75%, #000) 100%) padding-box, conic-gradient(#FF6B6B, #FFB347, #FFE066, #7BD389, #5BC0EB, #9B7BEA, #FF6B6B) border-box;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.12), 0 6px 14px -6px rgba(23,21,26,.45), inset 0 2px 3px rgba(255,255,255,.35), inset 0 -3px 6px rgba(0,0,0,.25); }
+.patch-in { position: relative; z-index: 1; display: grid; place-items: center; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.patch-in svg { stroke-width: 2.2; }
+.patch-pips { position: absolute; bottom: 12%; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; z-index: 1; }
+.patch-pips i { width: 4px; height: 4px; border-radius: 50%; background: #fff; opacity: .9; }
+.patch.locked { filter: grayscale(1); opacity: .38; }
+
+.patch-wall { display: flex; flex-direction: column; gap: 16px; }
+.patch-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; }
+.patch-tabs button { border: 0; background: none; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
+.patch-tabs button.active { background: var(--ink); color: var(--surface); }
+.patch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 18px 12px; }
+.patch-row { display: flex; gap: 16px; overflow-x: auto; padding: 8px 6px 10px; margin: 0 -6px; scrollbar-width: thin; }
+.patch-row .patch-tile { width: 112px; flex: none; }
+.patch-tile { display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: 0; padding: 8px 4px; border-radius: 16px; color: inherit; text-align: center; cursor: pointer; }
+.patch-tile:hover { background: var(--surface-2); }
+.patch-tile:hover .patch { transform: rotate(-6deg) scale(1.04); }
+.patch-tile .patch { transition: transform .2s; margin-top: 4px; }
+.patch-name { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+.patch-tier { font-size: 11.5px; color: var(--muted); margin-top: -4px; }
+.patch-prog { display: flex; flex-direction: column; gap: 3px; width: 100%; align-items: stretch; }
+.patch-prog small { font-size: 11px; color: var(--muted); }
+.patch-bar { height: 6px; border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; display: block; }
+.patch-bar > span { display: block; height: 100%; background: var(--ink); border-radius: 999px; }
+.patch-prog.big { max-width: 280px; align-self: center; }
+.patch-prog.big .patch-bar { height: 10px; }
+.patch-prog.big small { font-size: 13px; text-align: center; }
+
+.patch-modal { max-width: 400px; align-items: center; text-align: center; padding-top: 32px; }
+.patch-modal h2 { margin: 6px 0 0; }
+.patch-when { margin: 0; display: inline-flex; gap: 6px; align-items: center; font-weight: 600; font-size: 14px; }
+.patch-ladder { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; padding: 10px 0 4px; }
+.patch-ladder span { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.patch-ladder small { font-size: 11px; color: var(--muted); }
+.patch-new .patch-kicker { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.patch-new-row { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; padding: 14px 0 6px; }
+.patch-new .patch { animation: patch-pop .6s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes patch-pop { from { transform: scale(.3) rotate(-25deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .patch-new .patch { animation: none; } .patch-tile:hover .patch { transform: none; } }
+.patch-count { position: absolute; top: -4px; right: -6px; z-index: 2; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface); }

@@ -17,7 +17,7 @@ export default function Mehr() {
         <Link to="/reihen"><strong>Reihen</strong><span>{series} Reihen mit Fortschritt und Lücken</span></Link>
         <Link to="/autorinnen"><strong>Autor:innen</strong><span>{authors} Namen in deinem Regal</span></Link>
         <Link to="/tops"><strong>Tops</strong><span>Deine Lieblingsbücher, Graphics und Autor:innen</span></Link>
-        <Link to="/ziele"><strong>Ziele und Challenges</strong><span>Jahresziel, SuB-Ziel, Bingo</span></Link>
+        <Link to="/ziele"><strong>Ziele und Challenges</strong><span>Jahresziel, SuB-Ziel, Bingo, Patches</span></Link>
         <Link to="/statistik"><strong>Statistik</strong><span>Lesejahr, Genres, Monate, Bewertungen</span></Link>
         <Link to="/einstellungen"><strong>Einstellungen</strong><span>Konto, Passwort, Darstellung, Export</span></Link>
       </div>

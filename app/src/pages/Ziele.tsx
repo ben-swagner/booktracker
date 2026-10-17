@@ -8,6 +8,9 @@ import { toast } from "../App";
 import { KaufstoppCard } from "../components/Kaufstopp";
 import { SeriesGoalCard, SubGoalCard, YearGoalCard, goalStats } from "../components/GoalCards";
 import { today } from "../lib/labels";
+import { PatchWall } from "../components/Patches";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 function BookPicker({ entries, value, onChange }: { entries: Entry[]; value?: string | null; onChange: (bookId: string | null) => void }) {
   const [q, setQ] = useState("");
@@ -53,6 +56,13 @@ export default function Ziele() {
   const goal = lib?.goals.find((g) => g.year === year);
   const lasting = lib?.goals.find((g) => g.year === LASTING);
   const stats = useMemo(() => goalStats(entries, year), [entries, year]);
+  // Sprung zu den Patches (z. B. vom Profil aus)
+  const loc = useLocation();
+  useEffect(() => {
+    if (loc.hash !== "#patches" || !lib) return;
+    const t = setTimeout(() => document.getElementById("patches")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+    return () => clearTimeout(t);
+  }, [loc.hash, lib]);
 
   if (isLoading || !lib) return <p className="muted">Lade…</p>;
 
@@ -107,6 +117,8 @@ export default function Ziele() {
         <SubGoalCard s={stats} goal={lasting} onEdit={() => openEdit("sub")} />
         <SeriesGoalCard s={stats} />
       </section>
+
+      <PatchWall />
 
       {edit && (
         <div className="modal-bg" onClick={() => setEdit(null)}>
