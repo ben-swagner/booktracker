@@ -117,9 +117,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .brand { font-weight: 800; font-size: 18px; letter-spacing: -.02em; text-decoration: none; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 .brand-dot { width: 12px; height: 12px; border-radius: 4px; background: var(--rainbow); }
 .nav-links { display: none; gap: 2px; flex: 1; }
-.nav-links a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 7px 12px; border-radius: 999px; white-space: nowrap; }
-.nav-links a:hover { color: var(--ink); background: var(--surface-2); }
-.nav-links a.active { background: var(--accent-soft); color: var(--accent); }
+.nav-links > a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 7px 12px; border-radius: 999px; white-space: nowrap; }
+.nav-links > a:hover { color: var(--ink); background: var(--surface-2); }
+.nav-links > a.active { background: var(--accent-soft); color: var(--accent); }
 .nav-spacer { flex: 1; }
 @media (min-width: 760px) { .nav-links { display: flex; } .nav-spacer { display: none; } }
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; transform: translateZ(0); will-change: transform; display: grid; grid-template-columns: repeat(5, 1fr); background: color-mix(in srgb, var(--surface) 90%, transparent); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 6px); }
@@ -1004,9 +1004,9 @@ h3 { font-weight: 600; }
 @media (min-width: 720px) { .nav-inner { padding-inline: 22px 8px; } .nav { padding-inline: 28px; } }
 .brand { font-weight: 600; font-size: 18px; letter-spacing: -.03em; margin-right: 14px; }
 .brand-dot { width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 50% 80%, #FF8547, #F8C7A4 45%, #B9B3F0); }
-.nav-links a, .nav-btn { color: var(--ink); font-weight: 500; padding: 9px 14px; }
-.nav-links a:hover, .nav-btn:hover, .nav-group.open .nav-btn { background: var(--accent-soft); color: var(--ink); }
-.nav-links a.active, .nav-btn.active { background: var(--accent); color: var(--accent-ink); }
+.nav-links > a, .nav-btn { color: var(--ink); font-weight: 500; padding: 9px 14px; }
+.nav-links > a:hover, .nav-btn:hover, .nav-group.open .nav-btn { background: var(--accent-soft); color: var(--ink); }
+.nav-links > a.active, .nav-btn.active { background: var(--accent); color: var(--accent-ink); }
 .nav-menu { border-radius: 22px; padding: 8px; background: var(--surface); box-shadow: 0 20px 50px rgba(23,21,26,.14), 0 0 0 1px var(--line); }
 .nav-menu-item { border-radius: 14px; padding: 10px 14px; }
 .nav-menu-item strong { font-weight: 600; }
