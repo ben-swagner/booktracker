@@ -86,12 +86,14 @@ export default function Wunschliste() {
   const [draft, setDraft] = useState({ title: "", author: "", isbn: "", price: "", priority: "mittel" as WishlistItem["priority"], format: "Egal", release: "", rec: "", genre: "" });
 
   // Einmalig: Wünsche, die laut alter Tabelle geschenkt wurden, als „Geschenkt“ eintragen.
-  // Nur wo noch „Gekauft“ oder nichts steht; eine andere eigene Angabe bleibt.
+  // Eigene Angaben wie „Mitgenommen“ oder „Anders“ bleiben.
   const qc = useQueryClient();
   useEffect(() => {
     if (!lib) return;
     const gifted = new Set(GIFTED_WISH_IDS);
-    const jobs = lib.wishlist_items.filter((w) => gifted.has(w.id) && (!w.purchase_condition || w.purchase_condition === "Gekauft"));
+    // Beim Übernehmen landete dort der Kaufzustand aus der Tabelle (meist „Neu“); nur eigene Angaben wie „Mitgenommen“ bleiben
+    const keep = new Set(["Geschenkt", "Mitgenommen", "Anders"]);
+    const jobs = lib.wishlist_items.filter((w) => gifted.has(w.id) && !keep.has(w.purchase_condition ?? ""));
     if (!jobs.length) return;
     let alive = true;
     (async () => {
