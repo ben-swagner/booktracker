@@ -3,23 +3,21 @@ import { createPortal } from "react-dom";
 import { useEntries, useUser } from "../data/hooks";
 import { Icon } from "./Icon";
 import { Link } from "./Link";
+import { patchSvg, TIER_METAL } from "../lib/patchArt";
 import { TIER_NAMES, computePatches, earnedShowcase, fmtPatchDate, nextUp, type Patch } from "../lib/patches";
-
-const TIER_RING = ["#3B3540", "#B9773E", "#A9ADB4", "#D6A72B", "#7FA9BE", "#6BC7E6", "rainbow"];
 
 export function usePatches() {
   const { entries, lib } = useEntries();
   return useMemo(() => (lib ? computePatches(entries, lib) : []), [entries, lib]);
 }
 
-/** Ein Patch wie ein gestickter Aufnäher: farbiger Grund, Steppnaht, Rand in der Farbe der Stufe. */
-export function PatchBadge({ p, size = 84 }: { p: Patch; size?: number }) {
-  const ring = TIER_RING[p.tier] ?? TIER_RING[0];
+/** Ein Patch als Talisman-Sticker: eigenes Motiv je Art, Metallfaden in der Farbe der Stufe, weißer Aufkleberrand. */
+export function PatchBadge({ p, size = 96 }: { p: Patch; size?: number }) {
+  const svg = useMemo(() => patchSvg(p.family, TIER_METAL[p.tier] ?? "gold", !p.earned), [p.family, p.tier, p.earned]);
   return (
-    <span className={"patch" + (p.earned ? "" : " locked") + (ring === "rainbow" ? " rainbow" : "")} style={{ width: size, height: size, ["--pc" as any]: p.color, ["--pr" as any]: ring === "rainbow" ? "#fff" : ring }} aria-hidden="true">
-      <span className="patch-in"><Icon name={p.icon} size={Math.round(size * 0.36)} /></span>
+    <span className={"patch-art" + (p.earned ? "" : " locked")} style={{ width: size, height: size }} aria-hidden="true">
+      <span className="patch-svg" dangerouslySetInnerHTML={{ __html: svg }} />
       {(p.count ?? 0) > 1 && <span className="patch-count">{p.count}×</span>}
-      {p.tier > 0 && <span className="patch-pips">{Array.from({ length: p.tier }, (_, i) => <i key={i} />)}</span>}
     </span>
   );
 }
